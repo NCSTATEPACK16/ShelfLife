@@ -66,4 +66,15 @@ test.describe('build mode — place/rotate/remove/undo', () => {
     await expect(count).toHaveText('0');
     await expect(undoButton).toBeDisabled();
   });
+
+  test('toggles the pathing debug overlay', async ({ page }) => {
+    await page.goto('/');
+
+    const toggle = page.locator('[data-testid="toggle-pathing-debug"]');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  });
 });
