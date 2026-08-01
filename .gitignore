@@ -1,0 +1,25 @@
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# generated art
+assets/placeholder/
+assets/atlases/
+
+# native
+ios/App/Pods/
+ios/App/build/
+*.xcuserstate
+DerivedData/
+
+# env & local
+.env
+.env.*
+!.env.example
+.DS_Store
+.netlify/
+test-results/
+playwright-report/
+.claude/settings.local.json
