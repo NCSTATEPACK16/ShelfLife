@@ -42,7 +42,10 @@ export type Command =
       readonly destinationId: string;
       readonly cells: readonly { readonly x: number; readonly y: number }[];
     }
-  | { readonly type: 'unregisterPathingDestination'; readonly destinationId: string };
+  | { readonly type: 'unregisterPathingDestination'; readonly destinationId: string }
+  | { readonly type: 'addHousehold'; readonly householdId: number }
+  | { readonly type: 'stockFixture'; readonly instanceId: number; readonly goodId: string }
+  | { readonly type: 'spawnShopper'; readonly shopperId: number; readonly householdId: number };
 
 export type CommandType = Command['type'];
 
@@ -132,6 +135,15 @@ export function hashCommand(hasher: Hasher, command: Command): void {
       return;
     case 'unregisterPathingDestination':
       hasher.str(command.destinationId);
+      return;
+    case 'addHousehold':
+      hasher.u32(command.householdId);
+      return;
+    case 'stockFixture':
+      hasher.u32(command.instanceId).str(command.goodId);
+      return;
+    case 'spawnShopper':
+      hasher.u32(command.shopperId).u32(command.householdId);
       return;
     case 'noop':
     case 'pause':

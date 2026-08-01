@@ -80,6 +80,13 @@ export function computeFlowField(
       const nx = x + dx;
       const ny = y + dy;
       if (!inBounds(nx, ny)) continue;
+      // A destination is frequently non-walkable (a shelf, a register) — its cell is
+      // seeded to distance 0 so the field still points toward it from a distance, but a
+      // neighbor step must always land somewhere walkable. Skipping non-walkable
+      // neighbors here means a cell already adjacent to a non-walkable destination has
+      // no walkable neighbor closer than itself, so its direction is correctly ZERO
+      // ("you're as close as you can get") instead of pointing into the fixture.
+      if (!isWalkable(nx, ny)) continue;
       // Corner guard: a diagonal step must have both flanking orthogonal cells walkable.
       if (dx !== 0 && dy !== 0 && (!isWalkable(x + dx, y) || !isWalkable(x, y + dy))) continue;
       const nDist = distances[index(nx, ny)]!;

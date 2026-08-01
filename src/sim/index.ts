@@ -47,3 +47,12 @@ export type {
 
 export { DEFAULT_GOODS_CATALOG, parseGoodsCatalog } from './systems/goods/index.js';
 export type { GoodDef } from './systems/goods/index.js';
+
+export {
+  advancePantryDay,
+  DEFAULT_SHOPPERS_CONFIG,
+  deriveShoppingList,
+  parseShoppersConfig,
+  ShoppersSystem,
+} from './systems/shoppers/index.js';
+export type { Household, Shopper, ShopperState, ShoppersConfig } from './systems/shoppers/index.js';

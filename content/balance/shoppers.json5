@@ -1,0 +1,15 @@
+{
+  // Satisfaction formula weights (PLAN.md §5.3). Only w1 (fillRate) and w7 (discovery) are
+  // live this phase — queuePenalty/spoiledEncounters/staffInteraction/cleanliness belong
+  // to phases 1.7/1.8 and are wired as 0 until those systems exist.
+  fillRateWeight: 0.6,
+  discoveryWeight: 0.1,
+
+  // Radius (in grid cells) within which a shopper's walked path exposes a stocked good to
+  // an impulse roll — PLAN.md §5.4's "path exposure," computed from actually-walked tiles.
+  exposureRadius: 2,
+
+  // A shopper counts as "arrived" at a non-walkable destination (a shelf or register —
+  // you can't stand inside a fixture) when within this many cells of it.
+  adjacentCellThreshold: 1,
+}

@@ -21,7 +21,22 @@ export type SimEvent =
   | { readonly type: 'dayStarted'; readonly day: number }
   | { readonly type: 'speedChanged'; readonly multiplier: number }
   | { readonly type: 'paused' }
-  | { readonly type: 'resumed' };
+  | { readonly type: 'resumed' }
+  | {
+      readonly type: 'saleCompleted';
+      readonly shopperId: number;
+      readonly householdId: number;
+      readonly total: number;
+      readonly items: readonly string[];
+    }
+  | {
+      readonly type: 'shopperTripCompleted';
+      readonly shopperId: number;
+      readonly householdId: number;
+      readonly satisfaction: number;
+      readonly fillRate: number;
+      readonly impulseHits: number;
+    };
 
 export type SimEventType = SimEvent['type'];
 
