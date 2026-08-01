@@ -1,0 +1,15 @@
+{
+  // Cells per tick an agent moves at full speed, no separation pressure applied.
+  maxSpeed: 0.35,
+
+  // Radius (in grid cells) within which a neighboring agent applies separation pressure.
+  separationRadius: 0.6,
+
+  // Weight of separation force relative to flow-following force. >1 means agents will
+  // visibly detour around a crowd rather than push straight through it.
+  separationWeight: 1.2,
+
+  // Distance (in grid cells) to a destination cell at which an agent counts as arrived
+  // and stops steering.
+  arrivalRadius: 0.25,
+}

@@ -31,6 +31,7 @@
     "@preact/signals": "2.4.0",
     "bitecs": "0.4.0",
     "idb-keyval": "6.3.0",
+    "json5": "^2.2.3",
     "mitt": "3.0.1",
     "phaser": "4.2.1",
     "preact": "10.29.7",
