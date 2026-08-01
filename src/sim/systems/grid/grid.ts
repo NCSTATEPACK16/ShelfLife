@@ -2,11 +2,23 @@ import type { FixtureDef, Footprint, GridDimensions, Placement, Rotation } from 
 
 export class PlacementError extends Error {}
 
+type HistoryEntry =
+  | { readonly kind: 'place'; readonly placement: Placement }
+  | { readonly kind: 'remove'; readonly placement: Placement }
+  | {
+      readonly kind: 'rotate';
+      readonly instanceId: number;
+      readonly from: Rotation;
+      readonly to: Rotation;
+    };
+
 export class BuildGrid {
   readonly #dimensions: GridDimensions;
   readonly #catalog: ReadonlyMap<string, FixtureDef>;
   readonly #occupancy = new Map<string, number>();
   readonly #placements = new Map<number, Placement>();
+  readonly #undoStack: HistoryEntry[] = [];
+  readonly #redoStack: HistoryEntry[] = [];
   #nextInstanceId = 1;
 
   constructor(dimensions: GridDimensions, catalog: readonly FixtureDef[]) {
@@ -46,18 +58,75 @@ export class BuildGrid {
 
     const instanceId = this.#nextInstanceId++;
     const placement: Placement = { instanceId, fixtureId, x, y, rotation };
-    this.#occupy(cells, instanceId);
-    this.#placements.set(instanceId, placement);
+    this.#reoccupy(placement);
+    this.#pushHistory({ kind: 'place', placement });
     return placement;
   }
 
   remove(instanceId: number): Placement {
     const placement = this.#placements.get(instanceId);
     if (!placement) throw new PlacementError(`No placement with instanceId ${instanceId}`);
-    const cells = this.footprintCells(placement.fixtureId, placement.x, placement.y, placement.rotation);
-    for (const { x, y } of cells) this.#occupancy.delete(cellKey(x, y));
-    this.#placements.delete(instanceId);
+    this.#unoccupy(placement);
+    this.#pushHistory({ kind: 'remove', placement });
     return placement;
+  }
+
+  rotate(instanceId: number, rotation: Rotation): Placement {
+    const existing = this.#placements.get(instanceId);
+    if (!existing) throw new PlacementError(`No placement with instanceId ${instanceId}`);
+    if (existing.rotation === rotation) return existing;
+
+    this.#assertRotatable(existing, rotation);
+    const rotated = this.#applyRotation(existing, rotation);
+    this.#pushHistory({ kind: 'rotate', instanceId, from: existing.rotation, to: rotation });
+    return rotated;
+  }
+
+  /** Undoes the most recent place/remove/rotate. Returns false if there is nothing to undo. */
+  undo(): boolean {
+    const entry = this.#undoStack.pop();
+    if (!entry) return false;
+    switch (entry.kind) {
+      case 'place':
+        this.#unoccupy(entry.placement);
+        break;
+      case 'remove':
+        this.#reoccupy(entry.placement);
+        break;
+      case 'rotate': {
+        const current = this.#placements.get(entry.instanceId);
+        if (current) this.#applyRotation(current, entry.from);
+        break;
+      }
+    }
+    this.#redoStack.push(entry);
+    return true;
+  }
+
+  /** Re-applies the most recently undone action. Returns false if there is nothing to redo. */
+  redo(): boolean {
+    const entry = this.#redoStack.pop();
+    if (!entry) return false;
+    switch (entry.kind) {
+      case 'place':
+        this.#reoccupy(entry.placement);
+        break;
+      case 'remove':
+        this.#unoccupy(entry.placement);
+        break;
+      case 'rotate': {
+        const current = this.#placements.get(entry.instanceId);
+        if (current) this.#applyRotation(current, entry.to);
+        break;
+      }
+    }
+    this.#undoStack.push(entry);
+    return true;
+  }
+
+  #pushHistory(entry: HistoryEntry): void {
+    this.#undoStack.push(entry);
+    this.#redoStack.length = 0;
   }
 
   #assertPlaceable(cells: readonly { x: number; y: number }[]): void {
@@ -71,32 +140,38 @@ export class BuildGrid {
     }
   }
 
-  #occupy(cells: readonly { x: number; y: number }[], instanceId: number): void {
-    for (const { x, y } of cells) this.#occupancy.set(cellKey(x, y), instanceId);
-  }
-
-  rotate(instanceId: number, rotation: Rotation): Placement {
-    const existing = this.#placements.get(instanceId);
-    if (!existing) throw new PlacementError(`No placement with instanceId ${instanceId}`);
-    if (existing.rotation === rotation) return existing;
-
-    const oldCells = this.footprintCells(existing.fixtureId, existing.x, existing.y, existing.rotation);
-    const newCells = this.footprintCells(existing.fixtureId, existing.x, existing.y, rotation);
-
+  #assertRotatable(placement: Placement, rotation: Rotation): void {
+    const newCells = this.footprintCells(placement.fixtureId, placement.x, placement.y, rotation);
     for (const { x, y } of newCells) {
       if (!this.isInBounds(x, y)) {
         throw new PlacementError(`Rotated placement cell (${x}, ${y}) is out of bounds`);
       }
       const occupant = this.#occupancy.get(cellKey(x, y));
-      if (occupant !== undefined && occupant !== instanceId) {
+      if (occupant !== undefined && occupant !== placement.instanceId) {
         throw new PlacementError(`Rotated placement cell (${x}, ${y}) is already occupied`);
       }
     }
+  }
 
-    for (const { x, y } of oldCells) this.#occupancy.delete(cellKey(x, y));
-    const rotated: Placement = { ...existing, rotation };
-    this.#occupy(newCells, instanceId);
-    this.#placements.set(instanceId, rotated);
+  /** Frees `placement`'s cells and removes it from the placement map. */
+  #unoccupy(placement: Placement): void {
+    const cells = this.footprintCells(placement.fixtureId, placement.x, placement.y, placement.rotation);
+    for (const { x, y } of cells) this.#occupancy.delete(cellKey(x, y));
+    this.#placements.delete(placement.instanceId);
+  }
+
+  /** Occupies `placement`'s cells and records it in the placement map. */
+  #reoccupy(placement: Placement): void {
+    const cells = this.footprintCells(placement.fixtureId, placement.x, placement.y, placement.rotation);
+    for (const { x, y } of cells) this.#occupancy.set(cellKey(x, y), placement.instanceId);
+    this.#placements.set(placement.instanceId, placement);
+  }
+
+  /** Moves an already-placed fixture to `rotation` without touching history. */
+  #applyRotation(placement: Placement, rotation: Rotation): Placement {
+    this.#unoccupy(placement);
+    const rotated: Placement = { ...placement, rotation };
+    this.#reoccupy(rotated);
     return rotated;
   }
 

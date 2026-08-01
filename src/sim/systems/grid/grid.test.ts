@@ -136,3 +136,66 @@ describe('BuildGrid rotation', () => {
     expect(() => grid.rotate(999, 90)).toThrow(PlacementError);
   });
 });
+
+describe('BuildGrid undo/redo', () => {
+  it('undo of a place removes the fixture', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    grid.place('shelf', 2, 2, 0);
+    expect(grid.undo()).toBe(true);
+    expect(grid.placements()).toEqual([]);
+  });
+
+  it('redo of an undone place restores it with the same instanceId', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    const placed = grid.place('shelf', 2, 2, 0);
+    grid.undo();
+    expect(grid.redo()).toBe(true);
+    expect(grid.placements()).toEqual([placed]);
+  });
+
+  it('undo of a remove restores the fixture', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    const placed = grid.place('shelf', 2, 2, 0);
+    grid.remove(placed.instanceId);
+    expect(grid.undo()).toBe(true);
+    expect(grid.placements()).toEqual([placed]);
+  });
+
+  it('undo of a rotate restores the previous rotation', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    const placed = grid.place('shelf', 2, 2, 0);
+    grid.rotate(placed.instanceId, 90);
+    expect(grid.undo()).toBe(true);
+    expect(grid.placements()).toEqual([placed]);
+  });
+
+  it('a new action after an undo clears the redo stack', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    grid.place('shelf', 2, 2, 0);
+    grid.undo();
+    grid.place('corral', 5, 5, 0);
+    expect(grid.redo()).toBe(false);
+  });
+
+  it('undo on empty history is a no-op returning false', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    expect(grid.undo()).toBe(false);
+  });
+
+  it('redo with nothing to redo is a no-op returning false', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    expect(grid.redo()).toBe(false);
+  });
+
+  it('placing 50 fixtures then undoing all 50 returns to an empty grid', () => {
+    const grid = new BuildGrid({ width: 50, height: 50 }, CATALOG);
+    for (let i = 0; i < 50; i++) {
+      grid.place('corral', i, 0, 0);
+    }
+    for (let i = 0; i < 50; i++) {
+      expect(grid.undo()).toBe(true);
+    }
+    expect(grid.placements()).toEqual([]);
+    expect(grid.undo()).toBe(false);
+  });
+});
