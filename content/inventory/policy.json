@@ -1,0 +1,6 @@
+[
+  { "goodId": "milk", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 1440, "supplierReliability": 0.9, "spoilageTauDays": 7 },
+  { "goodId": "bread", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 720, "supplierReliability": 0.95, "spoilageTauDays": 4 },
+  { "goodId": "eggs", "reorderPoint": 12, "orderUpToLevel": 36, "leadTimeTicks": 2880, "supplierReliability": 0.85, "spoilageTauDays": 21 },
+  { "goodId": "snacks", "reorderPoint": 15, "orderUpToLevel": 40, "leadTimeTicks": 4320, "supplierReliability": 0.98, "spoilageTauDays": 90 }
+]
