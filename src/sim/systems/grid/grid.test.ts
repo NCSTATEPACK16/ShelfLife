@@ -198,4 +198,14 @@ describe('BuildGrid undo/redo', () => {
     expect(grid.placements()).toEqual([]);
     expect(grid.undo()).toBe(false);
   });
+
+  it('hasUndo/hasRedo report stack state', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    expect(grid.hasUndo()).toBe(false);
+    expect(grid.hasRedo()).toBe(false);
+    grid.place('shelf', 0, 0, 0);
+    expect(grid.hasUndo()).toBe(true);
+    grid.undo();
+    expect(grid.hasRedo()).toBe(true);
+  });
 });

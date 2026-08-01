@@ -82,6 +82,14 @@ export class BuildGrid {
     return rotated;
   }
 
+  hasUndo(): boolean {
+    return this.#undoStack.length > 0;
+  }
+
+  hasRedo(): boolean {
+    return this.#redoStack.length > 0;
+  }
+
   /** Undoes the most recent place/remove/rotate. Returns false if there is nothing to undo. */
   undo(): boolean {
     const entry = this.#undoStack.pop();
