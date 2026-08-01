@@ -78,3 +78,36 @@ Phases and their acceptance gates are defined in `PLAN.md` §16.
   the on-screen placement count and disabled states never updated. Found by the E2E suite, not the
   unit tests — fixed with `onUndo`/`onRedo` callbacks mirroring the existing `onArm`/`onSelect`
   pattern.
+
+#### Phase 1.5 — Pathing · **gate PASS**
+- `src/sim/systems/pathing/`: `computeFlowField` — multi-source BFS (equivalent to Dijkstra under
+  uniform per-cell cost) over `BuildGrid`'s walkable cells, with a second 8-connected pass for the
+  direction field so arrows can point diagonally without ever cutting through a wall corner.
+  `computeSteering` — separation (averaged across contributing neighbors, not summed — see Fixed
+  below) blended with flow-following, clamped to `maxSpeed`, tapering to zero inside `arrivalRadius`.
+- `PathingSystem` owns named destinations (`registerPathingDestination`/`unregisterPathingDestination`
+  commands) and recomputes **at most one dirty destination per tick** — `BuildGrid` gained a `version`
+  counter, and any version change marks every registered destination dirty, but they drain from a
+  FIFO queue one at a time so an edit that dirties everything still costs one flow-field pass per
+  tick, not a spike. The world hash covers the destination set and dirty queue, not the computed
+  field arrays themselves — those are a pure function of already-hashed inputs.
+- First use of `content/balance/*.json5` (`pathing.json5`): `maxSpeed`, `separationRadius`,
+  `separationWeight`, `arrivalRadius`, Zod-validated. Loaded via Vite's `?raw` import suffix + the
+  `json5` package — no bespoke loader plugin needed, works identically under `vite build` and
+  `vitest`.
+- Phase gate proof (`pathing.perf.test.ts`): 400 synthetic point-agents (no Agent/ECS system exists
+  yet — that's phase 1.6) routed through a 60×40 grid with scattered obstacles to a multi-cell exit,
+  1,000 ticks, zero agents stuck (no net progress for >100 consecutive ticks) — and `world.step()`
+  itself (the pathing system's actual per-tick cost, excluding the test harness's own O(n²) neighbor
+  search) averages well under the 1.5 ms budget.
+- New `grid-and-pathing` golden scenario; the five pre-existing golden hashes are unchanged.
+- Debug overlay: `BuildModeBridge#flowFieldDebug`, a pure `buildFlowFieldDrawPlan` (reuses `iso.ts`'s
+  `worldToScreen`), and a "Flow" toggle in `BuildModePanel` rendering violet arrows (from
+  `tokens.color.product.violet`) over `BuildScene`. E2E-covered at both breakpoints.
+
+##### Fixed
+- `computeSteering`'s separation force summed every contributing neighbor's push vector instead of
+  averaging them, so in a dense cluster neighbor count alone could dominate — and even reverse — the
+  desired velocity relative to the flow direction. That produced genuine gridlock (not just slow
+  queuing) near the phase gate's exit. Found by the 400-agent perf test, not the steering unit tests
+  (which only ever exercised 0–3 neighbors); fixed by averaging.
