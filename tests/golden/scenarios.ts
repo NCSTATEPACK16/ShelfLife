@@ -1,4 +1,4 @@
-import { GridSystem, World } from '../../src/sim/index.js';
+import { GridSystem, PathingSystem, World } from '../../src/sim/index.js';
 import type { Hasher, System } from '../../src/sim/index.js';
 
 /**
@@ -102,6 +102,34 @@ export const SCENARIOS: readonly Scenario[] = [
       for (let i = 0; i < 5; i++) {
         world.commands.push({ type: 'undoBuild' });
       }
+      return world;
+    },
+  },
+  {
+    name: 'grid-and-pathing',
+    seed: 20260801,
+    ticks: 400,
+    sampleEvery: 20,
+    build() {
+      const world = new World({ seed: this.seed });
+      const grid = new GridSystem({ width: 30, height: 30 });
+      world.register(grid);
+      const pathing = new PathingSystem(grid.grid);
+      world.register(pathing);
+
+      for (let i = 0; i < 15; i++) {
+        world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: i, y: 5, rotation: 0 });
+      }
+      world.commands.push({
+        type: 'registerPathingDestination',
+        destinationId: 'north-exit',
+        cells: [{ x: 0, y: 0 }],
+      });
+      world.commands.push({
+        type: 'registerPathingDestination',
+        destinationId: 'south-exit',
+        cells: [{ x: 29, y: 29 }],
+      });
       return world;
     },
   },

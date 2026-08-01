@@ -138,5 +138,33 @@
       "0x2915d679",
       "0xeb218b15"
     ]
+  },
+  "grid-and-pathing": {
+    "seed": 20260801,
+    "ticks": 400,
+    "sampleEvery": 20,
+    "hashes": [
+      "0xe556de62",
+      "0x54cbaf69",
+      "0x2182ed2d",
+      "0x70dcb861",
+      "0xdeca8365",
+      "0x744121f9",
+      "0x3bf3e0bd",
+      "0xe4c399f1",
+      "0x2457dcf5",
+      "0xc404ab09",
+      "0x633d784d",
+      "0x50583381",
+      "0xa2a82385",
+      "0x0f56bb16",
+      "0x538bdd5a",
+      "0xc322be6e",
+      "0xec7cd892",
+      "0xffc2daa6",
+      "0x64952c6a",
+      "0xe56004fe",
+      "0x3ef0ec22"
+    ]
   }
 }
