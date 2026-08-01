@@ -145,3 +145,44 @@ Phases and their acceptance gates are defined in `PLAN.md` §16.
   have to be walkable outright; a cell already adjacent to a non-walkable destination gets direction
   zero ("as close as you can get") instead. Found by the first end-to-end shopper trip test — 1.5's
   own tests never exercised a non-walkable destination.
+
+#### Phase 1.7 — Inventory & suppliers · **gate PASS**
+- `src/sim/systems/inventory/`: a supply policy per good (`content/inventory/policy.json`,
+  Zod-validated, cross-referenced against `content/goods/catalog.json` — an unknown `goodId` or
+  `orderUpToLevel <= reorderPoint` fails validation), a closed-form freshness curve (`freshnessAt`,
+  PLAN.md §5.5's exact `f(t) = exp(-t/τ_sku)` — no discretization to lose accuracy, so there's
+  nothing for a balance harness to reconcile against the formula), and `InventorySystem`.
+- `InventorySystem` is fully autonomous (no commands): tracked **per good, not per physical shelf**
+  (the store's total stock of "milk" is one ledger regardless of which fixture displays it — a
+  documented scope cut). Each tick, lands any pending delivery, then places at most one reorder per
+  good at or below its `(s,S)` reorder point — skipping goods already awaiting delivery, and
+  respecting a store-wide `dockCapacity` so simultaneous reorders queue rather than all landing at
+  once. Supplier reliability is a single roll per order (full quantity on success, half on failure)
+  using the `'spoilage'` RNG stream reserved since phase 1.3, unused until now.
+- `consume(goodId, tick)` draws one unit FIFO from the oldest batch and classifies the sale by that
+  batch's freshness: `'sold'` above the markdown threshold, `'markdown'` (discounted, still
+  fulfilling the list item) between markdown and shrink thresholds, `'spoiled'` below shrink (written
+  off, not sold), `'outOfStock'` with nothing to draw from.
+- Wired into `ShoppersSystem#stepShopping`, replacing the previous unconditional pickup. This finally
+  gives real behavior to the `spoiledEncounters` satisfaction term (stubbed at `0` since phase 1.6,
+  via a new `spoiledEncountersWeight` in `content/balance/shoppers.json5`) and to `priceSurprise`'s
+  discount case in miniature (a markdown sale actually pays less). Sale totals now come from the
+  shopper's own accumulated `cartTotal` (markdowns already applied) instead of being recomputed from
+  catalog list price at checkout.
+- Phase gate proof (`spoilage-economics.test.ts`): an "unattended" store (`dockCapacity: 0`, so no
+  reorder can ever land) consuming one unit of milk per sim day runs out on the exact precomputed
+  day — not approximately, precisely, since `consume()` is deterministic and freshness is
+  closed-form. A second assertion confirms `freshnessAt` matches `exp(-t/τ)` within 2% at several
+  ages (in practice, exactly — it *is* the formula).
+- `shopper-trip` golden scenario re-baselined in its own commit (`InventorySystem` now registered
+  alongside it, and `Shopper`'s hash gained `cartTotal`/`spoiledEncounters`) — confirmed the other
+  five pre-existing scenarios were untouched before re-baselining, not assumed.
+- **No dedicated "runs out" golden scenario.** `InventorySystem`'s own `system.test.ts` already
+  covers reorder/dock-capacity/replay determinism, and the gate-proof test above adds the exact-day
+  claim; a golden scenario driving `consume()` on a schedule with no shopper would need a new
+  special-cased hook in `runScenario` for marginal benefit over what's already locked. Noted as a
+  deliberate scope call, not an oversight.
+
+##### Fixed
+- None — no bugs found this phase's full end-to-end test (a first, after 1.4's undo/redo bug, 1.5's
+  steering bug, and 1.6's two pathing/collision bugs, all found the same way).
