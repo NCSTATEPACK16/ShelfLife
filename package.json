@@ -21,10 +21,11 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "verify": "npm run typecheck && npm run lint && npm run check:tokens && npm run test && npm run build",
+    "verify": "npm run typecheck && npm run lint && npm run check:tokens && npm run check:content && npm run test && npm run build",
     "cap:sync": "npm run build:game && cap sync ios",
     "cap:open": "cap open ios",
     "check:tokens": "node tools/check-tokens.mjs",
+    "check:content": "node tools/check-gentle-surface.mjs",
     "check:budget": "node tools/check-budget.mjs"
   },
   "dependencies": {
