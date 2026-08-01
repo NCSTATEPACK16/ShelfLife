@@ -1,4 +1,4 @@
-import { World } from '../../src/sim/index.js';
+import { GridSystem, World } from '../../src/sim/index.js';
 import type { Hasher, System } from '../../src/sim/index.js';
 
 /**
@@ -85,6 +85,23 @@ export const SCENARIOS: readonly Scenario[] = [
       // Commands are queued up front and drain on their tick boundaries, so this stays
       // a pure recipe rather than depending on when the test happens to push them.
       world.commands.push({ type: 'setSpeed', multiplier: 4 });
+      return world;
+    },
+  },
+  {
+    name: 'grid-build',
+    seed: 555111,
+    ticks: 2_000,
+    sampleEvery: 100,
+    build() {
+      const world = new World({ seed: this.seed });
+      world.register(new GridSystem({ width: 30, height: 30 }));
+      for (let i = 0; i < 20; i++) {
+        world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: i, y: 0, rotation: 0 });
+      }
+      for (let i = 0; i < 5; i++) {
+        world.commands.push({ type: 'undoBuild' });
+      }
       return world;
     },
   },
