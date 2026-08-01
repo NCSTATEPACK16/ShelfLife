@@ -4,6 +4,7 @@ import tokens from '../../content/design/tokens.json';
 import { buildDrawPlan } from './draw-plan.js';
 import { toPhaserColor } from './fixture-colors.js';
 import { buildFlowFieldDrawPlan } from './pathing-debug-plan.js';
+import { buildShopperDrawPlan } from './shopper-draw-plan.js';
 
 /**
  * Renders the build-mode grid. Reads the bridge's snapshot; never mutates it.
@@ -67,6 +68,12 @@ export class BuildScene extends Phaser.Scene {
       for (const arrow of arrows) {
         g.lineBetween(arrow.x1, arrow.y1, arrow.x2, arrow.y2);
       }
+    }
+
+    const shopperColor = toPhaserColor(tokens.color.product.green.base);
+    for (const marker of buildShopperDrawPlan(this.#bridge.shoppersSnapshot(), this.#origin)) {
+      g.fillStyle(shopperColor, 1);
+      g.fillCircle(marker.x, marker.y, 6);
     }
   }
 }

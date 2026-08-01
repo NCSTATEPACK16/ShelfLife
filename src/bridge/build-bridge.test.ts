@@ -74,4 +74,29 @@ describe('BuildModeBridge', () => {
     bridge.unregisterDestination('debug-exit');
     expect(() => bridge.flowFieldDebug('debug-exit')).toThrow();
   });
+
+  it('adds a household, stocks a fixture, and spawns a shopper visible in the snapshot', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.place('shelf_basic', 5, 5, 0);
+    const instanceId = bridge.snapshot().placements[0]!.instanceId;
+    bridge.stockFixture(instanceId, 'milk');
+    bridge.addHousehold(1);
+    bridge.spawnShopper(100, 1);
+    const shoppers = bridge.shoppersSnapshot();
+    expect(shoppers).toHaveLength(1);
+    expect(shoppers[0]?.id).toBe(100);
+  });
+
+  it('tick() advances the world without requiring a command', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.place('register', 8, 8, 0);
+    bridge.addHousehold(1);
+    // A fully-stocked household has an empty list, so this shopper heads straight to
+    // checkout — enough to prove tick() moves it without any further command.
+    bridge.spawnShopper(100, 1);
+    const before = bridge.shoppersSnapshot()[0]!;
+    bridge.tick();
+    const after = bridge.shoppersSnapshot()[0]!;
+    expect(after.x !== before.x || after.y !== before.y).toBe(true);
+  });
 });

@@ -5,6 +5,7 @@ import { breakpointFor, type Breakpoint } from '../platform/layout/index.js';
 import { BuildModePanel } from '../ui/BuildModePanel.js';
 import { SelectionActionBar } from '../ui/SelectionActionBar.js';
 import { screenToWorld, worldToScreen } from './iso.js';
+import { TICK_MS } from '../sim/index.js';
 import type { Rotation } from '../sim/index.js';
 
 const GRID_DIMENSIONS = { width: 20, height: 20 };
@@ -162,6 +163,15 @@ export async function mountBuildMode(
     }
   });
   input.attach();
+
+  // Build mode is otherwise action-driven (a step per command), but households/shoppers
+  // need real time to pass with no UI interaction at all — a plain interval at the sim's
+  // own tick rate, redrawing the scene (UI panels don't depend on tick-by-tick state, so
+  // they're left to their existing event-driven renderUi() calls).
+  globalThis.setInterval(() => {
+    bridge.tick();
+    scene.redraw();
+  }, TICK_MS);
 
   renderUi();
   return { bridge };

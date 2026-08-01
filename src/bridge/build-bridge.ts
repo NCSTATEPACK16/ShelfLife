@@ -1,5 +1,5 @@
-import { DEFAULT_CATALOG, GridSystem, PathingSystem, World } from '../sim/index.js';
-import type { Command, FixtureDef, GridDimensions, Placement, Rotation } from '../sim/index.js';
+import { DEFAULT_CATALOG, GridSystem, PathingSystem, ShoppersSystem, World } from '../sim/index.js';
+import type { Command, FixtureDef, GridDimensions, Placement, Rotation, ShopperState } from '../sim/index.js';
 
 export interface BuildModeSnapshot {
   readonly dimensions: GridDimensions;
@@ -15,6 +15,7 @@ export class BuildModeBridge {
   readonly #world: World;
   readonly #grid: GridSystem;
   readonly #pathing: PathingSystem;
+  readonly #shoppers: ShoppersSystem;
 
   constructor(dimensions: GridDimensions, seed = 1) {
     this.#world = new World({ seed });
@@ -22,6 +23,8 @@ export class BuildModeBridge {
     this.#world.register(this.#grid);
     this.#pathing = new PathingSystem(this.#grid.grid);
     this.#world.register(this.#pathing);
+    this.#shoppers = new ShoppersSystem(this.#grid.grid, this.#pathing);
+    this.#world.register(this.#shoppers);
   }
 
   place(fixtureId: string, x: number, y: number, rotation: Rotation): void {
@@ -76,6 +79,32 @@ export class BuildModeBridge {
       }
     }
     return out;
+  }
+
+  addHousehold(householdId: number): void {
+    this.#step({ type: 'addHousehold', householdId });
+  }
+
+  stockFixture(instanceId: number, goodId: string): void {
+    this.#step({ type: 'stockFixture', instanceId, goodId });
+  }
+
+  spawnShopper(shopperId: number, householdId: number): void {
+    this.#step({ type: 'spawnShopper', shopperId, householdId });
+  }
+
+  /** Every active shopper's position and FSM state, for rendering only. */
+  shoppersSnapshot(): readonly { id: number; x: number; y: number; state: ShopperState }[] {
+    return this.#shoppers.activeShopperIds().map((id) => {
+      const shopper = this.#shoppers.shopper(id);
+      return { id: shopper.id, x: shopper.position.x, y: shopper.position.y, state: shopper.state };
+    });
+  }
+
+  /** Advances the world one tick with no command — build mode is otherwise action-driven,
+   *  but shoppers/pantries need real time to pass even absent any UI interaction. */
+  tick(): void {
+    this.#world.step();
   }
 
   snapshot(): BuildModeSnapshot {
