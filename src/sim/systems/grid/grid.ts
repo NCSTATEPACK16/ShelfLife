@@ -1,8 +1,13 @@
-import type { FixtureDef, Footprint, GridDimensions, Rotation } from './types.js';
+import type { FixtureDef, Footprint, GridDimensions, Placement, Rotation } from './types.js';
+
+export class PlacementError extends Error {}
 
 export class BuildGrid {
   readonly #dimensions: GridDimensions;
   readonly #catalog: ReadonlyMap<string, FixtureDef>;
+  readonly #occupancy = new Map<string, number>();
+  readonly #placements = new Map<number, Placement>();
+  #nextInstanceId = 1;
 
   constructor(dimensions: GridDimensions, catalog: readonly FixtureDef[]) {
     this.#dimensions = dimensions;
@@ -24,7 +29,50 @@ export class BuildGrid {
   }
 
   isWalkable(x: number, y: number): boolean {
-    return this.isInBounds(x, y);
+    if (!this.isInBounds(x, y)) return false;
+    const instanceId = this.#occupancy.get(cellKey(x, y));
+    if (instanceId === undefined) return true;
+    const placement = this.#placements.get(instanceId);
+    return placement ? this.fixtureDef(placement.fixtureId).walkable : true;
+  }
+
+  placements(): readonly Placement[] {
+    return [...this.#placements.values()].sort((a, b) => a.instanceId - b.instanceId);
+  }
+
+  place(fixtureId: string, x: number, y: number, rotation: Rotation): Placement {
+    const cells = this.footprintCells(fixtureId, x, y, rotation);
+    this.#assertPlaceable(cells);
+
+    const instanceId = this.#nextInstanceId++;
+    const placement: Placement = { instanceId, fixtureId, x, y, rotation };
+    this.#occupy(cells, instanceId);
+    this.#placements.set(instanceId, placement);
+    return placement;
+  }
+
+  remove(instanceId: number): Placement {
+    const placement = this.#placements.get(instanceId);
+    if (!placement) throw new PlacementError(`No placement with instanceId ${instanceId}`);
+    const cells = this.footprintCells(placement.fixtureId, placement.x, placement.y, placement.rotation);
+    for (const { x, y } of cells) this.#occupancy.delete(cellKey(x, y));
+    this.#placements.delete(instanceId);
+    return placement;
+  }
+
+  #assertPlaceable(cells: readonly { x: number; y: number }[]): void {
+    for (const { x, y } of cells) {
+      if (!this.isInBounds(x, y)) {
+        throw new PlacementError(`Placement cell (${x}, ${y}) is out of bounds`);
+      }
+      if (this.#occupancy.has(cellKey(x, y))) {
+        throw new PlacementError(`Placement cell (${x}, ${y}) is already occupied`);
+      }
+    }
+  }
+
+  #occupy(cells: readonly { x: number; y: number }[], instanceId: number): void {
+    for (const { x, y } of cells) this.#occupancy.set(cellKey(x, y), instanceId);
   }
 
   rotatedFootprint(footprint: Footprint, rotation: Rotation): Footprint {
@@ -49,4 +97,8 @@ export class BuildGrid {
     }
     return cells;
   }
+}
+
+function cellKey(x: number, y: number): string {
+  return `${x},${y}`;
 }
