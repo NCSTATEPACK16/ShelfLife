@@ -75,6 +75,31 @@ export class BuildGrid {
     for (const { x, y } of cells) this.#occupancy.set(cellKey(x, y), instanceId);
   }
 
+  rotate(instanceId: number, rotation: Rotation): Placement {
+    const existing = this.#placements.get(instanceId);
+    if (!existing) throw new PlacementError(`No placement with instanceId ${instanceId}`);
+    if (existing.rotation === rotation) return existing;
+
+    const oldCells = this.footprintCells(existing.fixtureId, existing.x, existing.y, existing.rotation);
+    const newCells = this.footprintCells(existing.fixtureId, existing.x, existing.y, rotation);
+
+    for (const { x, y } of newCells) {
+      if (!this.isInBounds(x, y)) {
+        throw new PlacementError(`Rotated placement cell (${x}, ${y}) is out of bounds`);
+      }
+      const occupant = this.#occupancy.get(cellKey(x, y));
+      if (occupant !== undefined && occupant !== instanceId) {
+        throw new PlacementError(`Rotated placement cell (${x}, ${y}) is already occupied`);
+      }
+    }
+
+    for (const { x, y } of oldCells) this.#occupancy.delete(cellKey(x, y));
+    const rotated: Placement = { ...existing, rotation };
+    this.#occupy(newCells, instanceId);
+    this.#placements.set(instanceId, rotated);
+    return rotated;
+  }
+
   rotatedFootprint(footprint: Footprint, rotation: Rotation): Footprint {
     return rotation === 90 || rotation === 270
       ? { width: footprint.height, height: footprint.width }

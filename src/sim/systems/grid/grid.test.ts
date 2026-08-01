@@ -106,3 +106,33 @@ describe('BuildGrid placement', () => {
     expect(() => grid.remove(999)).toThrow(PlacementError);
   });
 });
+
+describe('BuildGrid rotation', () => {
+  it('rotates a placement in place when the new footprint fits', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    const placed = grid.place('shelf', 2, 2, 0); // occupies (2,2),(2,3)
+    const rotated = grid.rotate(placed.instanceId, 90); // now occupies (2,2),(3,2)
+    expect(rotated.rotation).toBe(90);
+    expect(grid.isWalkable(2, 3)).toBe(true);
+    expect(grid.isWalkable(3, 2)).toBe(false);
+  });
+
+  it('rejects a rotation that would collide with another fixture', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    const placed = grid.place('shelf', 2, 2, 0); // (2,2),(2,3)
+    grid.place('corral', 3, 2, 0); // blocks the rotated footprint's second cell
+    expect(() => grid.rotate(placed.instanceId, 90)).toThrow(PlacementError);
+  });
+
+  it('rejects a rotation that would go out of bounds, leaving the placement untouched', () => {
+    const grid = new BuildGrid({ width: 4, height: 4 }, CATALOG);
+    const placed = grid.place('shelf', 3, 0, 0); // (3,0),(3,1) — fits at rotation 0
+    expect(() => grid.rotate(placed.instanceId, 90)).toThrow(PlacementError); // would need x=3,4: out of bounds
+    expect(grid.placements()).toEqual([placed]);
+  });
+
+  it('throws rotating an instanceId that does not exist', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    expect(() => grid.rotate(999, 90)).toThrow(PlacementError);
+  });
+});
