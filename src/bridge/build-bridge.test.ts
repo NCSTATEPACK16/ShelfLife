@@ -57,4 +57,21 @@ describe('BuildModeBridge', () => {
     bridge.undo();
     expect(bridge.hasRedo()).toBe(true);
   });
+
+  it('registers a pathing destination and exposes its flow field for debugging', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.registerDestination('debug-exit', [{ x: 9, y: 9 }]);
+    const field = bridge.flowFieldDebug('debug-exit');
+    expect(field.length).toBeGreaterThan(0);
+    const origin = field.find((c) => c.x === 0 && c.y === 0);
+    expect(origin).toBeDefined();
+    expect(origin!.dx === 0 && origin!.dy === 0).toBe(false); // (0,0) is not the destination
+  });
+
+  it('unregisters a pathing destination', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.registerDestination('debug-exit', [{ x: 9, y: 9 }]);
+    bridge.unregisterDestination('debug-exit');
+    expect(() => bridge.flowFieldDebug('debug-exit')).toThrow();
+  });
 });

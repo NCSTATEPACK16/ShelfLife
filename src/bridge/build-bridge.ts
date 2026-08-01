@@ -1,4 +1,4 @@
-import { DEFAULT_CATALOG, GridSystem, World } from '../sim/index.js';
+import { DEFAULT_CATALOG, GridSystem, PathingSystem, World } from '../sim/index.js';
 import type { Command, FixtureDef, GridDimensions, Placement, Rotation } from '../sim/index.js';
 
 export interface BuildModeSnapshot {
@@ -14,11 +14,14 @@ export interface BuildModeSnapshot {
 export class BuildModeBridge {
   readonly #world: World;
   readonly #grid: GridSystem;
+  readonly #pathing: PathingSystem;
 
   constructor(dimensions: GridDimensions, seed = 1) {
     this.#world = new World({ seed });
     this.#grid = new GridSystem(dimensions);
     this.#world.register(this.#grid);
+    this.#pathing = new PathingSystem(this.#grid.grid);
+    this.#world.register(this.#pathing);
   }
 
   place(fixtureId: string, x: number, y: number, rotation: Rotation): void {
@@ -51,6 +54,28 @@ export class BuildModeBridge {
 
   hasRedo(): boolean {
     return this.#grid.grid.hasRedo();
+  }
+
+  registerDestination(id: string, cells: readonly { x: number; y: number }[]): void {
+    this.#step({ type: 'registerPathingDestination', destinationId: id, cells });
+  }
+
+  unregisterDestination(id: string): void {
+    this.#step({ type: 'unregisterPathingDestination', destinationId: id });
+  }
+
+  /** Every walkable cell's direction toward `destinationId`, for the debug overlay only. */
+  flowFieldDebug(destinationId: string): readonly { x: number; y: number; dx: number; dy: number }[] {
+    const { width, height } = this.#grid.grid.dimensions;
+    const out: { x: number; y: number; dx: number; dy: number }[] = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (!this.#grid.grid.isWalkable(x, y)) continue;
+        const dir = this.#pathing.directionAt(destinationId, x, y);
+        out.push({ x, y, dx: dir.x, dy: dir.y });
+      }
+    }
+    return out;
   }
 
   snapshot(): BuildModeSnapshot {
