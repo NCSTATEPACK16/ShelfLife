@@ -1,5 +1,6 @@
 import './ui/styles/base.css';
 import { breakpointFor, PointerSource, readSafeAreaInsets, type Intent } from './platform/index.js';
+import { mountBuildMode } from './view/build-mode.js';
 
 /**
  * Phase 1.0 entry point.
@@ -112,3 +113,9 @@ globalThis.addEventListener('resize', () => {
 
 paint();
 render();
+
+/* ── Phase 1.4: build mode ──────────────────────────────────────────────── */
+
+mountBuildMode(canvas, uiRoot).catch((error: unknown) => {
+  console.error('Build mode failed to mount:', error);
+});
