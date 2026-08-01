@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "verify": "npm run typecheck && npm run lint && npm run check:tokens && npm run test && npm run build",
     "cap:sync": "npm run build:game && cap sync ios",
     "cap:open": "cap open ios",
@@ -31,12 +32,14 @@
     "bitecs": "0.4.0",
     "idb-keyval": "6.3.0",
     "mitt": "3.0.1",
+    "phaser": "4.2.1",
     "preact": "10.29.7",
     "pure-rand": "8.4.2",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.62.1",
     "@types/node": "26.1.2",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.0",
