@@ -22,6 +22,8 @@ export interface Lane {
   readonly staffId: number | null;
   readonly queue: readonly QueuedShopper[];
   readonly serving: Serving | null;
+  /** Shoppers who picked this lane (`shortestOpenLane`) but haven't reached it yet. */
+  readonly reserved: number;
 }
 
 export type CheckoutOutcome = 'waiting' | 'beingServed' | 'sold' | 'balked' | 'abandoned' | 'notInQueue';

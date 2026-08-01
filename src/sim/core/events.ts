@@ -36,6 +36,8 @@ export type SimEvent =
       readonly satisfaction: number;
       readonly fillRate: number;
       readonly impulseHits: number;
+      readonly balked: boolean;
+      readonly abandoned: boolean;
     }
   | {
       readonly type: 'cartAbandoned';

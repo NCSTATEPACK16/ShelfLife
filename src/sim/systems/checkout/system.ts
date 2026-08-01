@@ -74,6 +74,7 @@ export class CheckoutSystem implements System {
       for (const q of lane.queue) hasher.u32(q.shopperId).u32(q.itemCount).u32(q.joinedAtTick);
       hasher.bool(lane.serving !== null);
       if (lane.serving) hasher.u32(lane.serving.shopperId).u32(lane.serving.remainingTicks);
+      hasher.u32(lane.reserved);
     }
 
     const outcomeIds = [...this.#outcomes.keys()].sort((a, b) => a - b);
@@ -140,7 +141,11 @@ export class CheckoutSystem implements System {
     let bestSize = Number.POSITIVE_INFINITY;
     for (const [instanceId, lane] of this.#lanes) {
       if (!this.#isOpen(lane)) continue;
-      const size = lane.queue.length + (lane.serving ? 1 : 0);
+      // Reserved (picked but not yet arrived) counts toward size too — otherwise several
+      // shoppers who all pick on the same tick (before any of them has physically
+      // reached the lane to join its queue) would all pile onto the single lane that
+      // looked shortest at pick time, even with other lanes sitting empty.
+      const size = lane.queue.length + (lane.serving ? 1 : 0) + lane.reserved;
       if (size < bestSize) {
         bestSize = size;
         best = instanceId;
@@ -149,15 +154,23 @@ export class CheckoutSystem implements System {
     return best;
   }
 
+  /** Call once, right when a shopper picks this lane via `shortestOpenLane` — see there. */
+  reserveLane(laneId: number): void {
+    const lane = this.#lanes.get(laneId);
+    if (!lane) throw new Error(`Unknown checkout lane: ${laneId}`);
+    this.#lanes.set(laneId, { ...lane, reserved: lane.reserved + 1 });
+  }
+
   joinQueue(shopperId: number, laneId: number, itemCount: number, tick: number): void {
     const lane = this.#lanes.get(laneId);
     if (!lane) throw new Error(`Unknown checkout lane: ${laneId}`);
+    const reserved = Math.max(0, lane.reserved - 1);
     const entry: QueuedShopper = { shopperId, itemCount, joinedAtTick: tick };
     if (!lane.serving) {
-      this.#lanes.set(laneId, { ...lane, serving: this.#startServing(lane, entry, tick) });
+      this.#lanes.set(laneId, { ...lane, reserved, serving: this.#startServing(lane, entry, tick) });
       return;
     }
-    this.#lanes.set(laneId, { ...lane, queue: [...lane.queue, entry] });
+    this.#lanes.set(laneId, { ...lane, reserved, queue: [...lane.queue, entry] });
   }
 
   /** Non-consuming read — for observability/tests. Use `statusOf` to act on a terminal result. */
@@ -257,6 +270,7 @@ export class CheckoutSystem implements System {
         staffId: null,
         queue: [],
         serving: null,
+        reserved: 0,
       });
 
       const cells = this.#grid.footprintCells(placement.fixtureId, placement.x, placement.y, placement.rotation);

@@ -264,6 +264,7 @@ export class ShoppersSystem implements System {
         // trip ends here rather than waiting forever for a lane that will never open.
         return { ...shopper, state: 'leaving', balked: true };
       }
+      this.#checkout.reserveLane(laneId);
       return { ...shopper, checkoutLaneId: laneId, usedSelfCheckout: this.#checkout.isSelfCheckout(laneId) };
     }
 
@@ -360,6 +361,8 @@ export class ShoppersSystem implements System {
       satisfaction,
       fillRate,
       impulseHits: moved.impulseHits,
+      balked: moved.balked,
+      abandoned: moved.abandoned,
     });
     return null;
   }
