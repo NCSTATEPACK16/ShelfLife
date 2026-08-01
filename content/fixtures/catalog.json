@@ -1,0 +1,6 @@
+[
+  { "id": "shelf_basic", "name": "Basic Shelf", "footprint": { "width": 1, "height": 2 }, "walkable": false },
+  { "id": "shelf_endcap", "name": "Endcap Display", "footprint": { "width": 1, "height": 1 }, "walkable": false },
+  { "id": "register", "name": "Checkout Register", "footprint": { "width": 2, "height": 1 }, "walkable": false },
+  { "id": "cart_corral", "name": "Cart Corral", "footprint": { "width": 1, "height": 1 }, "walkable": true }
+]
