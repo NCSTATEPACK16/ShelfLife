@@ -236,3 +236,46 @@ Phases and their acceptance gates are defined in `PLAN.md` §16.
   recorded tick instead of collapsing a multi-tick log onto tick 0) and two tests (one in
   `build-bridge.test.ts`, one in `shoppers/system.test.ts`) that assumed an unstaffed register would
   behave like a working checkout lane, which stopped being true the moment lanes became real.
+
+#### Phase 1.9 — Economy & pricing · **gate PASS — M1 (Playable Core) complete**
+- Every `GoodDef` now carries a `cost` (COGS) alongside `unitPrice` — nothing stops a price below it,
+  which is what a loss leader is. `content/balance/economy.json5`: rent/utilities, the elasticity
+  coefficient, `priceSurprise`'s satisfaction weight, and a loss-leader margin threshold.
+- `src/sim/systems/economy/`: `EconomySystem` — `setPrice`/`startPromotion`/`setMarketingSpend`
+  commands. `priceOf` resolves override price → catalog price → an active promotion's discount on
+  top; `referencePriceOf` always returns the catalog price (the baseline `priceSurprise`/elasticity
+  compare against, regardless of overrides). `isLossLeader` flags a good priced at or below
+  `cost × lossLeaderMarginThreshold`.
+- Daily P&L (§5.7) is built from a tagged ledger, not just aggregates, so any statement line drills
+  to the exact entries that produced it — this phase's literal gate. `recordSale` is called directly
+  by `ShoppersSystem` at the moment of sale; labor and spoilage pull from two new accessors,
+  `CheckoutSystem#dailyWageCost` and `InventorySystem#drainSpoilageValue`. Shrink stays `0` — no
+  theft mechanic exists yet, the same documented cut carried from 1.7/1.8.
+- `ShoppersSystem` now prices goods through `EconomySystem#priceOf` instead of the static catalog
+  `unitPrice`, so pricing commands actually change what a shopper pays. Each pickup computes
+  `priceSurprise` against the catalog reference price (finally live, averaged into satisfaction at
+  trip end); impulse rolls scale by an elasticity multiplier
+  `(referencePrice/currentPrice)^elasticityCoefficient` — the mechanism a loss leader actually works
+  through, since required list items are still bought regardless of price (a documented scope cut —
+  price-driven substitution/store-choice is §5.1, M2/multi-store territory).
+- Phase gate proof: a store pricing milk at cost (a genuine loss leader, zero margin on every
+  required sale) alongside normal-margin goods stays EBITDA-positive on days with actual trade —
+  normal-margin goods carry the P&L (`loss-leader.test.ts`). A second test confirms every statement
+  line's ledger entries sum to exactly that line — revenue/cogs tagged at their real sale tick,
+  rent/labor/spoilage as a single lump entry at the closing tick, both equally drillable.
+- New `pricing-and-promotions` golden scenario; the seven pre-existing scenarios are unchanged.
+  `shopper-trip` was re-baselined twice this phase (once for `EconomySystem` joining the registered
+  systems and a new `Shopper.priceSurpriseSum` field, once more — see Fixed) — the other scenarios
+  confirmed untouched before each re-baseline, not assumed.
+
+##### Fixed
+- No sim bugs this phase, but a real test-authoring lesson: the loss-leader gate test's first attempt
+  measured EBITDA across the *entire* run, including 5 days of pure pantry-depletion wait with zero
+  trade — fixed costs alone during that dead setup period would sink any pricing strategy, which
+  said nothing about whether the loss leader itself was viable. Fixed by judging viability only on
+  days that actually saw trade, and by scaling the test's fixed-cost config down to match its
+  deliberately small shopper count rather than the authored production balance (documented in the
+  test itself, not silently tuned).
+
+**Milestone 1 (Playable Core) is complete as of this phase.** See `docs/handoff.md` for the M1 gate
+assessment and what M2 inherits.
