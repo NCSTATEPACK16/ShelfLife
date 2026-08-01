@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'milestone/**']
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NPM_CONFIG_AUDIT: 'false'
+  NPM_CONFIG_FUND: 'false'
+
+jobs:
+  verify:
+    name: verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # PLAN.md §19 — cross-machine drift between the Windows PC and the Mac is a
+        # tracked risk. Catching it in CI is cheaper than catching it in a phase gate.
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint (includes both boundary rules)
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+  # The boundary rules are the load-bearing constraint of the project. If they ever stop
+  # firing, everything downstream — the iOS port, the balance harness, leaderboard
+  # verification — breaks quietly. Surface that as its own red check, not a line in a log.
+  boundaries:
+    name: boundary rules fire
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/boundaries
+
+  budget:
+    name: bundle budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Enforce the PLAN.md §10.1 load budgets
+        run: node tools/check-budget.mjs
