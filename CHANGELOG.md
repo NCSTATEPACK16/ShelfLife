@@ -57,3 +57,24 @@ Phases and their acceptance gates are defined in `PLAN.md` §16.
   unchanged.
 - **Not yet done:** `src/view` rendering, `src/platform/input` touch handling, a `src/ui` build-mode
   panel, and the two-viewport Playwright E2E — the literal "one thumb on a phone" gate needs those.
+
+#### Phase 1.4 — Grid & build mode · **gate PASS (view half)**
+- `BuildModeBridge` (`src/bridge`) is the only thing that turns UI actions into `World` commands.
+- `src/view`: `iso.ts` (2:1 dimetric projection, PLAN §9.1, round-trip tested), `draw-plan.ts` (pure,
+  tested) + `BuildScene.ts` — the project's first real Phaser usage, dynamically imported only after
+  a canvas-context check (Phaser probes rendering capability on import and would otherwise crash
+  under jsdom).
+- `src/ui`: `BuildModePanel.tsx` (palette tap-to-arm, undo/redo) + `SelectionActionBar.tsx`
+  (rotate/remove/cancel), both Preact, both breakpoints. Interaction model decided via a design spec
+  (`docs/superpowers/specs/2026-08-01-build-mode-view-design.md`), not improvised.
+- First Playwright E2E suite in the project (`tests/e2e/build-mode.spec.ts`): places fixtures via
+  palette-tap + canvas-tap and undoes every successful placement back to zero, at both a 1440×900
+  and a 390×844 (touch-emulated) viewport — the literal PLAN.md 1.4 gate, proven end to end.
+- Phaser adds ~358 KB gzipped to the game bundle (10.6% of the 3.5 MB budget) — `check:budget` still
+  passes comfortably.
+
+##### Fixed
+- `BuildModePanel`'s Undo/Redo buttons mutated the bridge but never told the caller to re-render, so
+  the on-screen placement count and disabled states never updated. Found by the E2E suite, not the
+  unit tests — fixed with `onUndo`/`onRedo` callbacks mirroring the existing `onArm`/`onSelect`
+  pattern.
