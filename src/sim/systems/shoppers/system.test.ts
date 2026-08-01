@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { replay, World } from '../../core/world.js';
 import { CheckoutSystem } from '../checkout/system.js';
+import { EconomySystem } from '../economy/system.js';
 import { BuildGrid } from '../grid/grid.js';
 import { DEFAULT_CATALOG } from '../grid/catalog.js';
 import { InventorySystem } from '../inventory/system.js';
@@ -31,6 +32,7 @@ function worldWithShoppers(seed = 1): {
   pathing: PathingSystem;
   inventory: InventorySystem;
   checkout: CheckoutSystem;
+  economy: EconomySystem;
   shoppers: ShoppersSystem;
 } {
   const world = new World({ seed });
@@ -41,9 +43,11 @@ function worldWithShoppers(seed = 1): {
   world.register(inventory);
   const checkout = new CheckoutSystem(grid, pathing);
   world.register(checkout);
-  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout, CATALOG);
+  const economy = new EconomySystem(checkout, inventory, CATALOG);
+  world.register(economy);
+  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout, economy, CATALOG);
   world.register(shoppers);
-  return { world, grid, pathing, inventory, checkout, shoppers };
+  return { world, grid, pathing, inventory, checkout, economy, shoppers };
 }
 
 describe('ShoppersSystem — commands and wiring', () => {
@@ -128,7 +132,9 @@ describe('ShoppersSystem — commands and wiring', () => {
       w.register(replayInventory);
       const replayCheckout = new CheckoutSystem(replayGrid, replayPathing);
       w.register(replayCheckout);
-      w.register(new ShoppersSystem(replayGrid, replayPathing, replayInventory, replayCheckout, CATALOG));
+      const replayEconomy = new EconomySystem(replayCheckout, replayInventory, CATALOG);
+      w.register(replayEconomy);
+      w.register(new ShoppersSystem(replayGrid, replayPathing, replayInventory, replayCheckout, replayEconomy, CATALOG));
     });
     expect(replayed.hash).toBe(finalHash);
   });

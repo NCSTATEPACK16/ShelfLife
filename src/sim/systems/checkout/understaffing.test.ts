@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { World } from '../../core/world.js';
 import type { SimEvent } from '../../core/events.js';
+import { EconomySystem } from '../economy/system.js';
 import { GridSystem } from '../grid/system.js';
 import { InventorySystem } from '../inventory/system.js';
 import { PathingSystem } from '../pathing/system.js';
@@ -30,7 +31,9 @@ function runStore(staffedRegisterCount: 1 | 3): {
   world.register(inventory);
   const checkout = new CheckoutSystem(grid, pathing);
   world.register(checkout);
-  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout);
+  const economy = new EconomySystem(checkout, inventory);
+  world.register(economy);
+  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout, economy);
   world.register(shoppers);
 
   world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 2, y: 2, rotation: 0 });

@@ -1,6 +1,7 @@
 import {
   CheckoutSystem,
   DEFAULT_CATALOG,
+  EconomySystem,
   GridSystem,
   InventorySystem,
   PathingSystem,
@@ -25,6 +26,7 @@ export class BuildModeBridge {
   readonly #pathing: PathingSystem;
   readonly #inventory: InventorySystem;
   readonly #checkout: CheckoutSystem;
+  readonly #economy: EconomySystem;
   readonly #shoppers: ShoppersSystem;
 
   constructor(dimensions: GridDimensions, seed = 1) {
@@ -37,7 +39,9 @@ export class BuildModeBridge {
     this.#world.register(this.#inventory);
     this.#checkout = new CheckoutSystem(this.#grid.grid, this.#pathing);
     this.#world.register(this.#checkout);
-    this.#shoppers = new ShoppersSystem(this.#grid.grid, this.#pathing, this.#inventory, this.#checkout);
+    this.#economy = new EconomySystem(this.#checkout, this.#inventory);
+    this.#world.register(this.#economy);
+    this.#shoppers = new ShoppersSystem(this.#grid.grid, this.#pathing, this.#inventory, this.#checkout, this.#economy);
     this.#world.register(this.#shoppers);
   }
 

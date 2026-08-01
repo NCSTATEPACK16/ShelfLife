@@ -36,4 +36,6 @@ export interface Shopper {
   readonly usedSelfCheckout: boolean;
   readonly balked: boolean;
   readonly abandoned: boolean;
+  /** Sum of §5.3's `priceSurprise` across every item in `cart` — averaged at trip end. */
+  readonly priceSurpriseSum: number;
 }

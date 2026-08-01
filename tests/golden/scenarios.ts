@@ -1,4 +1,12 @@
-import { CheckoutSystem, GridSystem, InventorySystem, PathingSystem, ShoppersSystem, World } from '../../src/sim/index.js';
+import {
+  CheckoutSystem,
+  EconomySystem,
+  GridSystem,
+  InventorySystem,
+  PathingSystem,
+  ShoppersSystem,
+  World,
+} from '../../src/sim/index.js';
 import type { Hasher, System } from '../../src/sim/index.js';
 
 /**
@@ -148,7 +156,9 @@ export const SCENARIOS: readonly Scenario[] = [
       world.register(inventory);
       const checkout = new CheckoutSystem(grid.grid, pathing);
       world.register(checkout);
-      const shoppers = new ShoppersSystem(grid.grid, pathing, inventory, checkout);
+      const economy = new EconomySystem(checkout, inventory);
+      world.register(economy);
+      const shoppers = new ShoppersSystem(grid.grid, pathing, inventory, checkout, economy);
       world.register(shoppers);
 
       world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 10, y: 10, rotation: 0 });

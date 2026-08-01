@@ -4,6 +4,8 @@ import type { Hasher } from '../../core/hash.js';
 import type { System, World } from '../../core/world.js';
 import { DEFAULT_STAFFING_CONFIG } from '../checkout/config.js';
 import type { CheckoutSystem } from '../checkout/system.js';
+import { DEFAULT_ECONOMY_CONFIG } from '../economy/config.js';
+import type { EconomySystem } from '../economy/system.js';
 import type { GoodDef } from '../goods/types.js';
 import { DEFAULT_GOODS_CATALOG } from '../goods/catalog.js';
 import type { BuildGrid } from '../grid/grid.js';
@@ -44,6 +46,7 @@ export class ShoppersSystem implements System {
   readonly #pathing: PathingSystem;
   readonly #inventory: InventorySystem;
   readonly #checkout: CheckoutSystem;
+  readonly #economy: EconomySystem;
   readonly #catalog: readonly GoodDef[];
   readonly #catalogById: ReadonlyMap<string, GoodDef>;
   readonly #households = new Map<number, Household>();
@@ -56,12 +59,14 @@ export class ShoppersSystem implements System {
     pathing: PathingSystem,
     inventory: InventorySystem,
     checkout: CheckoutSystem,
+    economy: EconomySystem,
     catalog: readonly GoodDef[] = DEFAULT_GOODS_CATALOG,
   ) {
     this.#grid = grid;
     this.#pathing = pathing;
     this.#inventory = inventory;
     this.#checkout = checkout;
+    this.#economy = economy;
     this.#catalog = catalog;
     this.#catalogById = new Map(catalog.map((g) => [g.id, g]));
   }
@@ -126,7 +131,8 @@ export class ShoppersSystem implements System {
         .u32(shopper.checkoutWaitTicks)
         .bool(shopper.usedSelfCheckout)
         .bool(shopper.balked)
-        .bool(shopper.abandoned);
+        .bool(shopper.abandoned)
+        .f64(shopper.priceSurpriseSum);
       hasher.u32(shopper.remainingList.length);
       for (const goodId of shopper.remainingList) hasher.str(goodId);
       hasher.u32(shopper.cart.length);
@@ -168,6 +174,7 @@ export class ShoppersSystem implements System {
           usedSelfCheckout: false,
           balked: false,
           abandoned: false,
+          priceSurpriseSum: 0,
         });
         return true;
       }
@@ -247,13 +254,18 @@ export class ShoppersSystem implements System {
       return { ...moved, remainingList, state };
     }
 
-    const good = this.#catalogById.get(goodId);
-    const price = good?.unitPrice ?? 0;
+    const price = this.#economy.priceOf(goodId, world.tick);
     const paid = result === 'markdown' ? price * (1 - DEFAULT_INVENTORY_CONFIG.markdownDiscount) : price;
+    // §5.3's priceSurprise: positive when a shopper pays less than the catalog reference
+    // price, negative when more — the "put it back" tell is a view concern (see the
+    // phase plan's scope cuts), the sim just carries the number into satisfaction.
+    const reference = this.#economy.referencePriceOf(goodId);
+    const priceSurprise = reference > 0 ? (reference - paid) / reference : 0;
     const cart = [...moved.cart, goodId];
     const cartTotal = moved.cartTotal + paid;
+    const priceSurpriseSum = moved.priceSurpriseSum + priceSurprise;
     const impulseHits = moved.impulseHits + this.#rollImpulse(world, moved, goodId);
-    return { ...moved, cart, cartTotal, remainingList, impulseHits, state };
+    return { ...moved, cart, cartTotal, priceSurpriseSum, remainingList, impulseHits, state };
   }
 
   #stepCheckingOut(world: World, shopper: Shopper): Shopper {
@@ -287,6 +299,8 @@ export class ShoppersSystem implements System {
     const waitTicks = shopper.checkoutJoinedAtTick !== null ? world.tick - shopper.checkoutJoinedAtTick : 0;
 
     if (outcome === 'sold') {
+      const cogs = shopper.cart.reduce((sum, goodId) => sum + (this.#catalogById.get(goodId)?.cost ?? 0), 0);
+      this.#economy.recordSale(shopper.cartTotal, cogs, world.tick);
       world.events.emit({
         type: 'saleCompleted',
         shopperId: shopper.id,
@@ -342,6 +356,7 @@ export class ShoppersSystem implements System {
     const queuePenalty = Math.min(1, (moved.checkoutWaitTicks / DEFAULT_STAFFING_CONFIG.balkToleranceTicks) ** 1.6);
     const abandonPenalty = moved.abandoned ? DEFAULT_SHOPPERS_CONFIG.abandonExtraPenalty : 0;
     const selfCheckoutPenalty = moved.usedSelfCheckout ? DEFAULT_STAFFING_CONFIG.selfCheckoutServiceScorePenalty : 0;
+    const priceSurprise = moved.cart.length > 0 ? moved.priceSurpriseSum / moved.cart.length : 0;
     const satisfaction = Math.min(
       1,
       Math.max(
@@ -351,7 +366,8 @@ export class ShoppersSystem implements System {
           DEFAULT_SHOPPERS_CONFIG.spoiledEncountersWeight * spoiled -
           DEFAULT_SHOPPERS_CONFIG.queuePenaltyWeight * queuePenalty -
           abandonPenalty -
-          selfCheckoutPenalty,
+          selfCheckoutPenalty +
+          DEFAULT_ECONOMY_CONFIG.priceSurpriseWeight * priceSurprise,
       ),
     );
     world.events.emit({
@@ -400,7 +416,16 @@ export class ShoppersSystem implements System {
       if (Math.hypot(dx, dy) > DEFAULT_SHOPPERS_CONFIG.exposureRadius) continue;
       const good = this.#catalogById.get(goodId);
       if (!good) continue;
-      if (world.rng.get('impulse').chance(good.impulseBase)) hits++;
+      // Elasticity (phase 1.9): scales §5.4's impulseBase by price relative to the
+      // catalog reference — a price below reference lifts the impulse roll, a price
+      // above it dampens it. Only affects impulse demand, not required list items (see
+      // the phase plan's scope cuts).
+      const reference = this.#economy.referencePriceOf(goodId);
+      const current = this.#economy.priceOf(goodId, world.tick);
+      const elasticityMultiplier =
+        reference > 0 && current > 0 ? (reference / current) ** DEFAULT_ECONOMY_CONFIG.elasticityCoefficient : 1;
+      const probability = Math.min(1, good.impulseBase * elasticityMultiplier);
+      if (world.rng.get('impulse').chance(probability)) hits++;
     }
     return hits;
   }
