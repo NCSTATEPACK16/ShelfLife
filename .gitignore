@@ -14,6 +14,12 @@ ios/App/build/
 *.xcuserstate
 DerivedData/
 
+# Local-only planning docs — deliberately untracked so they stay off the public repo.
+# The build does not read them; they are the human/agent working record.
+PLAN.md
+docs/handoff.md
+**/handoff*.md
+
 # env & local
 .env
 .env.*

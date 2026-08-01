@@ -2,6 +2,11 @@
 
 Read `PLAN.md` before starting. This file is the short version of the rules you must not break.
 
+> **`PLAN.md` and `docs/handoff.md` are local-only and untracked** (see `.gitignore`). They exist in
+> the working directory but are deliberately kept off the public repository. Never commit them, and
+> never paste their contents into a commit message, an issue, or a PR description. Section references
+> like "§7.2" throughout this file and the code point at that local document.
+
 ---
 
 ## Architecture (violations = revert, not discuss)
