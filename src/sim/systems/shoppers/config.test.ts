@@ -7,6 +7,8 @@ describe('parseShoppersConfig', () => {
       fillRateWeight: 0.5,
       discoveryWeight: 0.2,
       spoiledEncountersWeight: 0.2,
+      queuePenaltyWeight: 0.3,
+      abandonExtraPenalty: 0.15,
       exposureRadius: 3,
       adjacentCellThreshold: 1,
     });
@@ -19,6 +21,8 @@ describe('parseShoppersConfig', () => {
         fillRateWeight: 0.5,
         discoveryWeight: 0.2,
         spoiledEncountersWeight: 0.2,
+        queuePenaltyWeight: 0.3,
+        abandonExtraPenalty: 0.15,
         exposureRadius: -1,
         adjacentCellThreshold: 1,
       }),

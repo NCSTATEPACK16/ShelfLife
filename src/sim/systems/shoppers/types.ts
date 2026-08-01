@@ -26,4 +26,14 @@ export interface Shopper {
   readonly impulseHits: number;
   /** Count of §5.3's `spoiledEncounters` — a shelf pick that came back spoiled. */
   readonly spoiledEncounters: number;
+  /** The checkout lane instance chosen for this trip, or `null` before one is picked. */
+  readonly checkoutLaneId: number | null;
+  /** Whether `CheckoutSystem#joinQueue` has been called for `checkoutLaneId` yet. */
+  readonly checkoutJoined: boolean;
+  readonly checkoutJoinedAtTick: number | null;
+  /** Ticks actually waited once the trip resolves (sold/balked/abandoned) — feeds queuePenalty. */
+  readonly checkoutWaitTicks: number;
+  readonly usedSelfCheckout: boolean;
+  readonly balked: boolean;
+  readonly abandoned: boolean;
 }

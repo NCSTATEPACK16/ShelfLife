@@ -36,6 +36,12 @@ export type SimEvent =
       readonly satisfaction: number;
       readonly fillRate: number;
       readonly impulseHits: number;
+    }
+  | {
+      readonly type: 'cartAbandoned';
+      readonly shopperId: number;
+      readonly householdId: number;
+      readonly items: readonly string[];
     };
 
 export type SimEventType = SimEvent['type'];

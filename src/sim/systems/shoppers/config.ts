@@ -6,6 +6,8 @@ const ShoppersConfigSchema = z.object({
   fillRateWeight: z.number().nonnegative(),
   discoveryWeight: z.number().nonnegative(),
   spoiledEncountersWeight: z.number().nonnegative(),
+  queuePenaltyWeight: z.number().nonnegative(),
+  abandonExtraPenalty: z.number().nonnegative(),
   exposureRadius: z.number().positive(),
   adjacentCellThreshold: z.number().positive(),
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { World } from '../../core/world.js';
+import { replay, World } from '../../core/world.js';
+import { CheckoutSystem } from '../checkout/system.js';
 import { BuildGrid } from '../grid/grid.js';
 import { DEFAULT_CATALOG } from '../grid/catalog.js';
 import { InventorySystem } from '../inventory/system.js';
@@ -29,6 +30,7 @@ function worldWithShoppers(seed = 1): {
   grid: BuildGrid;
   pathing: PathingSystem;
   inventory: InventorySystem;
+  checkout: CheckoutSystem;
   shoppers: ShoppersSystem;
 } {
   const world = new World({ seed });
@@ -37,9 +39,11 @@ function worldWithShoppers(seed = 1): {
   world.register(pathing);
   const inventory = new InventorySystem(POLICIES);
   world.register(inventory);
-  const shoppers = new ShoppersSystem(grid, pathing, inventory, CATALOG);
+  const checkout = new CheckoutSystem(grid, pathing);
+  world.register(checkout);
+  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout, CATALOG);
   world.register(shoppers);
-  return { world, grid, pathing, inventory, shoppers };
+  return { world, grid, pathing, inventory, checkout, shoppers };
 }
 
 describe('ShoppersSystem — commands and wiring', () => {
@@ -107,18 +111,25 @@ describe('ShoppersSystem — commands and wiring', () => {
     world.run(30);
     const finalHash = world.hash;
 
+    // Uses core/world.js's `replay()` rather than hand-pushing the log, because this
+    // log spans multiple ticks (two commands at tick 0, one more at tick 1 after the
+    // manual `world.step()` above) — pushing every entry before any step() collapses
+    // them all onto tick 0, shifting spawnShopper a tick earlier than it actually
+    // happened. That shift was invisible back when an unstaffed checkout just froze the
+    // shopper forever (tick-of-freeze didn't matter); it stopped being invisible the
+    // moment phase 1.8 made checkingOut with no open lane a real, immediately-resolved
+    // transition. `replay()` schedules each command against its real recorded tick.
     const replayGrid = new BuildGrid({ width: 12, height: 12 }, DEFAULT_CATALOG);
     replayGrid.place('shelf_basic', 3, 3, 0);
-    const replayPathing = new PathingSystem(replayGrid);
-    const replayed = new World({ seed });
-    replayed.register(replayPathing);
-    const replayInventory = new InventorySystem(POLICIES);
-    replayed.register(replayInventory);
-    replayed.register(new ShoppersSystem(replayGrid, replayPathing, replayInventory, CATALOG));
-    for (const entry of world.commands.log) {
-      replayed.commands.push(entry.command);
-    }
-    replayed.run(31);
+    const replayed = replay(seed, world.commands.log, 31, (w) => {
+      const replayPathing = new PathingSystem(replayGrid);
+      w.register(replayPathing);
+      const replayInventory = new InventorySystem(POLICIES);
+      w.register(replayInventory);
+      const replayCheckout = new CheckoutSystem(replayGrid, replayPathing);
+      w.register(replayCheckout);
+      w.register(new ShoppersSystem(replayGrid, replayPathing, replayInventory, replayCheckout, CATALOG));
+    });
     expect(replayed.hash).toBe(finalHash);
   });
 });
@@ -129,9 +140,12 @@ describe('ShoppersSystem — a full trip (PLAN.md §16 phase 1.6 gate)', () => {
     grid.place('shelf_basic', 6, 6, 0);
     const shelfId = grid.placements()[0]!.instanceId;
     grid.place('register', 10, 10, 0);
+    const registerId = grid.placements()[1]!.instanceId;
 
     world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
     world.commands.push({ type: 'addHousehold', householdId: 1 });
+    world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
+    world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: registerId });
     world.step();
 
     // Five days of depletion at 0.15/day takes milk from 1.0 to 0.25, below its 0.3

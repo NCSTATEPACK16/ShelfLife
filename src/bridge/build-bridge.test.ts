@@ -89,12 +89,17 @@ describe('BuildModeBridge', () => {
 
   it('tick() advances the world without requiring a command', () => {
     const bridge = new BuildModeBridge({ width: 10, height: 10 });
-    bridge.place('register', 8, 8, 0);
+    // Self-checkout needs no staffing to be an open lane — a plain 'register' would
+    // leave this shopper with nowhere to queue and nothing to walk toward.
+    bridge.place('self_checkout', 8, 8, 0);
     bridge.addHousehold(1);
     // A fully-stocked household has an empty list, so this shopper heads straight to
     // checkout — enough to prove tick() moves it without any further command.
     bridge.spawnShopper(100, 1);
     const before = bridge.shoppersSnapshot()[0]!;
+    // One tick picks the checkout lane, the next actually steers toward it — both are
+    // real "tick() with no command" steps, so calling it twice still proves the point.
+    bridge.tick();
     bridge.tick();
     const after = bridge.shoppersSnapshot()[0]!;
     expect(after.x !== before.x || after.y !== before.y).toBe(true);

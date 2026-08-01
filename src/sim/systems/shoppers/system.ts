@@ -2,6 +2,8 @@ import { TICKS_PER_SIM_DAY } from '../../core/clock.js';
 import type { Command } from '../../core/commands.js';
 import type { Hasher } from '../../core/hash.js';
 import type { System, World } from '../../core/world.js';
+import { DEFAULT_STAFFING_CONFIG } from '../checkout/config.js';
+import type { CheckoutSystem } from '../checkout/system.js';
 import type { GoodDef } from '../goods/types.js';
 import { DEFAULT_GOODS_CATALOG } from '../goods/catalog.js';
 import type { BuildGrid } from '../grid/grid.js';
@@ -16,8 +18,6 @@ import { advancePantryDay, deriveShoppingList } from './household.js';
 import type { Household, Shopper, ShopperState } from './types.js';
 
 const EXIT_DESTINATION_ID = 'exit';
-const REGISTER_DESTINATION_ID = 'register';
-const REGISTER_FIXTURE_ID = 'register';
 const ENTRANCE_POSITION: Vec2 = { x: 0.5, y: 0.5 };
 
 function goodDestinationId(goodId: string): string {
@@ -31,33 +31,37 @@ function goodDestinationId(goodId: string): string {
  * both were designed against without a caller since phase 1.5.
  *
 
- * Satisfaction sums `fillRate`, `discovery`, and (since phase 1.7's `InventorySystem`)
- * `spoiledEncounters`; `queuePenalty`/`staffInteraction`/`cleanliness` are still wired as
- * 0 pending phase 1.8. No real checkout queueing or finance ledger yet either — see
- * docs/superpowers/plans/2026-08-01-shoppers.md and -inventory.md for the recorded cuts.
+ * Satisfaction sums `fillRate`, `discovery`, `spoiledEncounters` (1.7's `InventorySystem`),
+ * and — since phase 1.8's `CheckoutSystem` — `queuePenalty`, plus a self-checkout service
+ * penalty. `staffInteraction`/`cleanliness` aren't consumed as satisfaction terms yet
+ * (cleanliness exists as a `CheckoutSystem` value, just not read here). No finance ledger
+ * yet — see docs/superpowers/plans/2026-08-01-{shoppers,inventory,checkout-staff}.md for
+ * the recorded scope cuts.
  */
 export class ShoppersSystem implements System {
   readonly name = 'shoppers';
   readonly #grid: BuildGrid;
   readonly #pathing: PathingSystem;
   readonly #inventory: InventorySystem;
+  readonly #checkout: CheckoutSystem;
   readonly #catalog: readonly GoodDef[];
   readonly #catalogById: ReadonlyMap<string, GoodDef>;
   readonly #households = new Map<number, Household>();
   readonly #stocking = new Map<number, string>();
   readonly #shoppers = new Map<number, Shopper>();
   #exitRegistered = false;
-  #lastSeenGridVersion = -1;
 
   constructor(
     grid: BuildGrid,
     pathing: PathingSystem,
     inventory: InventorySystem,
+    checkout: CheckoutSystem,
     catalog: readonly GoodDef[] = DEFAULT_GOODS_CATALOG,
   ) {
     this.#grid = grid;
     this.#pathing = pathing;
     this.#inventory = inventory;
+    this.#checkout = checkout;
     this.#catalog = catalog;
     this.#catalogById = new Map(catalog.map((g) => [g.id, g]));
   }
@@ -70,11 +74,6 @@ export class ShoppersSystem implements System {
         destinationId: EXIT_DESTINATION_ID,
         cells: [{ x: this.#grid.dimensions.width - 1, y: this.#grid.dimensions.height - 1 }],
       });
-    }
-
-    if (this.#grid.version !== this.#lastSeenGridVersion) {
-      this.#lastSeenGridVersion = this.#grid.version;
-      this.#refreshRegisterDestination(world);
     }
 
     if (world.tick % TICKS_PER_SIM_DAY === 0) {
@@ -120,7 +119,14 @@ export class ShoppersSystem implements System {
         .u32(shopper.requested)
         .u32(shopper.impulseHits)
         .u32(shopper.spoiledEncounters)
-        .f64(shopper.cartTotal);
+        .f64(shopper.cartTotal)
+        .u32(shopper.checkoutLaneId ?? 0)
+        .bool(shopper.checkoutJoined)
+        .u32(shopper.checkoutJoinedAtTick ?? 0)
+        .u32(shopper.checkoutWaitTicks)
+        .bool(shopper.usedSelfCheckout)
+        .bool(shopper.balked)
+        .bool(shopper.abandoned);
       hasher.u32(shopper.remainingList.length);
       for (const goodId of shopper.remainingList) hasher.str(goodId);
       hasher.u32(shopper.cart.length);
@@ -155,6 +161,13 @@ export class ShoppersSystem implements System {
           requested: household.list.length,
           impulseHits: 0,
           spoiledEncounters: 0,
+          checkoutLaneId: null,
+          checkoutJoined: false,
+          checkoutJoinedAtTick: null,
+          checkoutWaitTicks: 0,
+          usedSelfCheckout: false,
+          balked: false,
+          abandoned: false,
         });
         return true;
       }
@@ -187,18 +200,6 @@ export class ShoppersSystem implements System {
     this.#pathing.applyCommand(world, {
       type: 'registerPathingDestination',
       destinationId: goodDestinationId(goodId),
-      cells,
-    });
-  }
-
-  #refreshRegisterDestination(world: World): void {
-    const cells = this.#grid
-      .placements()
-      .filter((p) => p.fixtureId === REGISTER_FIXTURE_ID)
-      .flatMap((p) => this.#grid.footprintCells(p.fixtureId, p.x, p.y, p.rotation));
-    this.#pathing.applyCommand(world, {
-      type: 'registerPathingDestination',
-      destinationId: REGISTER_DESTINATION_ID,
       cells,
     });
   }
@@ -256,31 +257,67 @@ export class ShoppersSystem implements System {
   }
 
   #stepCheckingOut(world: World, shopper: Shopper): Shopper {
-    if (!this.#pathing.destinationIds().includes(REGISTER_DESTINATION_ID)) return shopper; // no register yet
-
-    const moved = this.#moveToward(shopper, REGISTER_DESTINATION_ID);
-    const cellX = Math.floor(moved.position.x);
-    const cellY = Math.floor(moved.position.y);
-    const distance = this.#pathing.distanceAt(REGISTER_DESTINATION_ID, cellX, cellY);
-    if (distance < 0 || distance > DEFAULT_SHOPPERS_CONFIG.adjacentCellThreshold) return moved;
-
-    world.events.emit({
-      type: 'saleCompleted',
-      shopperId: moved.id,
-      householdId: moved.householdId,
-      total: moved.cartTotal,
-      items: moved.cart,
-    });
-
-    const household = this.#households.get(moved.householdId);
-    if (household) {
-      const pantry = { ...household.pantry };
-      for (const goodId of moved.cart) pantry[goodId] = 1;
-      const list = deriveShoppingList(pantry, this.#catalog);
-      this.#households.set(moved.householdId, { ...household, pantry, list });
+    if (shopper.checkoutLaneId === null) {
+      const laneId = this.#checkout.shortestOpenLane();
+      if (laneId === null) {
+        // No open lane at all — the understaffing story: nothing to queue for, so the
+        // trip ends here rather than waiting forever for a lane that will never open.
+        return { ...shopper, state: 'leaving', balked: true };
+      }
+      return { ...shopper, checkoutLaneId: laneId, usedSelfCheckout: this.#checkout.isSelfCheckout(laneId) };
     }
 
-    return { ...moved, state: 'leaving' };
+    const laneId = shopper.checkoutLaneId;
+    const destId = this.#checkout.laneDestinationId(laneId);
+
+    if (!shopper.checkoutJoined) {
+      const moved = this.#moveToward(shopper, destId);
+      const cellX = Math.floor(moved.position.x);
+      const cellY = Math.floor(moved.position.y);
+      const distance = this.#pathing.distanceAt(destId, cellX, cellY);
+      if (distance < 0 || distance > DEFAULT_SHOPPERS_CONFIG.adjacentCellThreshold) return moved;
+      this.#checkout.joinQueue(moved.id, laneId, moved.cart.length, world.tick);
+      return { ...moved, checkoutJoined: true, checkoutJoinedAtTick: world.tick };
+    }
+
+    const outcome = this.#checkout.statusOf(shopper.id);
+    if (outcome === 'waiting' || outcome === 'beingServed' || outcome === 'notInQueue') return shopper;
+
+    const waitTicks = shopper.checkoutJoinedAtTick !== null ? world.tick - shopper.checkoutJoinedAtTick : 0;
+
+    if (outcome === 'sold') {
+      world.events.emit({
+        type: 'saleCompleted',
+        shopperId: shopper.id,
+        householdId: shopper.householdId,
+        total: shopper.cartTotal,
+        items: shopper.cart,
+      });
+      const household = this.#households.get(shopper.householdId);
+      if (household) {
+        const pantry = { ...household.pantry };
+        for (const goodId of shopper.cart) pantry[goodId] = 1;
+        const list = deriveShoppingList(pantry, this.#catalog);
+        this.#households.set(shopper.householdId, { ...household, pantry, list });
+      }
+      return { ...shopper, state: 'leaving', checkoutWaitTicks: waitTicks };
+    }
+
+    if (outcome === 'abandoned') {
+      // The cart (already deducted from inventory at pickup) is lost — no sale, no
+      // pantry replenishment. A restock-cost mechanic is a documented follow-up, not
+      // implemented here.
+      world.events.emit({
+        type: 'cartAbandoned',
+        shopperId: shopper.id,
+        householdId: shopper.householdId,
+        items: shopper.cart,
+      });
+      return { ...shopper, state: 'leaving', checkoutWaitTicks: waitTicks, abandoned: true };
+    }
+
+    // 'balked'
+    return { ...shopper, state: 'leaving', checkoutWaitTicks: waitTicks, balked: true };
   }
 
   #stepLeaving(world: World, shopper: Shopper): Shopper | null {
@@ -290,16 +327,30 @@ export class ShoppersSystem implements System {
     const distance = this.#pathing.distanceAt(EXIT_DESTINATION_ID, cellX, cellY);
     if (distance < 0 || distance > DEFAULT_PATHING_CONFIG.arrivalRadius) return moved;
 
-    const fillRate = moved.requested === 0 ? 1 : moved.cart.length / moved.requested;
+    // A shopper who balked or abandoned never completes the sale — everything picked up
+    // in-store goes home with nobody, so fillRate craters to 0 rather than crediting a
+    // cart they never actually left with.
+    const fillRate =
+      moved.balked || moved.abandoned ? 0 : moved.requested === 0 ? 1 : moved.cart.length / moved.requested;
     const discovery = moved.impulseHits > 0 ? 1 : 0;
     const spoiled = moved.spoiledEncounters > 0 ? 1 : 0;
+    // §5.3's queuePenalty(t) = (t/tolerance)^1.6, superlinear — a long wait hurts far
+    // more than proportionally. Saturates at 1 for both balked and abandoned (both waited
+    // at least balkToleranceTicks); abandonExtraPenalty is what keeps abandonment scoring
+    // strictly worse, matching §5.6's "large satisfaction hit" language for cart loss.
+    const queuePenalty = Math.min(1, (moved.checkoutWaitTicks / DEFAULT_STAFFING_CONFIG.balkToleranceTicks) ** 1.6);
+    const abandonPenalty = moved.abandoned ? DEFAULT_SHOPPERS_CONFIG.abandonExtraPenalty : 0;
+    const selfCheckoutPenalty = moved.usedSelfCheckout ? DEFAULT_STAFFING_CONFIG.selfCheckoutServiceScorePenalty : 0;
     const satisfaction = Math.min(
       1,
       Math.max(
         0,
         DEFAULT_SHOPPERS_CONFIG.fillRateWeight * fillRate +
           DEFAULT_SHOPPERS_CONFIG.discoveryWeight * discovery -
-          DEFAULT_SHOPPERS_CONFIG.spoiledEncountersWeight * spoiled,
+          DEFAULT_SHOPPERS_CONFIG.spoiledEncountersWeight * spoiled -
+          DEFAULT_SHOPPERS_CONFIG.queuePenaltyWeight * queuePenalty -
+          abandonPenalty -
+          selfCheckoutPenalty,
       ),
     );
     world.events.emit({

@@ -1,4 +1,4 @@
-import { GridSystem, InventorySystem, PathingSystem, ShoppersSystem, World } from '../../src/sim/index.js';
+import { CheckoutSystem, GridSystem, InventorySystem, PathingSystem, ShoppersSystem, World } from '../../src/sim/index.js';
 import type { Hasher, System } from '../../src/sim/index.js';
 
 /**
@@ -146,16 +146,22 @@ export const SCENARIOS: readonly Scenario[] = [
       world.register(pathing);
       const inventory = new InventorySystem();
       world.register(inventory);
-      const shoppers = new ShoppersSystem(grid.grid, pathing, inventory);
+      const checkout = new CheckoutSystem(grid.grid, pathing);
+      world.register(checkout);
+      const shoppers = new ShoppersSystem(grid.grid, pathing, inventory, checkout);
       world.register(shoppers);
 
       world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 10, y: 10, rotation: 0 });
       world.commands.push({ type: 'placeFixture', fixtureId: 'register', x: 17, y: 17, rotation: 0 });
       // Fresh grid, first-ever placement: BuildGrid's instance-id counter starts at 1 and
       // this is the only fixture placed before it, so instanceId 1 is deterministic here
-      // without needing to read it back after the command applies.
+      // without needing to read it back after the command applies. The register is
+      // instance 2 (placed second) — staffing it is what keeps this scenario's lane open
+      // so the trip actually completes rather than balking immediately (phase 1.8).
       world.commands.push({ type: 'stockFixture', instanceId: 1, goodId: 'bread' });
       world.commands.push({ type: 'addHousehold', householdId: 1 });
+      world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
+      world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: 2 });
       return world;
     },
   },
