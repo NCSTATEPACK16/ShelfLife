@@ -3,7 +3,7 @@ import type { GoodDef } from '../goods/types.js';
 import { DEFAULT_SUPPLY_POLICIES, parseSupplyPolicies } from './catalog.js';
 
 const GOODS: readonly GoodDef[] = [
-  { id: 'milk', name: 'Milk', unitPrice: 3, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
+  { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.8, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
 ];
 
 describe('parseSupplyPolicies', () => {

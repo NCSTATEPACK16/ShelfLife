@@ -3,8 +3,8 @@ import type { GoodDef } from '../goods/types.js';
 import { advancePantryDay, deriveShoppingList } from './household.js';
 
 const CATALOG: readonly GoodDef[] = [
-  { id: 'milk', name: 'Milk', unitPrice: 3, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
-  { id: 'bread', name: 'Bread', unitPrice: 2, depletionPerDay: 0.2, reorderThreshold: 0.3, impulseBase: 0.05 },
+  { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.8, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
+  { id: 'bread', name: 'Bread', unitPrice: 2, cost: 1.2, depletionPerDay: 0.2, reorderThreshold: 0.3, impulseBase: 0.05 },
 ];
 
 describe('deriveShoppingList', () => {

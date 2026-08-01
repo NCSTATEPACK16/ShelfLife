@@ -6,6 +6,7 @@ const GoodDefSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   unitPrice: z.number().positive(),
+  cost: z.number().positive(),
   depletionPerDay: z.number().min(0).max(1),
   reorderThreshold: z.number().min(0).max(1),
   impulseBase: z.number().min(0).max(1),

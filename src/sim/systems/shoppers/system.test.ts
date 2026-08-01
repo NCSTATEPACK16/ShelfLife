@@ -10,11 +10,11 @@ import type { GoodDef } from '../goods/types.js';
 import { ShoppersSystem } from './system.js';
 
 const CATALOG: readonly GoodDef[] = [
-  { id: 'milk', name: 'Milk', unitPrice: 3, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
+  { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.8, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
   // Depletes far slower than milk, so a fixed number of days can put milk on the list
   // without also pulling bread onto it — keeps the full-trip test's list deterministic
   // and single-item without needing to also stock and route to a second good.
-  { id: 'bread', name: 'Bread', unitPrice: 2, depletionPerDay: 0.01, reorderThreshold: 0.3, impulseBase: 0.05 },
+  { id: 'bread', name: 'Bread', unitPrice: 2, cost: 1.2, depletionPerDay: 0.01, reorderThreshold: 0.3, impulseBase: 0.05 },
 ];
 
 // Generous stock, perfectly reliable, and freshness that never crosses either threshold

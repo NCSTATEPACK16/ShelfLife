@@ -1,0 +1,17 @@
+{
+  // Daily P&L fixed costs (PLAN.md §5.7).
+  rentPerDay: 200,
+  utilitiesPerDay: 40,
+
+  // Impulse probability scales by (referencePrice/currentPrice)^elasticityCoefficient —
+  // a lower price than the catalog reference lifts impulse buys, a higher price cuts them.
+  elasticityCoefficient: 1.2,
+
+  // Satisfaction formula weight for priceSurprise (PLAN.md §5.3's w2). Positive when a
+  // shopper pays less than the catalog reference price, negative when they pay more.
+  priceSurpriseWeight: 0.15,
+
+  // A good priced at or below cost x this fraction counts as a loss leader for harness
+  // classification (1.0 = priced exactly at cost or below).
+  lossLeaderMarginThreshold: 1.0,
+}
