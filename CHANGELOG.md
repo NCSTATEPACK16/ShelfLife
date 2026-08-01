@@ -186,3 +186,53 @@ Phases and their acceptance gates are defined in `PLAN.md` §16.
 ##### Fixed
 - None — no bugs found this phase's full end-to-end test (a first, after 1.4's undo/redo bug, 1.5's
   steering bug, and 1.6's two pathing/collision bugs, all found the same way).
+
+#### Phase 1.8 — Checkout & staff · **gate PASS**
+- `content/fixtures/catalog.json` gains `self_checkout` (a distinct fixture, not a flag on
+  `register`). `content/balance/staffing.json5` + `src/sim/systems/checkout/`: `hireStaff` /
+  `assignStaffToRegister` / `trainStaff` commands, and `CheckoutSystem` — one `Lane` per placed
+  `register`/`self_checkout` instance (refreshed on grid version change, its own `PathingSystem`
+  destination per lane, same pattern every system has used since 1.5). A register lane is open only
+  with an assigned staff member; self-checkout is always open.
+- Queueing: `joinQueue` starts service immediately on an empty lane, otherwise queues FIFO. Service
+  time approximates §5.6's `~Gamma(items, scannerSpeed × cashierSkill)` via a deterministic formula
+  scaled by staff skill × morale (a true Gamma sampler wasn't worth the numerical machinery for what
+  this phase's gate needs — the mean scaling with staffing, not the distribution's exact shape).
+  Below `balkToleranceTicks` a shopper just waits; between balk and abandon tolerance (2× per §5.6)
+  each tick rolls an escalating balk chance using the `'checkout'` RNG stream (reserved since phase
+  1.3, unused until now); at `abandonToleranceTicks` the exit is unconditional, so "abandoned" can't
+  be starved out by "balked" always firing first.
+- `ShoppersSystem#stepCheckingOut` rewritten: pick the shortest open lane (balking immediately if
+  none are open at all — the understaffing story starts there), route to it, join its queue on
+  arrival, poll `statusOf` each tick instead of instantly completing. Satisfaction gains `queuePenalty`
+  (superlinear in wait time, finally live), a self-checkout service-score penalty, and an extra flat
+  hit for cart abandonment (both balk and abandon saturate `queuePenalty` to its max, so
+  `abandonExtraPenalty` is what keeps abandonment scoring strictly worse). `fillRate` now credits `0`
+  for a balked/abandoned trip instead of counting a cart the shopper never actually left with.
+  `shopperTripCompleted` gained explicit `balked`/`abandoned` fields — direct telemetry for exactly
+  what this phase's gate asks to measure, not inferred from `fillRate === 0`.
+- Cleanliness (0-1) decays every tick and is restored per assigned staff member — a real, simple
+  lever tied to the same staff pool, though not yet consumed as a satisfaction term itself.
+- Phase gate proof (`understaffing.test.ts`): identical store layout and shopper arrival cadence, only
+  the staffed-register count differs (1 vs. 3) — understaffed produces a strictly longer visible
+  queue, at least as many balked/abandoned trips, and a measurably lower average satisfaction. All
+  four of the gate's claims asserted directly.
+- `shopper-trip` golden scenario re-baselined twice in this phase, each in its own commit with the
+  other five scenarios confirmed untouched first: once for `CheckoutSystem` joining the registered
+  systems (and six new `Shopper` hash fields), once more for the lane-reservation fix below.
+
+##### Fixed
+- A real queueing bug, not just a test artifact: `shortestOpenLane()`'s "size" only counted people
+  already in a lane's queue or being served — not shoppers who had already *picked* that lane but
+  hadn't physically arrived yet. Several shoppers reaching checkout in a normal burst (not a
+  contrived case) would all see the same lane as shortest before any of them had joined its queue,
+  piling everyone onto one lane even with others sitting empty. `Lane` gained a `reserved` counter,
+  incremented at pick time and released at the corresponding `joinQueue` call, counted toward lane
+  size. Found writing the gate-proof test — the understaffed-vs-fully-staffed comparison couldn't
+  show a difference until this was fixed, which is exactly the kind of thing a gate test is for.
+- Also fixed, smaller: two of this phase's own new tests exposed pre-existing gaps rather than new
+  regressions — a replay-fidelity gap in `shoppers/system.test.ts`'s hand-rolled log replay (fixed
+  by switching to `core/world.js`'s `replay()`, which schedules each command against its real
+  recorded tick instead of collapsing a multi-tick log onto tick 0) and two tests (one in
+  `build-bridge.test.ts`, one in `shoppers/system.test.ts`) that assumed an unstaffed register would
+  behave like a working checkout lane, which stopped being true the moment lanes became real.
