@@ -6,6 +6,9 @@ export interface BuildModePanelProps {
   readonly breakpoint: Breakpoint;
   readonly onSelect: (instanceId: number | null) => void;
   readonly onArm: (fixtureId: string | null) => void;
+  /** Called after undo/redo mutates the bridge, so the caller can re-render and redraw. */
+  readonly onUndo: () => void;
+  readonly onRedo: () => void;
   readonly armedFixtureId?: string | null;
 }
 
@@ -27,7 +30,10 @@ export function BuildModePanel(props: BuildModePanelProps): preact.JSX.Element {
         type="button"
         data-testid="undo"
         disabled={!props.bridge.hasUndo()}
-        onClick={() => props.bridge.undo()}
+        onClick={() => {
+          props.bridge.undo();
+          props.onUndo();
+        }}
       >
         Undo
       </button>
@@ -35,7 +41,10 @@ export function BuildModePanel(props: BuildModePanelProps): preact.JSX.Element {
         type="button"
         data-testid="redo"
         disabled={!props.bridge.hasRedo()}
-        onClick={() => props.bridge.redo()}
+        onClick={() => {
+          props.bridge.redo();
+          props.onRedo();
+        }}
       >
         Redo
       </button>

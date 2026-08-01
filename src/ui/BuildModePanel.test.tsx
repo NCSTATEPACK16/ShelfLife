@@ -8,7 +8,7 @@ function mount(bridge: BuildModeBridge, breakpoint: 'compact' | 'regular' = 'com
   const root = document.createElement('div');
   document.body.appendChild(root);
   render(
-    <BuildModePanel bridge={bridge} breakpoint={breakpoint} onSelect={() => {}} onArm={() => {}} />,
+    <BuildModePanel bridge={bridge} breakpoint={breakpoint} onSelect={() => {}} onArm={() => {}} onUndo={() => {}} onRedo={() => {}} />,
     root,
   );
   return root;
@@ -48,7 +48,7 @@ describe('BuildModePanel', () => {
     const root = document.createElement('div');
     document.body.appendChild(root);
     render(
-      <BuildModePanel bridge={bridge} breakpoint="compact" onSelect={() => {}} onArm={onArm} />,
+      <BuildModePanel bridge={bridge} breakpoint="compact" onSelect={() => {}} onArm={onArm} onUndo={() => {}} onRedo={() => {}} />,
       root,
     );
     const undoBtn = root.querySelector<HTMLButtonElement>('[data-testid="undo"]');

@@ -81,6 +81,14 @@ export async function mountBuildMode(
           selectedInstanceId = id;
           renderUi();
         },
+        onUndo: () => {
+          scene.redraw();
+          renderUi();
+        },
+        onRedo: () => {
+          scene.redraw();
+          renderUi();
+        },
       }),
       panelRoot,
     );
