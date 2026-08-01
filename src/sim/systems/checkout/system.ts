@@ -135,6 +135,12 @@ export class CheckoutSystem implements System {
     return this.#lanes.get(instanceId)?.isSelfCheckout ?? false;
   }
 
+  /** Total wages owed for one day, across every currently-assigned staff member. */
+  dailyWageCost(): number {
+    const assigned = [...this.#staff.values()].filter((s) => s.assignedRegisterId !== null).length;
+    return assigned * this.#config.wagePerStaffPerDay;
+  }
+
   /** The open lane (self-checkout, or a staffed register) with the fewest people; null if none open. */
   shortestOpenLane(): number | null {
     let best: number | null = null;

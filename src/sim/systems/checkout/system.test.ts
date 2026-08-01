@@ -57,6 +57,18 @@ describe('CheckoutSystem — lanes', () => {
     const { checkout, world } = worldWithCheckout();
     expect(checkout.applyCommand(world, { type: 'noop' })).toBe(false);
   });
+
+  it('dailyWageCost sums wagePerStaffPerDay across every assigned staff member', () => {
+    const { world, grid, checkout } = worldWithCheckout();
+    grid.place('register', 3, 3, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    expect(checkout.dailyWageCost()).toBe(0);
+    world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
+    world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId });
+    world.commands.push({ type: 'hireStaff', staffId: 2, skill: 0.5, morale: 0.5 }); // unassigned
+    world.step();
+    expect(checkout.dailyWageCost()).toBe(DEFAULT_STAFFING_CONFIG.wagePerStaffPerDay);
+  });
 });
 
 describe('CheckoutSystem — queueing', () => {

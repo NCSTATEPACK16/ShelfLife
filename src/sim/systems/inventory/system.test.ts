@@ -17,9 +17,13 @@ const UNRELIABLE_POLICY: SupplyPolicy = { ...RELIABLE_POLICY, supplierReliabilit
 
 const NO_REORDER_POLICY: SupplyPolicy = { ...RELIABLE_POLICY, leadTimeTicks: 1_000_000 };
 
-function worldWithInventory(policies: readonly SupplyPolicy[], seed = 1): { world: World; inventory: InventorySystem } {
+function worldWithInventory(
+  policies: readonly SupplyPolicy[],
+  seed = 1,
+  catalog?: ConstructorParameters<typeof InventorySystem>[2],
+): { world: World; inventory: InventorySystem } {
   const world = new World({ seed });
-  const inventory = new InventorySystem(policies);
+  const inventory = catalog ? new InventorySystem(policies, undefined, catalog) : new InventorySystem(policies);
   world.register(inventory);
   return { world, inventory };
 }
@@ -109,6 +113,19 @@ describe('InventorySystem', () => {
   it('does not claim kernel command types', () => {
     const { inventory, world } = worldWithInventory([RELIABLE_POLICY]);
     expect(inventory.applyCommand(world, { type: 'noop' })).toBe(false);
+  });
+
+  it('drainSpoilageValue accumulates cost for every spoiled unit and resets on read', () => {
+    const spoilsFast: SupplyPolicy = { ...RELIABLE_POLICY, spoilageTauDays: 0.001 };
+    const catalog = [
+      { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.5, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
+    ];
+    const { world, inventory } = worldWithInventory([spoilsFast], 1, catalog);
+    world.step();
+    world.run(1440); // one full day — well past a tau of 0.001 days
+    expect(inventory.consume('milk', world.tick)).toBe('spoiled');
+    expect(inventory.drainSpoilageValue()).toBeCloseTo(1.5);
+    expect(inventory.drainSpoilageValue()).toBe(0); // drained, not re-readable
   });
 
   it('replaying the command log reproduces the same hash', () => {

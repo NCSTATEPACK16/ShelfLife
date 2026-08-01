@@ -2,6 +2,8 @@ import { TICKS_PER_SIM_DAY } from '../../core/clock.js';
 import type { Command } from '../../core/commands.js';
 import type { Hasher } from '../../core/hash.js';
 import type { System, World } from '../../core/world.js';
+import { DEFAULT_GOODS_CATALOG } from '../goods/catalog.js';
+import type { GoodDef } from '../goods/types.js';
 import { DEFAULT_SUPPLY_POLICIES } from './catalog.js';
 import { DEFAULT_INVENTORY_CONFIG } from './config.js';
 import type { InventoryConfig } from './config.js';
@@ -18,14 +20,18 @@ export class InventorySystem implements System {
   readonly name = 'inventory';
   readonly #policies: ReadonlyMap<string, SupplyPolicy>;
   readonly #config: InventoryConfig;
+  readonly #catalogById: ReadonlyMap<string, GoodDef>;
   readonly #stocked = new Map<string, StockedGood>();
+  #spoilageValue = 0;
 
   constructor(
     policies: readonly SupplyPolicy[] = DEFAULT_SUPPLY_POLICIES,
     config: InventoryConfig = DEFAULT_INVENTORY_CONFIG,
+    catalog: readonly GoodDef[] = DEFAULT_GOODS_CATALOG,
   ) {
     this.#policies = new Map(policies.map((p) => [p.goodId, p]));
     this.#config = config;
+    this.#catalogById = new Map(catalog.map((g) => [g.id, g]));
     for (const policy of policies) {
       this.#stocked.set(policy.goodId, {
         goodId: policy.goodId,
@@ -76,6 +82,7 @@ export class InventorySystem implements System {
       hasher.u32(stocked.pendingOrders.length);
       for (const order of stocked.pendingOrders) hasher.u32(order.quantity).u32(order.arrivesAtTick);
     }
+    hasher.f64(this.#spoilageValue);
   }
 
   applyCommand(_world: World, _command: Command): boolean {
@@ -106,9 +113,19 @@ export class InventorySystem implements System {
     const batches = remaining > 0 ? [{ ...oldest, quantity: remaining }, ...stocked.batches.slice(1)] : stocked.batches.slice(1);
     this.#stocked.set(goodId, { ...stocked, batches });
 
-    if (freshness < this.#config.shrinkThreshold) return 'spoiled'; // written off, not sold
+    if (freshness < this.#config.shrinkThreshold) {
+      this.#spoilageValue += this.#catalogById.get(goodId)?.cost ?? 0;
+      return 'spoiled'; // written off, not sold
+    }
     if (freshness < this.#config.markdownThreshold) return 'markdown';
     return 'sold';
+  }
+
+  /** COGS lost to spoilage since the last drain (PLAN.md §5.7's Spoilage line) — resets to 0. */
+  drainSpoilageValue(): number {
+    const value = this.#spoilageValue;
+    this.#spoilageValue = 0;
+    return value;
   }
 
   #tauTicks(goodId: string): number {
