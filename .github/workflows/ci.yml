@@ -40,6 +40,9 @@ jobs:
       - name: Lint (includes both boundary rules)
         run: npm run lint
 
+      - name: Design tokens (no hardcoded colours)
+        run: npm run check:tokens
+
       - name: Test
         run: npm run test
 
@@ -74,4 +77,4 @@ jobs:
       - run: npm run build
 
       - name: Enforce the PLAN.md §10.1 load budgets
-        run: node tools/check-budget.mjs
+        run: npm run check:budget

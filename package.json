@@ -20,9 +20,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "verify": "npm run typecheck && npm run lint && npm run check:tokens && npm run test && npm run build",
     "cap:sync": "npm run build:game && cap sync ios",
-    "cap:open": "cap open ios"
+    "cap:open": "cap open ios",
+    "check:tokens": "node tools/check-tokens.mjs",
+    "check:budget": "node tools/check-budget.mjs"
   },
   "dependencies": {
     "@preact/signals": "2.4.0",
