@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import type { BuildModeBridge } from '../bridge/build-bridge.js';
+import tokens from '../../content/design/tokens.json';
 import { buildDrawPlan } from './draw-plan.js';
+import { toPhaserColor } from './fixture-colors.js';
+import { buildFlowFieldDrawPlan } from './pathing-debug-plan.js';
 
 /**
  * Renders the build-mode grid. Reads the bridge's snapshot; never mutates it.
@@ -14,6 +17,7 @@ export class BuildScene extends Phaser.Scene {
   readonly #origin: { x: number; y: number };
   #graphics!: Phaser.GameObjects.Graphics;
   #selectedInstanceId: number | null = null;
+  #debugDestinationId: string | null = null;
 
   constructor(bridge: BuildModeBridge, origin: { x: number; y: number }) {
     super({ key: 'build', active: true });
@@ -28,6 +32,11 @@ export class BuildScene extends Phaser.Scene {
 
   setSelected(instanceId: number | null): void {
     this.#selectedInstanceId = instanceId;
+    this.redraw();
+  }
+
+  setDebugDestination(id: string | null): void {
+    this.#debugDestinationId = id;
     this.redraw();
   }
 
@@ -47,6 +56,16 @@ export class BuildScene extends Phaser.Scene {
       if (rect.selected) {
         g.lineStyle(2, rect.color, 1);
         g.strokeRect(rect.x, rect.y, rect.width, rect.height);
+      }
+    }
+
+    if (this.#debugDestinationId) {
+      const field = this.#bridge.flowFieldDebug(this.#debugDestinationId);
+      const arrows = buildFlowFieldDrawPlan(field, this.#origin);
+      const debugColor = toPhaserColor(tokens.color.product.violet.base);
+      g.lineStyle(1, debugColor, 0.6);
+      for (const arrow of arrows) {
+        g.lineBetween(arrow.x1, arrow.y1, arrow.x2, arrow.y2);
       }
     }
   }

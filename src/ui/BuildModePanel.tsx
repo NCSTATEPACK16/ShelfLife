@@ -10,6 +10,8 @@ export interface BuildModePanelProps {
   readonly onUndo: () => void;
   readonly onRedo: () => void;
   readonly armedFixtureId?: string | null;
+  readonly pathingDebugOn: boolean;
+  readonly onTogglePathingDebug: () => void;
 }
 
 /**
@@ -49,6 +51,15 @@ export function BuildModePanel(props: BuildModePanelProps): preact.JSX.Element {
         Redo
       </button>
       <span data-testid="placement-count">{snapshot.placements.length}</span>
+      <button
+        type="button"
+        data-testid="toggle-pathing-debug"
+        aria-pressed={props.pathingDebugOn}
+        style="min-width:44px;min-height:44px"
+        onClick={props.onTogglePathingDebug}
+      >
+        Flow
+      </button>
       {snapshot.catalog.map((def) => (
         <button
           key={def.id}

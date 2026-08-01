@@ -1,7 +1,7 @@
 import tokens from '../../content/design/tokens.json';
 
 /** Converts a token's hex string to Phaser's 0xRRGGBB number format. */
-function toPhaserColor(hex: string): number {
+export function toPhaserColor(hex: string): number {
   return Number.parseInt(hex.replace('#', ''), 16);
 }
 

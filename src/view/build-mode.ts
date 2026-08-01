@@ -34,6 +34,14 @@ export async function mountBuildMode(
   const bridge = new BuildModeBridge(GRID_DIMENSIONS);
   const origin = { x: canvas.clientWidth / 2, y: 80 };
 
+  // A fixed debug-only destination so the flow-field overlay always has something to
+  // show. Real shopper destinations (shelf faces, registers, exits) are phase 1.6's
+  // concern; this one exists purely to exercise PathingSystem's debug accessor.
+  const DEBUG_DESTINATION_ID = 'debug-exit';
+  bridge.registerDestination(DEBUG_DESTINATION_ID, [
+    { x: GRID_DIMENSIONS.width - 1, y: GRID_DIMENSIONS.height - 1 },
+  ]);
+
   const scene = new BuildScene(bridge, origin);
   new Phaser.Game({
     // Phaser requires an explicit (non-AUTO) renderType when adopting a caller-provided
@@ -48,6 +56,7 @@ export async function mountBuildMode(
 
   let armedFixtureId: string | null = null;
   let selectedInstanceId: number | null = null;
+  let pathingDebugOn = false;
 
   const panelRoot = document.createElement('div');
   uiRoot.appendChild(panelRoot);
@@ -87,6 +96,12 @@ export async function mountBuildMode(
         },
         onRedo: () => {
           scene.redraw();
+          renderUi();
+        },
+        pathingDebugOn,
+        onTogglePathingDebug: () => {
+          pathingDebugOn = !pathingDebugOn;
+          scene.setDebugDestination(pathingDebugOn ? DEBUG_DESTINATION_ID : null);
           renderUi();
         },
       }),

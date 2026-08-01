@@ -8,7 +8,16 @@ function mount(bridge: BuildModeBridge, breakpoint: 'compact' | 'regular' = 'com
   const root = document.createElement('div');
   document.body.appendChild(root);
   render(
-    <BuildModePanel bridge={bridge} breakpoint={breakpoint} onSelect={() => {}} onArm={() => {}} onUndo={() => {}} onRedo={() => {}} />,
+    <BuildModePanel
+      bridge={bridge}
+      breakpoint={breakpoint}
+      onSelect={() => {}}
+      onArm={() => {}}
+      onUndo={() => {}}
+      onRedo={() => {}}
+      pathingDebugOn={false}
+      onTogglePathingDebug={() => {}}
+    />,
     root,
   );
   return root;
@@ -48,7 +57,16 @@ describe('BuildModePanel', () => {
     const root = document.createElement('div');
     document.body.appendChild(root);
     render(
-      <BuildModePanel bridge={bridge} breakpoint="compact" onSelect={() => {}} onArm={onArm} onUndo={() => {}} onRedo={() => {}} />,
+      <BuildModePanel
+        bridge={bridge}
+        breakpoint="compact"
+        onSelect={() => {}}
+        onArm={onArm}
+        onUndo={() => {}}
+        onRedo={() => {}}
+        pathingDebugOn={false}
+        onTogglePathingDebug={() => {}}
+      />,
       root,
     );
     const undoBtn = root.querySelector<HTMLButtonElement>('[data-testid="undo"]');
@@ -62,5 +80,27 @@ describe('BuildModePanel', () => {
   it('renders at the regular breakpoint too (compact is not the only supported layout)', () => {
     const root = mount(bridge, 'regular');
     expect(root.querySelectorAll('[data-testid^="fixture-"]').length).toBeGreaterThan(0);
+  });
+
+  it('calls onTogglePathingDebug when the debug button is clicked', () => {
+    const onTogglePathingDebug = vi.fn();
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(
+      <BuildModePanel
+        bridge={bridge}
+        breakpoint="compact"
+        onSelect={() => {}}
+        onArm={() => {}}
+        onUndo={() => {}}
+        onRedo={() => {}}
+        pathingDebugOn={false}
+        onTogglePathingDebug={onTogglePathingDebug}
+      />,
+      root,
+    );
+    const toggleBtn = root.querySelector<HTMLButtonElement>('[data-testid="toggle-pathing-debug"]');
+    toggleBtn?.click();
+    expect(onTogglePathingDebug).toHaveBeenCalledOnce();
   });
 });
