@@ -111,3 +111,37 @@ Phases and their acceptance gates are defined in `PLAN.md` §16.
   desired velocity relative to the flow direction. That produced genuine gridlock (not just slow
   queuing) near the phase gate's exit. Found by the 400-agent perf test, not the steering unit tests
   (which only ever exercised 0–3 neighbors); fixed by averaging.
+
+#### Phase 1.6 — Shoppers · **gate PASS**
+- `src/sim/systems/goods/`: a goods catalog (`content/goods/catalog.json`, Zod-validated, same
+  pattern as the fixture catalog) — `unitPrice`, `depletionPerDay`, `reorderThreshold`, `impulseBase`.
+- `content/design/gentle-surface.json5` + `tools/check-gentle-surface.mjs` (wired into `npm run
+  verify` as `check:content`): every satisfaction (§5.3) and impulse (§5.4) term now has a declared
+  tell, CI-enforced per §12.1 — authored in full even though only `fillRateMiss` and
+  `discovery`/`impulsePurchase` get an on-screen bubble this phase; the rest are ready for 1.7/1.8.
+- `src/sim/systems/shoppers/`: household pantry/list (pure `advancePantryDay`/`deriveShoppingList`),
+  and `ShoppersSystem` — `addHousehold`/`stockFixture`/`spawnShopper` commands, a shopper FSM
+  (`entering → shopping → checkingOut → leaving`) driven by `PathingSystem`/`computeSteering`, the
+  first real caller of the phase 1.5 API. Satisfaction sums only `fillRate` and `discovery` this
+  phase; §5.3's other terms are wired as `0` pending 1.7 (spoilage) and 1.8 (checkout/staff).
+  Impulse rolls use path exposure (§5.4) — only goods within a radius of where the shopper actually
+  walked, using the `'impulse'` RNG stream reserved since phase 1.3.
+- New `shopper-trip` golden scenario, locked over ~8,760 ticks (4 days of depletion + a full trip);
+  the six pre-existing golden hashes are unchanged.
+- `BuildModeBridge` gained a `tick()` — build mode was purely action-driven through phase 1.5, but
+  pantries and shoppers need real time to pass with no UI interaction at all. `mountBuildMode` now
+  drives one on a plain interval at the sim's tick rate; shoppers render as small token-colored
+  circles.
+- Content-schema-complete but **not yet on screen**: the gentle-surface bubbles themselves. That
+  needs the view layer to consume `world.events` per tick, which nothing does yet — a documented
+  follow-up, not a silent gap.
+
+##### Fixed
+- `computeFlowField`'s direction field (from phase 1.5) only guarded diagonal corner-cutting, not
+  neighbor walkability outright, so it happily pointed straight into a non-walkable destination cell
+  — harmless for 1.5's always-walkable destinations, wrong the moment a destination is a shelf or
+  register (a shopper would walk *into* the fixture, then have no valid direction out of it toward
+  its next target, since that field never assigned the fixture's own cell a distance). Neighbors now
+  have to be walkable outright; a cell already adjacent to a non-walkable destination gets direction
+  zero ("as close as you can get") instead. Found by the first end-to-end shopper trip test — 1.5's
+  own tests never exercised a non-walkable destination.
