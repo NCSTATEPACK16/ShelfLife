@@ -1,0 +1,6 @@
+[
+  { "id": "milk", "name": "Milk", "unitPrice": 3.49, "depletionPerDay": 0.15, "reorderThreshold": 0.3, "impulseBase": 0.05 },
+  { "id": "bread", "name": "Bread", "unitPrice": 2.99, "depletionPerDay": 0.2, "reorderThreshold": 0.3, "impulseBase": 0.05 },
+  { "id": "eggs", "name": "Eggs", "unitPrice": 4.29, "depletionPerDay": 0.1, "reorderThreshold": 0.3, "impulseBase": 0.05 },
+  { "id": "snacks", "name": "Snacks", "unitPrice": 3.99, "depletionPerDay": 0.08, "reorderThreshold": 0.25, "impulseBase": 0.2 }
+]
