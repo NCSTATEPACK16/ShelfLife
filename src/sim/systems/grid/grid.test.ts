@@ -208,4 +208,24 @@ describe('BuildGrid undo/redo', () => {
     grid.undo();
     expect(grid.hasRedo()).toBe(true);
   });
+
+  it('bumps version on place, remove, rotate, undo, and redo', () => {
+    const grid = new BuildGrid({ width: 10, height: 10 }, CATALOG);
+    const v0 = grid.version;
+
+    grid.place('corral', 1, 1, 0);
+    expect(grid.version).toBe(v0 + 1);
+
+    grid.rotate(1, 90);
+    expect(grid.version).toBe(v0 + 2);
+
+    grid.remove(1);
+    expect(grid.version).toBe(v0 + 3);
+
+    grid.undo();
+    expect(grid.version).toBe(v0 + 4);
+
+    grid.redo();
+    expect(grid.version).toBe(v0 + 5);
+  });
 });

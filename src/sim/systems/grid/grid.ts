@@ -20,6 +20,7 @@ export class BuildGrid {
   readonly #undoStack: HistoryEntry[] = [];
   readonly #redoStack: HistoryEntry[] = [];
   #nextInstanceId = 1;
+  #version = 0;
 
   constructor(dimensions: GridDimensions, catalog: readonly FixtureDef[]) {
     this.#dimensions = dimensions;
@@ -28,6 +29,11 @@ export class BuildGrid {
 
   get dimensions(): GridDimensions {
     return this.#dimensions;
+  }
+
+  /** Bumped on every place/remove/rotate/undo/redo — pathing's dirty-tracking signal. */
+  get version(): number {
+    return this.#version;
   }
 
   fixtureDef(fixtureId: string): FixtureDef {
@@ -108,6 +114,7 @@ export class BuildGrid {
       }
     }
     this.#redoStack.push(entry);
+    this.#version++;
     return true;
   }
 
@@ -129,12 +136,14 @@ export class BuildGrid {
       }
     }
     this.#undoStack.push(entry);
+    this.#version++;
     return true;
   }
 
   #pushHistory(entry: HistoryEntry): void {
     this.#undoStack.push(entry);
     this.#redoStack.length = 0;
+    this.#version++;
   }
 
   #assertPlaceable(cells: readonly { x: number; y: number }[]): void {
