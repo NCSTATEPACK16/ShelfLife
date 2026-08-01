@@ -217,5 +217,33 @@
       "0x27c5f53d",
       "0x559f9012"
     ]
+  },
+  "pricing-and-promotions": {
+    "seed": 20260807,
+    "ticks": 2000,
+    "sampleEvery": 100,
+    "hashes": [
+      "0x363d88a9",
+      "0x07e79176",
+      "0x34f21ddc",
+      "0xa6126d3c",
+      "0x6a4d733c",
+      "0xb3031667",
+      "0x1229c495",
+      "0xc7414b8a",
+      "0x2a45935f",
+      "0x4244cd8b",
+      "0xcd20384d",
+      "0x1cc6e7d8",
+      "0x35d807c1",
+      "0xcf22c076",
+      "0xf71b751b",
+      "0xb73ce3b3",
+      "0x5e162d34",
+      "0xb704e78c",
+      "0x0c998f41",
+      "0x1f2bab4e",
+      "0xb6a11d59"
+    ]
   }
 }

@@ -175,6 +175,30 @@ export const SCENARIOS: readonly Scenario[] = [
       return world;
     },
   },
+  {
+    name: 'pricing-and-promotions',
+    seed: 20260807,
+    ticks: 2000,
+    sampleEvery: 100,
+    build() {
+      const world = new World({ seed: this.seed });
+      const grid = new GridSystem({ width: 10, height: 10 });
+      world.register(grid);
+      const pathing = new PathingSystem(grid.grid);
+      world.register(pathing);
+      const inventory = new InventorySystem();
+      world.register(inventory);
+      const checkout = new CheckoutSystem(grid.grid, pathing);
+      world.register(checkout);
+      const economy = new EconomySystem(checkout, inventory);
+      world.register(economy);
+
+      world.commands.push({ type: 'setPrice', goodId: 'milk', price: 2.99 });
+      world.commands.push({ type: 'startPromotion', goodId: 'bread', discountFraction: 0.25, durationTicks: 500 });
+      world.commands.push({ type: 'setMarketingSpend', dailyAmount: 15 });
+      return world;
+    },
+  },
 ];
 
 /**
