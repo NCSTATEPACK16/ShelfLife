@@ -1,0 +1,72 @@
+// Phase 2.0a household segments (PLAN.md §5.1). Each entry defines a segment's
+// store-choice utility weights (unused until the logit lands in a later 2.0
+// sub-phase) and its consumption multiplier, which already drives pantry
+// depletion rate / shopping frequency (§5.4).
+//
+// `family` is the neutral segment (consumptionMultiplier: 1.0) so the golden
+// `shopper-trip` fixture can use it without perturbing its recorded hash.
+[
+  {
+    segment: 'priceHunter',
+    weights: {
+      priceFit: 0.9, assortmentFit: 0.2, quality: 0.1, service: 0.1,
+      ambiance: 0.1, loyalty: 0.2, brandAffinity: 0.1, travelCost: 0.4,
+      temperature: 1.0,
+    },
+    consumptionMultiplier: 0.9,
+  },
+  {
+    segment: 'convenience',
+    weights: {
+      priceFit: 0.2, assortmentFit: 0.3, quality: 0.2, service: 0.3,
+      ambiance: 0.2, loyalty: 0.3, brandAffinity: 0.2, travelCost: 0.9,
+      temperature: 1.0,
+    },
+    consumptionMultiplier: 1.1,
+  },
+  {
+    segment: 'family',
+    weights: {
+      priceFit: 0.5, assortmentFit: 0.6, quality: 0.4, service: 0.4,
+      ambiance: 0.3, loyalty: 0.4, brandAffinity: 0.3, travelCost: 0.5,
+      temperature: 1.0,
+    },
+    consumptionMultiplier: 1.0, // neutral segment — see file header
+  },
+  {
+    segment: 'foodie',
+    weights: {
+      priceFit: 0.1, assortmentFit: 0.7, quality: 0.9, service: 0.5,
+      ambiance: 0.6, loyalty: 0.3, brandAffinity: 0.6, travelCost: 0.3,
+      temperature: 1.0,
+    },
+    consumptionMultiplier: 0.8,
+  },
+  {
+    segment: 'bulk',
+    weights: {
+      priceFit: 0.6, assortmentFit: 0.3, quality: 0.2, service: 0.2,
+      ambiance: 0.1, loyalty: 0.3, brandAffinity: 0.2, travelCost: 0.6,
+      temperature: 1.0,
+    },
+    consumptionMultiplier: 1.6,
+  },
+  {
+    segment: 'senior',
+    weights: {
+      priceFit: 0.4, assortmentFit: 0.3, quality: 0.4, service: 0.6,
+      ambiance: 0.4, loyalty: 0.6, brandAffinity: 0.4, travelCost: 0.7,
+      temperature: 1.0,
+    },
+    consumptionMultiplier: 0.7,
+  },
+  {
+    segment: 'student',
+    weights: {
+      priceFit: 0.8, assortmentFit: 0.2, quality: 0.1, service: 0.1,
+      ambiance: 0.2, loyalty: 0.1, brandAffinity: 0.2, travelCost: 0.5,
+      temperature: 1.0,
+    },
+    consumptionMultiplier: 0.6,
+  },
+]
