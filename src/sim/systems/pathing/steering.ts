@@ -45,6 +45,7 @@ export function computeSteering(
   const follow = scale(normalize(flowDirection), config.maxSpeed);
 
   let separation: Vec2 = ZERO;
+  let contributingNeighbors = 0;
   for (const neighbor of agent.neighbors) {
     const away: Vec2 = { x: agent.position.x - neighbor.x, y: agent.position.y - neighbor.y };
     const dist = length(away);
@@ -53,7 +54,12 @@ export function computeSteering(
     // just inside the radius.
     const strength = (config.separationRadius - dist) / config.separationRadius;
     separation = add(separation, scale(normalize(away), strength));
+    contributingNeighbors++;
   }
+  // Average rather than sum: in a dense cluster, summing lets neighbor count alone
+  // dominate the desired velocity (even reversing it relative to the flow direction),
+  // which is what produces gridlock instead of a crowd that merely slows down.
+  if (contributingNeighbors > 0) separation = scale(separation, 1 / contributingNeighbors);
 
   const desired = add(follow, scale(separation, config.separationWeight * config.maxSpeed));
   return clampLength(desired, config.maxSpeed);
