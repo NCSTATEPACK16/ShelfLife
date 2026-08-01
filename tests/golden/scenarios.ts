@@ -1,4 +1,4 @@
-import { GridSystem, PathingSystem, World } from '../../src/sim/index.js';
+import { GridSystem, PathingSystem, ShoppersSystem, World } from '../../src/sim/index.js';
 import type { Hasher, System } from '../../src/sim/index.js';
 
 /**
@@ -133,7 +133,39 @@ export const SCENARIOS: readonly Scenario[] = [
       return world;
     },
   },
+  {
+    name: 'shopper-trip',
+    seed: 20260806,
+    ticks: 4 * 1440 + 3000,
+    sampleEvery: 200,
+    build() {
+      const world = new World({ seed: this.seed });
+      const grid = new GridSystem({ width: 20, height: 20 });
+      world.register(grid);
+      const pathing = new PathingSystem(grid.grid);
+      world.register(pathing);
+      const shoppers = new ShoppersSystem(grid.grid, pathing);
+      world.register(shoppers);
+
+      world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 10, y: 10, rotation: 0 });
+      world.commands.push({ type: 'placeFixture', fixtureId: 'register', x: 17, y: 17, rotation: 0 });
+      // Fresh grid, first-ever placement: BuildGrid's instance-id counter starts at 1 and
+      // this is the only fixture placed before it, so instanceId 1 is deterministic here
+      // without needing to read it back after the command applies.
+      world.commands.push({ type: 'stockFixture', instanceId: 1, goodId: 'bread' });
+      world.commands.push({ type: 'addHousehold', householdId: 1 });
+      return world;
+    },
+  },
 ];
+
+/**
+ * `shopper-trip` spawns its shopper once the household's day-4 depletion has put
+ * something on its list (only `bread` crosses its reorder threshold by day 4 — see the
+ * phase 1.6 plan). `runScenario` below pushes this at a fixed tick, keeping the whole
+ * recipe reproducible.
+ */
+const SHOPPER_TRIP_SPAWN_TICK = 4 * 1440;
 
 /** Runs a scenario and returns its sampled hash sequence. */
 export function runScenario(scenario: Scenario): number[] {
@@ -145,6 +177,9 @@ export function runScenario(scenario: Scenario): number[] {
     if (scenario.name === 'speed-and-pause') {
       if (tick === 1000) world.commands.push({ type: 'pause' });
       if (tick === 2000) world.commands.push({ type: 'resume' });
+    }
+    if (scenario.name === 'shopper-trip' && tick === SHOPPER_TRIP_SPAWN_TICK) {
+      world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
     }
     world.step();
     if (tick % scenario.sampleEvery === 0) samples.push(world.hash);
