@@ -44,3 +44,6 @@ export type {
   Vec2,
   Walkable,
 } from './systems/pathing/index.js';
+
+export { DEFAULT_GOODS_CATALOG, parseGoodsCatalog } from './systems/goods/index.js';
+export type { GoodDef } from './systems/goods/index.js';
