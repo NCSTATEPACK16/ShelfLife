@@ -5,6 +5,8 @@ import type { System, World } from '../../core/world.js';
 import type { GoodDef } from '../goods/types.js';
 import { DEFAULT_GOODS_CATALOG } from '../goods/catalog.js';
 import type { BuildGrid } from '../grid/grid.js';
+import { DEFAULT_INVENTORY_CONFIG } from '../inventory/config.js';
+import type { InventorySystem } from '../inventory/system.js';
 import { DEFAULT_PATHING_CONFIG } from '../pathing/config.js';
 import { computeSteering } from '../pathing/steering.js';
 import type { PathingSystem } from '../pathing/system.js';
@@ -28,15 +30,17 @@ function goodDestinationId(goodId: string): string {
  * leaving -> [removed]), driving them with `PathingSystem`/`computeSteering` — the API
  * both were designed against without a caller since phase 1.5.
  *
- * Scope cuts recorded in docs/superpowers/plans/2026-08-01-shoppers.md: no queueing,
- * spoilage, staff, or finance ledger — those are 1.7/1.8/1.9. Satisfaction only sums
- * `fillRate` and `discovery`; the other §5.3 terms are wired as 0 until their systems
- * exist.
+
+ * Satisfaction sums `fillRate`, `discovery`, and (since phase 1.7's `InventorySystem`)
+ * `spoiledEncounters`; `queuePenalty`/`staffInteraction`/`cleanliness` are still wired as
+ * 0 pending phase 1.8. No real checkout queueing or finance ledger yet either — see
+ * docs/superpowers/plans/2026-08-01-shoppers.md and -inventory.md for the recorded cuts.
  */
 export class ShoppersSystem implements System {
   readonly name = 'shoppers';
   readonly #grid: BuildGrid;
   readonly #pathing: PathingSystem;
+  readonly #inventory: InventorySystem;
   readonly #catalog: readonly GoodDef[];
   readonly #catalogById: ReadonlyMap<string, GoodDef>;
   readonly #households = new Map<number, Household>();
@@ -45,9 +49,15 @@ export class ShoppersSystem implements System {
   #exitRegistered = false;
   #lastSeenGridVersion = -1;
 
-  constructor(grid: BuildGrid, pathing: PathingSystem, catalog: readonly GoodDef[] = DEFAULT_GOODS_CATALOG) {
+  constructor(
+    grid: BuildGrid,
+    pathing: PathingSystem,
+    inventory: InventorySystem,
+    catalog: readonly GoodDef[] = DEFAULT_GOODS_CATALOG,
+  ) {
     this.#grid = grid;
     this.#pathing = pathing;
+    this.#inventory = inventory;
     this.#catalog = catalog;
     this.#catalogById = new Map(catalog.map((g) => [g.id, g]));
   }
@@ -108,7 +118,9 @@ export class ShoppersSystem implements System {
         .f64(shopper.position.y)
         .str(shopper.state)
         .u32(shopper.requested)
-        .u32(shopper.impulseHits);
+        .u32(shopper.impulseHits)
+        .u32(shopper.spoiledEncounters)
+        .f64(shopper.cartTotal);
       hasher.u32(shopper.remainingList.length);
       for (const goodId of shopper.remainingList) hasher.str(goodId);
       hasher.u32(shopper.cart.length);
@@ -139,8 +151,10 @@ export class ShoppersSystem implements System {
           state: 'entering',
           remainingList: household.list,
           cart: [],
+          cartTotal: 0,
           requested: household.list.length,
           impulseHits: 0,
+          spoiledEncounters: 0,
         });
         return true;
       }
@@ -217,11 +231,28 @@ export class ShoppersSystem implements System {
     const distance = this.#pathing.distanceAt(destId, cellX, cellY);
     if (distance < 0 || distance > DEFAULT_SHOPPERS_CONFIG.adjacentCellThreshold) return moved;
 
-    const cart = [...moved.cart, goodId];
+    const result = this.#inventory.consume(goodId, world.tick);
     const remainingList = moved.remainingList.slice(1);
-    const impulseHits = moved.impulseHits + this.#rollImpulse(world, moved, goodId);
     const state: ShopperState = remainingList.length === 0 ? 'checkingOut' : 'shopping';
-    return { ...moved, cart, remainingList, impulseHits, state };
+
+    if (result === 'spoiled') {
+      // §5.3's spoiledEncounters: the shopper recoils and puts it back — no sale, no
+      // impulse roll, and this list item stays unfulfilled (a fillRate miss too).
+      return { ...moved, remainingList, spoiledEncounters: moved.spoiledEncounters + 1, state };
+    }
+    if (result === 'outOfStock') {
+      // Nothing on the shelf — move on, unfulfilled. This is §5.3's single most
+      // important tell (fillRateMiss), already carried by fillRate itself.
+      return { ...moved, remainingList, state };
+    }
+
+    const good = this.#catalogById.get(goodId);
+    const price = good?.unitPrice ?? 0;
+    const paid = result === 'markdown' ? price * (1 - DEFAULT_INVENTORY_CONFIG.markdownDiscount) : price;
+    const cart = [...moved.cart, goodId];
+    const cartTotal = moved.cartTotal + paid;
+    const impulseHits = moved.impulseHits + this.#rollImpulse(world, moved, goodId);
+    return { ...moved, cart, cartTotal, remainingList, impulseHits, state };
   }
 
   #stepCheckingOut(world: World, shopper: Shopper): Shopper {
@@ -233,12 +264,11 @@ export class ShoppersSystem implements System {
     const distance = this.#pathing.distanceAt(REGISTER_DESTINATION_ID, cellX, cellY);
     if (distance < 0 || distance > DEFAULT_SHOPPERS_CONFIG.adjacentCellThreshold) return moved;
 
-    const total = moved.cart.reduce((sum, goodId) => sum + (this.#catalogById.get(goodId)?.unitPrice ?? 0), 0);
     world.events.emit({
       type: 'saleCompleted',
       shopperId: moved.id,
       householdId: moved.householdId,
-      total,
+      total: moved.cartTotal,
       items: moved.cart,
     });
 
@@ -262,11 +292,14 @@ export class ShoppersSystem implements System {
 
     const fillRate = moved.requested === 0 ? 1 : moved.cart.length / moved.requested;
     const discovery = moved.impulseHits > 0 ? 1 : 0;
+    const spoiled = moved.spoiledEncounters > 0 ? 1 : 0;
     const satisfaction = Math.min(
       1,
       Math.max(
         0,
-        DEFAULT_SHOPPERS_CONFIG.fillRateWeight * fillRate + DEFAULT_SHOPPERS_CONFIG.discoveryWeight * discovery,
+        DEFAULT_SHOPPERS_CONFIG.fillRateWeight * fillRate +
+          DEFAULT_SHOPPERS_CONFIG.discoveryWeight * discovery -
+          DEFAULT_SHOPPERS_CONFIG.spoiledEncountersWeight * spoiled,
       ),
     );
     world.events.emit({

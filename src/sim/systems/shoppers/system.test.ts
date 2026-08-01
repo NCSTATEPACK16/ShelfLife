@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { World } from '../../core/world.js';
 import { BuildGrid } from '../grid/grid.js';
 import { DEFAULT_CATALOG } from '../grid/catalog.js';
+import { InventorySystem } from '../inventory/system.js';
+import type { SupplyPolicy } from '../inventory/types.js';
 import { PathingSystem } from '../pathing/system.js';
 import type { GoodDef } from '../goods/types.js';
 import { ShoppersSystem } from './system.js';
@@ -14,19 +16,30 @@ const CATALOG: readonly GoodDef[] = [
   { id: 'bread', name: 'Bread', unitPrice: 2, depletionPerDay: 0.01, reorderThreshold: 0.3, impulseBase: 0.05 },
 ];
 
+// Generous stock, perfectly reliable, and freshness that never crosses either threshold
+// within these tests' tick ranges — these tests are about the shopper FSM, not inventory
+// edge cases (InventorySystem has its own dedicated test suite for those).
+const POLICIES: readonly SupplyPolicy[] = [
+  { goodId: 'milk', reorderPoint: 5, orderUpToLevel: 1000, leadTimeTicks: 10, supplierReliability: 1, spoilageTauDays: 10_000 },
+  { goodId: 'bread', reorderPoint: 5, orderUpToLevel: 1000, leadTimeTicks: 10, supplierReliability: 1, spoilageTauDays: 10_000 },
+];
+
 function worldWithShoppers(seed = 1): {
   world: World;
   grid: BuildGrid;
   pathing: PathingSystem;
+  inventory: InventorySystem;
   shoppers: ShoppersSystem;
 } {
   const world = new World({ seed });
   const grid = new BuildGrid({ width: 12, height: 12 }, DEFAULT_CATALOG);
   const pathing = new PathingSystem(grid);
   world.register(pathing);
-  const shoppers = new ShoppersSystem(grid, pathing, CATALOG);
+  const inventory = new InventorySystem(POLICIES);
+  world.register(inventory);
+  const shoppers = new ShoppersSystem(grid, pathing, inventory, CATALOG);
   world.register(shoppers);
-  return { world, grid, pathing, shoppers };
+  return { world, grid, pathing, inventory, shoppers };
 }
 
 describe('ShoppersSystem — commands and wiring', () => {
@@ -99,7 +112,9 @@ describe('ShoppersSystem — commands and wiring', () => {
     const replayPathing = new PathingSystem(replayGrid);
     const replayed = new World({ seed });
     replayed.register(replayPathing);
-    replayed.register(new ShoppersSystem(replayGrid, replayPathing, CATALOG));
+    const replayInventory = new InventorySystem(POLICIES);
+    replayed.register(replayInventory);
+    replayed.register(new ShoppersSystem(replayGrid, replayPathing, replayInventory, CATALOG));
     for (const entry of world.commands.log) {
       replayed.commands.push(entry.command);
     }

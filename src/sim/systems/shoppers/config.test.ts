@@ -6,6 +6,7 @@ describe('parseShoppersConfig', () => {
     const config = parseShoppersConfig({
       fillRateWeight: 0.5,
       discoveryWeight: 0.2,
+      spoiledEncountersWeight: 0.2,
       exposureRadius: 3,
       adjacentCellThreshold: 1,
     });
@@ -17,6 +18,7 @@ describe('parseShoppersConfig', () => {
       parseShoppersConfig({
         fillRateWeight: 0.5,
         discoveryWeight: 0.2,
+        spoiledEncountersWeight: 0.2,
         exposureRadius: -1,
         adjacentCellThreshold: 1,
       }),

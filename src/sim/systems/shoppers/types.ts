@@ -17,9 +17,13 @@ export interface Shopper {
   readonly state: ShopperState;
   /** Remaining good ids to collect, in visit order. */
   readonly remainingList: readonly string[];
-  /** Good ids already collected this trip. */
+  /** Good ids already collected this trip (sold or markdown — never spoiled/outOfStock). */
   readonly cart: readonly string[];
+  /** Sum of what was actually paid for `cart`'s contents, markdowns already applied. */
+  readonly cartTotal: number;
   /** Requested list length at spawn — the denominator for fillRate. */
   readonly requested: number;
   readonly impulseHits: number;
+  /** Count of §5.3's `spoiledEncounters` — a shelf pick that came back spoiled. */
+  readonly spoiledEncounters: number;
 }

@@ -1,4 +1,4 @@
-import { DEFAULT_CATALOG, GridSystem, PathingSystem, ShoppersSystem, World } from '../sim/index.js';
+import { DEFAULT_CATALOG, GridSystem, InventorySystem, PathingSystem, ShoppersSystem, World } from '../sim/index.js';
 import type { Command, FixtureDef, GridDimensions, Placement, Rotation, ShopperState } from '../sim/index.js';
 
 export interface BuildModeSnapshot {
@@ -15,6 +15,7 @@ export class BuildModeBridge {
   readonly #world: World;
   readonly #grid: GridSystem;
   readonly #pathing: PathingSystem;
+  readonly #inventory: InventorySystem;
   readonly #shoppers: ShoppersSystem;
 
   constructor(dimensions: GridDimensions, seed = 1) {
@@ -23,7 +24,9 @@ export class BuildModeBridge {
     this.#world.register(this.#grid);
     this.#pathing = new PathingSystem(this.#grid.grid);
     this.#world.register(this.#pathing);
-    this.#shoppers = new ShoppersSystem(this.#grid.grid, this.#pathing);
+    this.#inventory = new InventorySystem();
+    this.#world.register(this.#inventory);
+    this.#shoppers = new ShoppersSystem(this.#grid.grid, this.#pathing, this.#inventory);
     this.#world.register(this.#shoppers);
   }
 
