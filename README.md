@@ -12,10 +12,12 @@ competition.** The final boss is a tiny store with a bell and a cult.
 
 ## Status
 
-**Milestone 1 — Playable Core.** Phase 1.0 (Foundations).
+**Milestone 1 — Playable Core.** Phase 1.0 (Foundations) complete.
 
-See [`PLAN.md`](./PLAN.md) for the full spec and roadmap, and [`docs/handoff.md`](./docs/handoff.md)
-for where things stand right now.
+> The full spec (`PLAN.md`) and the running status log (`docs/handoff.md`) are **local-only and
+> untracked by design**. Section references like "PLAN.md §7.2" appear throughout the code comments
+> and in `CLAUDE.md`; they point at that local document. Everything needed to *build* the project is
+> in this repo.
 
 ## Quick start
 

@@ -1,0 +1,26 @@
+{
+  // Base ticks to scan one item at skill=1, morale=1 (PLAN.md §5.6's
+  // ~Gamma(items, scannerSpeed x cashierSkill), approximated — see the phase plan).
+  serviceTicksPerItem: 3,
+
+  // Tracked via a wagesPaid event only — no ledger until phase 1.9.
+  wagePerStaffPerDay: 120,
+
+  // Wait time (ticks) before a shopper balks (leaves without buying).
+  balkToleranceTicks: 200,
+
+  // Wait time before a shopper abandons their cart mid-queue (PLAN.md §5.6: 2x tolerance).
+  abandonToleranceTicks: 400,
+
+  // Skill gained per trainStaff() call, capped at 1.
+  trainingSkillIncrement: 0.1,
+
+  // Self-checkout: faster service, but a flat satisfaction penalty (PLAN.md §5.6: -0.08).
+  selfCheckoutServiceMultiplier: 0.7,
+  selfCheckoutServiceScorePenalty: 0.08,
+
+  // Cleanliness (0-1) decays every tick from shopper traffic and is restored by every
+  // assigned staff member (they tidy between customers, not just scan items).
+  cleanlinessDecayPerTick: 0.0002,
+  cleanlinessRestorePerStaffPerTick: 0.0005,
+}

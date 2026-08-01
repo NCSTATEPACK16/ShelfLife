@@ -1,0 +1,14 @@
+{
+  // Max concurrent in-transit deliveries, store-wide. Forces reorders to queue rather
+  // than all arrive at once — a real dock has finite bays.
+  dockCapacity: 3,
+
+  // Freshness (PLAN.md §5.5, f(t) = exp(-t/tau)) below which a unit is markdown-eligible.
+  markdownThreshold: 0.35,
+
+  // Freshness below which a unit is written off as shrink instead of sold.
+  shrinkThreshold: 0.15,
+
+  // Fraction off a markdown-eligible unit's price at the point of sale.
+  markdownDiscount: 0.3,
+}

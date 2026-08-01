@@ -1,0 +1,224 @@
+/**
+ * Landing page (PLAN.md §15). Static, small, indexable.
+ * Tokens mirror content/design/tokens.json so the site and the game read as one product.
+ */
+
+:root {
+  --fixture-50: #f4f3f0;
+  --fixture-100: #e8e6e1;
+  --fixture-200: #d6d3cb;
+  --fixture-300: #b4b0a6;
+  --fixture-400: #8a867c;
+  --fixture-500: #615e56;
+  --fixture-700: #2a2926;
+  --fixture-800: #1e1d1a;
+  --fixture-900: #141311;
+  --product-red: #e23d2e;
+
+  --ground: var(--fixture-100);
+  --surface: var(--fixture-50);
+  --ink: #1a1917;
+  --ink-muted: var(--fixture-500);
+  --ink-faint: var(--fixture-400);
+  --line: var(--fixture-200);
+  --line-strong: var(--fixture-300);
+  --accent: var(--product-red);
+  --accent-ink: #fff;
+
+  --font-signage: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  --font-register: ui-monospace, sfmono-regular, 'SF Mono', menlo, consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: var(--fixture-900);
+    --surface: var(--fixture-800);
+    --ink: #f0eee9;
+    --ink-muted: #a8a49a;
+    --ink-faint: #78746b;
+    --line: #33312c;
+    --line-strong: #4a473f;
+    --accent: #f05243;
+    --accent-ink: var(--fixture-900);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+main,
+footer {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.hero {
+  padding: 5rem 0 3rem;
+}
+
+.kicker {
+  font-family: var(--font-register);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 1rem;
+}
+
+h1 {
+  font-family: var(--font-signage);
+  font-size: clamp(2.5rem, 9vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+  margin: 0 0 1.25rem;
+}
+
+h2 {
+  font-family: var(--font-signage);
+  font-size: clamp(1.375rem, 4vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0 0 0.75rem;
+}
+
+p {
+  margin: 0 0 1rem;
+  max-width: 62ch;
+  color: var(--ink-muted);
+}
+
+.lede {
+  font-size: 1.125rem;
+  color: var(--ink);
+}
+
+.lede em {
+  font-style: normal;
+  box-shadow: inset 0 -0.5em 0 rgb(226 61 46 / 18%);
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 1.5rem;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-signage);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.cta:hover {
+  filter: brightness(1.08);
+}
+
+.cta-note {
+  font-family: var(--font-register);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.band {
+  border-top: 2px solid var(--line-strong);
+  padding: 3rem 0 1rem;
+}
+
+.ladder {
+  list-style: none;
+  margin: 1.5rem 0 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.ladder li {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.25rem 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+  align-items: baseline;
+}
+
+.ladder li:first-child {
+  border-top: none;
+}
+
+.ladder .num {
+  font-family: var(--font-register);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.ladder b {
+  font-family: var(--font-signage);
+  font-weight: 700;
+}
+
+.ladder span:last-child {
+  grid-column: 2;
+  color: var(--ink-muted);
+  font-size: 0.9375rem;
+}
+
+.ladder .final .num,
+.ladder .final b {
+  color: var(--accent);
+}
+
+.caption {
+  font-family: var(--font-register);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+footer {
+  border-top: 2px solid var(--line-strong);
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  padding-bottom: 4rem;
+}
+
+footer p {
+  font-family: var(--font-register);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+a:focus-visible,
+.cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
