@@ -73,3 +73,13 @@ export type {
   StockedGood,
   SupplyPolicy,
 } from './systems/inventory/index.js';
+
+export { CheckoutSystem, DEFAULT_STAFFING_CONFIG, parseStaffingConfig } from './systems/checkout/index.js';
+export type {
+  CheckoutOutcome,
+  Lane,
+  QueuedShopper,
+  Serving,
+  StaffingConfig,
+  StaffMember,
+} from './systems/checkout/index.js';

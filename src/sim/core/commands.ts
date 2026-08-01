@@ -45,7 +45,10 @@ export type Command =
   | { readonly type: 'unregisterPathingDestination'; readonly destinationId: string }
   | { readonly type: 'addHousehold'; readonly householdId: number }
   | { readonly type: 'stockFixture'; readonly instanceId: number; readonly goodId: string }
-  | { readonly type: 'spawnShopper'; readonly shopperId: number; readonly householdId: number };
+  | { readonly type: 'spawnShopper'; readonly shopperId: number; readonly householdId: number }
+  | { readonly type: 'hireStaff'; readonly staffId: number; readonly skill: number; readonly morale: number }
+  | { readonly type: 'assignStaffToRegister'; readonly staffId: number; readonly instanceId: number }
+  | { readonly type: 'trainStaff'; readonly staffId: number };
 
 export type CommandType = Command['type'];
 
@@ -144,6 +147,15 @@ export function hashCommand(hasher: Hasher, command: Command): void {
       return;
     case 'spawnShopper':
       hasher.u32(command.shopperId).u32(command.householdId);
+      return;
+    case 'hireStaff':
+      hasher.u32(command.staffId).f64(command.skill).f64(command.morale);
+      return;
+    case 'assignStaffToRegister':
+      hasher.u32(command.staffId).u32(command.instanceId);
+      return;
+    case 'trainStaff':
+      hasher.u32(command.staffId);
       return;
     case 'noop':
     case 'pause':
