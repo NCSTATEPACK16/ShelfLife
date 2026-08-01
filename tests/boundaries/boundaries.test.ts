@@ -25,14 +25,22 @@ async function messagesFor(relPath: string): Promise<string[]> {
 describe('rule 1 — the sim boundary', () => {
   const fixture = 'src/sim/__boundary_fixtures__/violates-sim-boundary.fixture.ts';
 
-  it('blocks platform package imports', async () => {
-    const msgs = await messagesFor(fixture);
-    const restricted = msgs.filter((m) => m.startsWith('no-restricted-imports'));
+  // Longer timeout: this is the first ESLint call in the suite, so it pays for the
+  // one-time flat-config + TS-parser cold start. That cold start is slow enough on
+  // windows-latest CI runners to blow past vitest's default 5000ms. Every later call
+  // in this file reuses the already-initialized ESLint instance and stays well under it.
+  it(
+    'blocks platform package imports',
+    async () => {
+      const msgs = await messagesFor(fixture);
+      const restricted = msgs.filter((m) => m.startsWith('no-restricted-imports'));
 
-    expect(restricted).toHaveLength(2);
-    expect(restricted.join('\n')).toMatch(/persists anything/);
-    expect(restricted.join('\n')).toMatch(/UI layer/);
-  });
+      expect(restricted).toHaveLength(2);
+      expect(restricted.join('\n')).toMatch(/persists anything/);
+      expect(restricted.join('\n')).toMatch(/UI layer/);
+    },
+    15000,
+  );
 
   it('blocks DOM and platform globals', async () => {
     const msgs = await messagesFor(fixture);
