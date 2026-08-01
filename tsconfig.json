@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+
+    /* PLAN.md §6.4 — non-negotiable for a simulation this size. */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": false,
+    "noEmit": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@sim/*": ["src/sim/*"],
+      "@platform/*": ["src/platform/*"],
+      "@view/*": ["src/view/*"],
+      "@ui/*": ["src/ui/*"],
+      "@bridge/*": ["src/bridge/*"],
+      "@content/*": ["src/content/*"]
+    }
+  },
+  "include": ["src", "landing", "tools", "tests", "*.config.ts"],
+  "exclude": ["node_modules", "dist", "ios"]
+}

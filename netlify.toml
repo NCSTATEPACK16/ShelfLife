@@ -1,0 +1,46 @@
+# Netlify deploy (PLAN.md §12, §15).
+#
+# One deploy, two build outputs:
+#   /       the static landing page  (small, indexable)
+#   /game/  the game bundle          (large, not indexed)
+#
+# They are kept separate on purpose. Serving a ~50 KB marketing page out of a
+# multi-megabyte game bundle means search engines index nothing and first paint
+# takes seconds.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "26.4.0"
+  NPM_FLAGS = "--no-audit --no-fund"
+
+# The game is a single-page app: deep links inside it must not 404.
+[[redirects]]
+  from = "/game/*"
+  to = "/game/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Hashed asset filenames are immutable; the HTML that references them is not.
+[[headers]]
+  for = "/game/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/game/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
