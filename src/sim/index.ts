@@ -56,3 +56,20 @@ export {
   ShoppersSystem,
 } from './systems/shoppers/index.js';
 export type { Household, Shopper, ShopperState, ShoppersConfig } from './systems/shoppers/index.js';
+
+export {
+  DEFAULT_INVENTORY_CONFIG,
+  DEFAULT_SUPPLY_POLICIES,
+  freshnessAt,
+  InventorySystem,
+  parseInventoryConfig,
+  parseSupplyPolicies,
+} from './systems/inventory/index.js';
+export type {
+  Batch,
+  ConsumeResult,
+  InventoryConfig,
+  PendingOrder,
+  StockedGood,
+  SupplyPolicy,
+} from './systems/inventory/index.js';
