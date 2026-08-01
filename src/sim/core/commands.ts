@@ -36,7 +36,13 @@ export type Command =
   | { readonly type: 'rotateFixture'; readonly instanceId: number; readonly rotation: 0 | 90 | 180 | 270 }
   | { readonly type: 'removeFixture'; readonly instanceId: number }
   | { readonly type: 'undoBuild' }
-  | { readonly type: 'redoBuild' };
+  | { readonly type: 'redoBuild' }
+  | {
+      readonly type: 'registerPathingDestination';
+      readonly destinationId: string;
+      readonly cells: readonly { readonly x: number; readonly y: number }[];
+    }
+  | { readonly type: 'unregisterPathingDestination'; readonly destinationId: string };
 
 export type CommandType = Command['type'];
 
@@ -119,6 +125,13 @@ export function hashCommand(hasher: Hasher, command: Command): void {
       return;
     case 'removeFixture':
       hasher.u32(command.instanceId);
+      return;
+    case 'registerPathingDestination':
+      hasher.str(command.destinationId).u32(command.cells.length);
+      for (const cell of command.cells) hasher.u32(cell.x).u32(cell.y);
+      return;
+    case 'unregisterPathingDestination':
+      hasher.str(command.destinationId);
       return;
     case 'noop':
     case 'pause':
