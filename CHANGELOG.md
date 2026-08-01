@@ -41,3 +41,19 @@ Phases and their acceptance gates are defined in `PLAN.md` §16.
   CI extends the same check across Ubuntu and Windows.
 - System registration freezes once the world starts; registration order is part of the hash.
 - `Clock.pump` caps catch-up at 10 steps to avoid a spiral of death after a long backgrounding.
+
+#### Phase 1.4 — Grid & build mode · **sim half PASS, view half not started**
+- `src/sim/systems/grid/`: fixture catalog (`content/fixtures/catalog.json`, Zod-validated, first
+  content-driven data outside design tokens), `BuildGrid` (dimensions, rotation-aware footprint
+  math, placement/occupancy/walkability, bulldoze, rotate, undo/redo), and `GridSystem` wiring it
+  into `World`.
+- New `placeFixture` / `rotateFixture` / `removeFixture` / `undoBuild` / `redoBuild` commands.
+  `System` gained an optional `applyCommand` hook (ADR 0003) so `World#apply` can dispatch
+  non-kernel commands to whichever registered system claims them — the pattern every later
+  gameplay system's commands will use, without `World#apply` growing a case per system.
+- A dedicated test proves the PLAN.md 1.4 gate's core claim at the sim layer: placing 50 fixtures
+  then undoing all 50 hashes identically to a fresh world advanced the same number of ticks. New
+  `grid-build` golden scenario locks it long-term; the four pre-existing golden hashes are
+  unchanged.
+- **Not yet done:** `src/view` rendering, `src/platform/input` touch handling, a `src/ui` build-mode
+  panel, and the two-viewport Playwright E2E — the literal "one thumb on a phone" gate needs those.
