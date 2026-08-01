@@ -16,12 +16,27 @@
 
 import type { Hasher } from './hash.js';
 
-/** Phase 1.3 ships the kernel-level commands; gameplay commands arrive with their systems. */
+/**
+ * Phase 1.3 shipped the kernel-level commands. Phase 1.4 adds the first gameplay system's
+ * commands (grid/build mode) — see docs/adr/0003 for how a system claims a command type
+ * without `World#apply` needing to know its semantics.
+ */
 export type Command =
   | { readonly type: 'noop' }
   | { readonly type: 'setSpeed'; readonly multiplier: number }
   | { readonly type: 'pause' }
-  | { readonly type: 'resume' };
+  | { readonly type: 'resume' }
+  | {
+      readonly type: 'placeFixture';
+      readonly fixtureId: string;
+      readonly x: number;
+      readonly y: number;
+      readonly rotation: 0 | 90 | 180 | 270;
+    }
+  | { readonly type: 'rotateFixture'; readonly instanceId: number; readonly rotation: 0 | 90 | 180 | 270 }
+  | { readonly type: 'removeFixture'; readonly instanceId: number }
+  | { readonly type: 'undoBuild' }
+  | { readonly type: 'redoBuild' };
 
 export type CommandType = Command['type'];
 
@@ -96,9 +111,20 @@ export function hashCommand(hasher: Hasher, command: Command): void {
     case 'setSpeed':
       hasher.f64(command.multiplier);
       return;
+    case 'placeFixture':
+      hasher.str(command.fixtureId).u32(command.x).u32(command.y).u32(command.rotation);
+      return;
+    case 'rotateFixture':
+      hasher.u32(command.instanceId).u32(command.rotation);
+      return;
+    case 'removeFixture':
+      hasher.u32(command.instanceId);
+      return;
     case 'noop':
     case 'pause':
     case 'resume':
+    case 'undoBuild':
+    case 'redoBuild':
       return;
     default: {
       const exhaustive: never = command;

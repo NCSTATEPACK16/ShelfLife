@@ -25,3 +25,6 @@ export type { WorldSnapshot } from './core/snapshot.js';
 
 export { hashCommands, replay, World } from './core/world.js';
 export type { System, WorldOptions } from './core/world.js';
+
+export { BuildGrid, DEFAULT_CATALOG, GridSystem, parseCatalog, PlacementError } from './systems/grid/index.js';
+export type { FixtureDef, Footprint, GridDimensions, Placement, Rotation } from './systems/grid/index.js';

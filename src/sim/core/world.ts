@@ -28,6 +28,11 @@ export interface System {
   update(world: World): void;
   /** Folds the system's state into the world hash. Order within must be stable. */
   hash(world: World, hasher: Hasher): void;
+  /**
+   * Claims a non-kernel command (docs/adr/0003). Returns true if this system handled it —
+   * the first system to claim a command wins, in registration order.
+   */
+  applyCommand?(world: World, command: Command): boolean;
 }
 
 export class World {
@@ -147,10 +152,13 @@ export class World {
         this.#paused = false;
         this.events.emit({ type: 'resumed' });
         return;
-      default: {
-        const exhaustive: never = command;
-        throw new Error(`Unhandled command: ${JSON.stringify(exhaustive)}`);
-      }
+      default:
+        // Not a kernel command (docs/adr/0003) — offer it to each system in registration
+        // order until one claims it.
+        for (const system of this.#systems) {
+          if (system.applyCommand?.(this, command)) return;
+        }
+        throw new Error(`Unhandled command: ${JSON.stringify(command)}`);
     }
   }
 
