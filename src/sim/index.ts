@@ -83,3 +83,6 @@ export type {
   StaffingConfig,
   StaffMember,
 } from './systems/checkout/index.js';
+
+export { DEFAULT_ECONOMY_CONFIG, EconomySystem, parseEconomyConfig } from './systems/economy/index.js';
+export type { DailyStatement, EconomyConfig, LedgerCategory, LedgerEntry, Promotion } from './systems/economy/index.js';
