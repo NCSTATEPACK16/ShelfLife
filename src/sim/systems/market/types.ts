@@ -10,6 +10,31 @@ export interface Position {
   readonly y: number;
 }
 
+/**
+ * A competing store in the catchment (PLAN.md §3, §5.1).
+ *
+ * `quality`/`service`/`ambiance` are the store-level terms `U(h,s)` multiplies against a
+ * segment's `UtilityWeights`. They are authored and validated now; nothing evaluates
+ * `U(h,s)` until the store-choice logit sub-phase.
+ */
+export interface RivalStore {
+  readonly id: string;
+  readonly name: string;
+  /** Flavour text naming the satirised *category*, never a real chain. */
+  readonly archetype: string;
+  /** Community Love, PLAN.md §3 — 0–100. */
+  readonly communityLove: number;
+  readonly position: Position;
+  /** Tag for the future `brandAffinity(h, s.identity)` term. */
+  readonly identity: string;
+  /** Store-level U(h,s) term, §5.1 — [0,1]. */
+  readonly quality: number;
+  /** Store-level U(h,s) term, §5.1 — [0,1]. */
+  readonly service: number;
+  /** Store-level U(h,s) term, §5.1 — [0,1]. */
+  readonly ambiance: number;
+}
+
 export const SEGMENTS = [
   'priceHunter', 'convenience', 'family', 'foodie', 'bulk', 'senior', 'student',
 ] as const;

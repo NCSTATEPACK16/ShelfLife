@@ -40,7 +40,7 @@ Status: `planned` → `reviewed` → `implemented`.
 
 | # | Rival | Archetype (category, not entity) | Borrowed (strategy) | Deliberately not borrowed | Name test | Status |
 |---|---|---|---|---|---|---|
-| 1 | Sav-A-Lott | Dying deep-discounter | Skeleton staffing; one register open | Name, logo, palette, slogan, store layout | 1✓ 2✓ 3✓ 4✓ | planned |
+| 1 | Sav-A-Lott | Dying deep-discounter | Skeleton staffing; one register open | Name, logo, palette, slogan, store layout | 1✓ 2✓ 3✓ 4✓ | implemented |
 | 2 | Grocerteria 24 | 24-hour convenience grocer | Always-open; owns the overnight trip | " | 1✓ 2✓ 3✓ 4✓ | planned |
 | 3 | BulkHaus Club | Warehouse membership club | Membership lock-in; sample corridor; huge pack sizes | " | 1✓ 2✓ 3✓ 4✓ | planned |
 | 4 | Aldente Markt | European hard discounter | Private-label dominance; fast checkout; narrow assortment | " | 1✓ 2✓ 3✓ 4✓ | planned |

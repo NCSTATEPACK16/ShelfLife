@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { travelCost } from './catchment.js';
-import { DEFAULT_CATCHMENT_CONFIG, parseCatchmentConfig } from './config.js';
+import {
+  DEFAULT_CATCHMENT_CONFIG,
+  DEFAULT_RIVAL_STORES,
+  parseCatchmentConfig,
+  parseRivalStore,
+} from './config.js';
 
 const CONFIG = { playerStorePosition: { x: 0, y: 0 }, distanceCostPerUnit: 0.5 };
 
@@ -67,5 +72,73 @@ describe('travelCost', () => {
       distanceCostPerUnit: 1.0,
     });
     expect(doubled).toBeCloseTo(near * 2);
+  });
+});
+
+const RIVAL = {
+  id: 'sav-a-lott',
+  name: 'Sav-A-Lott',
+  archetype: 'Dying deep-discounter',
+  communityLove: 22,
+  position: { x: 4, y: -3 },
+  identity: 'deep-discount',
+  quality: 0.35,
+  service: 0.15,
+  ambiance: 0.1,
+};
+
+describe('parseRivalStore', () => {
+  it('parses a valid rival', () => {
+    const rival = parseRivalStore(RIVAL);
+    expect(rival.id).toBe('sav-a-lott');
+    expect(rival.communityLove).toBe(22);
+  });
+
+  it('rejects communityLove outside [0, 100]', () => {
+    expect(() => parseRivalStore({ ...RIVAL, communityLove: -1 })).toThrow();
+    expect(() => parseRivalStore({ ...RIVAL, communityLove: 101 })).toThrow();
+  });
+
+  it('accepts communityLove exactly at both bounds', () => {
+    expect(parseRivalStore({ ...RIVAL, communityLove: 0 }).communityLove).toBe(0);
+    expect(parseRivalStore({ ...RIVAL, communityLove: 100 }).communityLove).toBe(100);
+  });
+
+  it('rejects quality, service, or ambiance outside [0, 1]', () => {
+    expect(() => parseRivalStore({ ...RIVAL, quality: 1.1 })).toThrow();
+    expect(() => parseRivalStore({ ...RIVAL, service: -0.1 })).toThrow();
+    expect(() => parseRivalStore({ ...RIVAL, ambiance: 2 })).toThrow();
+  });
+
+  it('rejects a non-integer rival position', () => {
+    expect(() => parseRivalStore({ ...RIVAL, position: { x: 1.5, y: 0 } })).toThrow();
+  });
+
+  it('rejects an empty required string', () => {
+    expect(() => parseRivalStore({ ...RIVAL, id: '' })).toThrow();
+    expect(() => parseRivalStore({ ...RIVAL, name: '' })).toThrow();
+    expect(() => parseRivalStore({ ...RIVAL, archetype: '' })).toThrow();
+    expect(() => parseRivalStore({ ...RIVAL, identity: '' })).toThrow();
+  });
+
+  it('rejects a rival missing a required field', () => {
+    const { quality: _quality, ...incomplete } = RIVAL;
+    expect(() => parseRivalStore(incomplete)).toThrow();
+  });
+
+  it('loads content/rivals/sav-a-lott.json5 with PLAN.md §3 table values', () => {
+    expect(DEFAULT_RIVAL_STORES).toHaveLength(1);
+    const savALott = DEFAULT_RIVAL_STORES[0]!;
+    expect(savALott.id).toBe('sav-a-lott');
+    expect(savALott.archetype).toBe('Dying deep-discounter');
+    expect(savALott.communityLove).toBe(22);
+  });
+
+  it('places Sav-A-Lott somewhere other than the player store', () => {
+    // A rival co-located with the player would make travelCost identical for every
+    // household, quietly neutering the term the logit sub-phase is about to consume.
+    expect(DEFAULT_RIVAL_STORES[0]!.position).not.toEqual(
+      DEFAULT_CATCHMENT_CONFIG.playerStorePosition,
+    );
   });
 });
