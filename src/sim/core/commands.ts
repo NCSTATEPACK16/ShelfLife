@@ -14,7 +14,7 @@
  * that says "place shelf_dairy at (12, 7) facing north" is replayable forever.
  */
 
-import type { Segment } from '../systems/market/types.js';
+import type { Position, Segment } from '../systems/market/types.js';
 import type { Hasher } from './hash.js';
 
 /**
@@ -44,7 +44,12 @@ export type Command =
       readonly cells: readonly { readonly x: number; readonly y: number }[];
     }
   | { readonly type: 'unregisterPathingDestination'; readonly destinationId: string }
-  | { readonly type: 'addHousehold'; readonly householdId: number; readonly segment: Segment }
+  | {
+      readonly type: 'addHousehold';
+      readonly householdId: number;
+      readonly segment: Segment;
+      readonly position: Position;
+    }
   | { readonly type: 'stockFixture'; readonly instanceId: number; readonly goodId: string }
   | { readonly type: 'spawnShopper'; readonly shopperId: number; readonly householdId: number }
   | { readonly type: 'hireStaff'; readonly staffId: number; readonly skill: number; readonly morale: number }
@@ -149,7 +154,11 @@ export function hashCommand(hasher: Hasher, command: Command): void {
       hasher.str(command.destinationId);
       return;
     case 'addHousehold':
-      hasher.u32(command.householdId).str(command.segment);
+      hasher
+        .u32(command.householdId)
+        .str(command.segment)
+        .i32(command.position.x)
+        .i32(command.position.y);
       return;
     case 'stockFixture':
       hasher.u32(command.instanceId).str(command.goodId);
