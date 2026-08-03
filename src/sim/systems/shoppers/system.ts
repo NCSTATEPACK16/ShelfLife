@@ -103,7 +103,7 @@ export class ShoppersSystem implements System {
     hasher.u32(householdIds.length);
     for (const id of householdIds) {
       const household = this.#households.get(id)!;
-      hasher.u32(id).str(household.segment);
+      hasher.u32(id).str(household.segment).i32(household.position.x).i32(household.position.y);
       for (const good of this.#catalog) hasher.f64(household.pantry[good.id] ?? 1);
       hasher.u32(household.list.length);
       for (const goodId of household.list) hasher.str(goodId);
@@ -150,6 +150,7 @@ export class ShoppersSystem implements System {
         this.#households.set(command.householdId, {
           id: command.householdId,
           segment: command.segment,
+          position: command.position,
           pantry: {},
           list: deriveShoppingList({}, this.#catalog),
         });
