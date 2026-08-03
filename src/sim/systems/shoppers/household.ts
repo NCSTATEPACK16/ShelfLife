@@ -1,4 +1,5 @@
 import type { GoodDef } from '../goods/types.js';
+import { consumptionMultiplierFor, type SegmentConfig } from '../market/index.js';
 import type { Household } from './types.js';
 
 /** Goods below their `reorderThreshold`, in catalog order (deterministic — no ties to break). */
@@ -14,12 +15,17 @@ export function deriveShoppingList(
   return list;
 }
 
-/** Depletes every good in `household.pantry` by one day, then recomputes the shopping list. */
-export function advancePantryDay(household: Household, catalog: readonly GoodDef[]): Household {
+/** Depletes every good in `household.pantry` by one day (scaled by segment), then recomputes the shopping list. */
+export function advancePantryDay(
+  household: Household,
+  catalog: readonly GoodDef[],
+  segmentConfig: SegmentConfig,
+): Household {
+  const multiplier = consumptionMultiplierFor(segmentConfig, household.segment);
   const pantry: Record<string, number> = {};
   for (const good of catalog) {
     const stock = household.pantry[good.id] ?? 1;
-    pantry[good.id] = Math.max(0, stock - good.depletionPerDay);
+    pantry[good.id] = Math.max(0, stock - good.depletionPerDay * multiplier);
   }
   return { ...household, pantry, list: deriveShoppingList(pantry, catalog) };
 }
