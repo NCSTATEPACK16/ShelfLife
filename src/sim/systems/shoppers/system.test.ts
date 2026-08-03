@@ -53,10 +53,17 @@ function worldWithShoppers(seed = 1): {
 describe('ShoppersSystem — commands and wiring', () => {
   it('addHousehold creates a fully-stocked household with an empty list', () => {
     const { world, shoppers } = worldWithShoppers();
-    world.commands.push({ type: 'addHousehold', householdId: 1 });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
     world.step();
     const household = shoppers.household(1);
     expect(household.list).toEqual([]);
+  });
+
+  it('addHousehold stores the segment and applies its consumptionMultiplier on depletion', () => {
+    const { world, shoppers } = worldWithShoppers();
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'convenience' });
+    world.step();
+    expect(shoppers.household(1).segment).toBe('convenience');
   });
 
   it('stockFixture registers a good-specific pathing destination from the fixture cells', () => {
@@ -79,7 +86,7 @@ describe('ShoppersSystem — commands and wiring', () => {
 
   it('advances every household pantry by one day at each day boundary', () => {
     const { world, shoppers } = worldWithShoppers();
-    world.commands.push({ type: 'addHousehold', householdId: 1 });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
     world.step();
     // TICKS_PER_SIM_DAY (1,440) further ticks crosses exactly one day boundary.
     world.run(1440);
@@ -91,7 +98,7 @@ describe('ShoppersSystem — commands and wiring', () => {
 
   it('spawnShopper snapshots the household list at spawn time', () => {
     const { world, shoppers } = worldWithShoppers();
-    world.commands.push({ type: 'addHousehold', householdId: 1 });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
     world.step();
     world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
     world.step();
@@ -109,7 +116,7 @@ describe('ShoppersSystem — commands and wiring', () => {
     grid.place('shelf_basic', 3, 3, 0);
     const instanceId = grid.placements()[0]!.instanceId;
     world.commands.push({ type: 'stockFixture', instanceId, goodId: 'milk' });
-    world.commands.push({ type: 'addHousehold', householdId: 1 });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
     world.step();
     world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
     world.run(30);
@@ -149,7 +156,7 @@ describe('ShoppersSystem — a full trip (PLAN.md §16 phase 1.6 gate)', () => {
     const registerId = grid.placements()[1]!.instanceId;
 
     world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
-    world.commands.push({ type: 'addHousehold', householdId: 1 });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
     world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
     world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: registerId });
     world.step();

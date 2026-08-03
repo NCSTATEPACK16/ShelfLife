@@ -9,6 +9,7 @@ import type { EconomySystem } from '../economy/system.js';
 import type { GoodDef } from '../goods/types.js';
 import { DEFAULT_GOODS_CATALOG } from '../goods/catalog.js';
 import type { BuildGrid } from '../grid/grid.js';
+import { DEFAULT_SEGMENT_CONFIG } from '../market/index.js';
 import { DEFAULT_INVENTORY_CONFIG } from '../inventory/config.js';
 import type { InventorySystem } from '../inventory/system.js';
 import { DEFAULT_PATHING_CONFIG } from '../pathing/config.js';
@@ -83,7 +84,10 @@ export class ShoppersSystem implements System {
 
     if (world.tick % TICKS_PER_SIM_DAY === 0) {
       for (const [id, household] of this.#households) {
-        this.#households.set(id, advancePantryDay(household, this.#catalog));
+        this.#households.set(
+          id,
+          advancePantryDay(household, this.#catalog, DEFAULT_SEGMENT_CONFIG),
+        );
       }
     }
 
@@ -99,7 +103,7 @@ export class ShoppersSystem implements System {
     hasher.u32(householdIds.length);
     for (const id of householdIds) {
       const household = this.#households.get(id)!;
-      hasher.u32(id);
+      hasher.u32(id).str(household.segment);
       for (const good of this.#catalog) hasher.f64(household.pantry[good.id] ?? 1);
       hasher.u32(household.list.length);
       for (const goodId of household.list) hasher.str(goodId);
@@ -145,6 +149,7 @@ export class ShoppersSystem implements System {
       case 'addHousehold':
         this.#households.set(command.householdId, {
           id: command.householdId,
+          segment: command.segment,
           pantry: {},
           list: deriveShoppingList({}, this.#catalog),
         });
