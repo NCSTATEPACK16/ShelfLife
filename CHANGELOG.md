@@ -279,3 +279,26 @@ Phases and their acceptance gates are defined in `PLAN.md` §16.
 
 **Milestone 1 (Playable Core) is complete as of this phase.** See `docs/handoff.md` for the M1 gate
 assessment and what M2 inherits.
+
+### Milestone 2 — Depth
+
+#### Phase 2.0a — Household segments · **gate PASS**
+- `src/sim/systems/market/`: the seven household segments (`priceHunter`, `convenience`, `family`,
+  `foodie`, `bulk`, `senior`, `student`), each with store-choice utility weights (§5.1 — inert until
+  the logit lands in a later 2.0 sub-phase) and a `consumptionMultiplier` that is live now.
+  `content/balance/segments.json5` holds the values; `parseSegmentConfig` rejects a duplicate id, a
+  missing segment, and an unknown one (`z.enum(SEGMENTS)` does the last).
+- `Household` carries a required `segment`, and `addHousehold` requires one — there is no default,
+  so every call site states its intent rather than inheriting a silent fallback.
+- `advancePantryDay` scales each good's `depletionPerDay` by the household's `consumptionMultiplier`,
+  making shopping frequency segment-dependent (§5.4). This is the phase gate: two households with
+  identical starting pantries and the same catalog now deplete at provably different, deterministic
+  rates (`household.test.ts`).
+- `family` is deliberately the neutral segment (`consumptionMultiplier: 1.0`) so existing fixtures
+  could adopt a segment without perturbing depletion *behavior*.
+- The market API is re-exported from `src/sim/index.ts`, so the bridge keeps importing through the
+  barrel rather than deep-importing a system.
+- `shopper-trip` was re-baselined in its own commit: `ShoppersSystem#hash` now folds in
+  `household.segment`, which shifts the recorded hash sequence even though `family`'s neutral
+  multiplier leaves behavior unchanged. Tick count unchanged; the other nine scenarios were confirmed
+  untouched before re-baselining, not assumed.
