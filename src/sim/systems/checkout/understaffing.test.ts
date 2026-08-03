@@ -54,7 +54,7 @@ function runStore(staffedRegisterCount: 1 | 3): {
   });
 
   for (let i = 0; i < SHOPPER_COUNT; i++) {
-    world.commands.push({ type: 'addHousehold', householdId: i + 1 });
+    world.commands.push({ type: 'addHousehold', householdId: i + 1, segment: 'family' });
   }
   world.step();
 

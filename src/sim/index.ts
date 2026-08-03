@@ -49,6 +49,14 @@ export { DEFAULT_GOODS_CATALOG, parseGoodsCatalog } from './systems/goods/index.
 export type { GoodDef } from './systems/goods/index.js';
 
 export {
+  consumptionMultiplierFor,
+  DEFAULT_SEGMENT_CONFIG,
+  parseSegmentConfig,
+  SEGMENTS,
+} from './systems/market/index.js';
+export type { Segment, SegmentConfig, SegmentDef, UtilityWeights } from './systems/market/index.js';
+
+export {
   advancePantryDay,
   DEFAULT_SHOPPERS_CONFIG,
   deriveShoppingList,

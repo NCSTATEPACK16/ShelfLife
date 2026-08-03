@@ -80,7 +80,7 @@ describe('BuildModeBridge', () => {
     bridge.place('shelf_basic', 5, 5, 0);
     const instanceId = bridge.snapshot().placements[0]!.instanceId;
     bridge.stockFixture(instanceId, 'milk');
-    bridge.addHousehold(1);
+    bridge.addHousehold(1, 'family');
     bridge.spawnShopper(100, 1);
     const shoppers = bridge.shoppersSnapshot();
     expect(shoppers).toHaveLength(1);
@@ -92,7 +92,7 @@ describe('BuildModeBridge', () => {
     // Self-checkout needs no staffing to be an open lane — a plain 'register' would
     // leave this shopper with nowhere to queue and nothing to walk toward.
     bridge.place('self_checkout', 8, 8, 0);
-    bridge.addHousehold(1);
+    bridge.addHousehold(1, 'family');
     // A fully-stocked household has an empty list, so this shopper heads straight to
     // checkout — enough to prove tick() moves it without any further command.
     bridge.spawnShopper(100, 1);

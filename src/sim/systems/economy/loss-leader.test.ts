@@ -61,7 +61,7 @@ function runStore(): { world: World; economy: EconomySystem } {
   world.commands.push({ type: 'setPrice', goodId: 'milk', price: milkCost });
 
   for (let i = 0; i < SHOPPER_COUNT; i++) {
-    world.commands.push({ type: 'addHousehold', householdId: i + 1 });
+    world.commands.push({ type: 'addHousehold', householdId: i + 1, segment: 'family' });
   }
   world.step();
   expect(economy.isLossLeader('milk', world.tick)).toBe(true);
