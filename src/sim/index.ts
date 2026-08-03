@@ -50,11 +50,24 @@ export type { GoodDef } from './systems/goods/index.js';
 
 export {
   consumptionMultiplierFor,
+  DEFAULT_CATCHMENT_CONFIG,
+  DEFAULT_RIVAL_STORES,
   DEFAULT_SEGMENT_CONFIG,
+  parseCatchmentConfig,
+  parseRivalStore,
   parseSegmentConfig,
   SEGMENTS,
+  travelCost,
 } from './systems/market/index.js';
-export type { Segment, SegmentConfig, SegmentDef, UtilityWeights } from './systems/market/index.js';
+export type {
+  CatchmentConfig,
+  Position,
+  RivalStore,
+  Segment,
+  SegmentConfig,
+  SegmentDef,
+  UtilityWeights,
+} from './systems/market/index.js';
 
 export {
   advancePantryDay,

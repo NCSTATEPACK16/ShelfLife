@@ -8,7 +8,7 @@ import {
   ShoppersSystem,
   World,
 } from '../sim/index.js';
-import type { Command, FixtureDef, GridDimensions, Placement, Rotation, Segment, ShopperState } from '../sim/index.js';
+import type { Command, FixtureDef, GridDimensions, Placement, Position, Rotation, Segment, ShopperState } from '../sim/index.js';
 
 export interface BuildModeSnapshot {
   readonly dimensions: GridDimensions;
@@ -99,8 +99,8 @@ export class BuildModeBridge {
     return out;
   }
 
-  addHousehold(householdId: number, segment: Segment): void {
-    this.#step({ type: 'addHousehold', householdId, segment });
+  addHousehold(householdId: number, segment: Segment, position: Position): void {
+    this.#step({ type: 'addHousehold', householdId, segment, position });
   }
 
   stockFixture(instanceId: number, goodId: string): void {
