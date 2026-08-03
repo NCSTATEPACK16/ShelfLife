@@ -169,7 +169,7 @@ export const SCENARIOS: readonly Scenario[] = [
       // instance 2 (placed second) — staffing it is what keeps this scenario's lane open
       // so the trip actually completes rather than balking immediately (phase 1.8).
       world.commands.push({ type: 'stockFixture', instanceId: 1, goodId: 'bread' });
-      world.commands.push({ type: 'addHousehold', householdId: 1 });
+      world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
       world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
       world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: 2 });
       return world;
