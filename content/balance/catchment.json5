@@ -1,0 +1,10 @@
+// Phase 2.0b catchment constants (PLAN.md §5.1). `travelCost` is Manhattan distance on a
+// coarse integer city grid — road-network distance, not straight-line — scaled by
+// `distanceCostPerUnit` into the same utility units as a segment's `travelCost` weight.
+//
+// The player's store is fixed at the origin. Multi-store is a v2 non-goal (§1.3), so a
+// single fixed position is the honest model, not a placeholder for something general.
+{
+  playerStorePosition: { x: 0, y: 0 },
+  distanceCostPerUnit: 0.05,
+}

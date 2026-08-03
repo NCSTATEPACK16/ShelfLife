@@ -1,6 +1,7 @@
 import JSON5 from 'json5';
 import { z } from 'zod';
 import raw from '../../../../content/balance/segments.json5?raw';
+import catchmentRaw from '../../../../content/balance/catchment.json5?raw';
 import { SEGMENTS, type Segment, type SegmentDef } from './types.js';
 
 const UtilityWeightsSchema = z.object({
@@ -43,3 +44,24 @@ export function consumptionMultiplierFor(config: SegmentConfig, segment: Segment
 }
 
 export const DEFAULT_SEGMENT_CONFIG: SegmentConfig = parseSegmentConfig(JSON5.parse(raw));
+
+const PositionSchema = z.object({
+  x: z.number().int(),
+  y: z.number().int(),
+});
+
+const CatchmentConfigSchema = z.object({
+  playerStorePosition: PositionSchema,
+  // Non-positive would make travelCost meaningless (0) or perverse (distance is rewarded).
+  distanceCostPerUnit: z.number().positive(),
+});
+
+export type CatchmentConfig = z.infer<typeof CatchmentConfigSchema>;
+
+export function parseCatchmentConfig(raw: unknown): CatchmentConfig {
+  return CatchmentConfigSchema.parse(raw);
+}
+
+export const DEFAULT_CATCHMENT_CONFIG: CatchmentConfig = parseCatchmentConfig(
+  JSON5.parse(catchmentRaw),
+);
