@@ -6,6 +6,7 @@ import { BuildGrid } from '../grid/grid.js';
 import { DEFAULT_CATALOG } from '../grid/catalog.js';
 import { InventorySystem } from '../inventory/system.js';
 import type { SupplyPolicy } from '../inventory/types.js';
+import { MarketSystem } from '../market/system.js';
 import { PathingSystem } from '../pathing/system.js';
 import type { GoodDef } from '../goods/types.js';
 import { ShoppersSystem } from './system.js';
@@ -33,6 +34,7 @@ function worldWithShoppers(seed = 1): {
   inventory: InventorySystem;
   checkout: CheckoutSystem;
   economy: EconomySystem;
+  market: MarketSystem;
   shoppers: ShoppersSystem;
 } {
   const world = new World({ seed });
@@ -45,9 +47,11 @@ function worldWithShoppers(seed = 1): {
   world.register(checkout);
   const economy = new EconomySystem(checkout, inventory, CATALOG);
   world.register(economy);
-  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout, economy, CATALOG);
+  const market = new MarketSystem(CATALOG);
+  world.register(market);
+  const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, CATALOG);
   world.register(shoppers);
-  return { world, grid, pathing, inventory, checkout, economy, shoppers };
+  return { world, grid, pathing, inventory, checkout, economy, market, shoppers };
 }
 
 describe('ShoppersSystem — commands and wiring', () => {
@@ -176,7 +180,11 @@ describe('ShoppersSystem — commands and wiring', () => {
       w.register(replayCheckout);
       const replayEconomy = new EconomySystem(replayCheckout, replayInventory, CATALOG);
       w.register(replayEconomy);
-      w.register(new ShoppersSystem(replayGrid, replayPathing, replayInventory, replayCheckout, replayEconomy, CATALOG));
+      const replayMarket = new MarketSystem(CATALOG);
+      w.register(replayMarket);
+      w.register(
+        new ShoppersSystem(replayMarket, replayGrid, replayPathing, replayInventory, replayCheckout, replayEconomy, CATALOG),
+      );
     });
     expect(replayed.hash).toBe(finalHash);
   });

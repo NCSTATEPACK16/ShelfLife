@@ -48,6 +48,24 @@ export interface RivalStore {
   readonly loyaltyDecay?: number | undefined;
 }
 
+/**
+ * A household in the catchment (PLAN.md §5.1, §5.4).
+ *
+ * Owned by `MarketSystem` since phase 2.0c. It lived in `shoppers/` while the in-store
+ * agent was its only consumer; the store-choice scheduler must reason about a household
+ * before any shopper exists, so ownership moved with the decision.
+ */
+export interface Household {
+  readonly id: number;
+  readonly segment: Segment;
+  /** Where this household lives on the coarse catchment grid — NOT an in-store position. */
+  readonly position: Position;
+  /** Stock level (0-1) per good id. A good absent from the map is treated as fully stocked (1). */
+  readonly pantry: Readonly<Record<string, number>>;
+  /** Good ids below their reorderThreshold, in catalog order — deterministic, no ties to break. */
+  readonly list: readonly string[];
+}
+
 export const SEGMENTS = [
   'priceHunter', 'convenience', 'family', 'foodie', 'bulk', 'senior', 'student',
 ] as const;

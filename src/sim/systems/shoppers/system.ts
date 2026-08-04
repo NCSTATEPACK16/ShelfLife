@@ -1,4 +1,3 @@
-import { TICKS_PER_SIM_DAY } from '../../core/clock.js';
 import type { Command } from '../../core/commands.js';
 import type { Hasher } from '../../core/hash.js';
 import type { System, World } from '../../core/world.js';
@@ -9,7 +8,8 @@ import type { EconomySystem } from '../economy/system.js';
 import type { GoodDef } from '../goods/types.js';
 import { DEFAULT_GOODS_CATALOG } from '../goods/catalog.js';
 import type { BuildGrid } from '../grid/grid.js';
-import { DEFAULT_SEGMENT_CONFIG } from '../market/index.js';
+import type { MarketSystem } from '../market/system.js';
+import type { Household } from '../market/types.js';
 import { DEFAULT_INVENTORY_CONFIG } from '../inventory/config.js';
 import type { InventorySystem } from '../inventory/system.js';
 import { DEFAULT_PATHING_CONFIG } from '../pathing/config.js';
@@ -17,8 +17,7 @@ import { computeSteering } from '../pathing/steering.js';
 import type { PathingSystem } from '../pathing/system.js';
 import type { Vec2 } from '../pathing/types.js';
 import { DEFAULT_SHOPPERS_CONFIG } from './config.js';
-import { advancePantryDay, deriveShoppingList } from './household.js';
-import type { Household, Shopper, ShopperState } from './types.js';
+import type { Shopper, ShopperState } from './types.js';
 
 const EXIT_DESTINATION_ID = 'exit';
 const ENTRANCE_POSITION: Vec2 = { x: 0.5, y: 0.5 };
@@ -28,10 +27,10 @@ function goodDestinationId(goodId: string): string {
 }
 
 /**
- * Shopper agent + household system (PLAN.md §16 phase 1.6). Owns households (pantry,
- * shopping list) and active shopper trips (FSM: entering -> shopping -> checkingOut ->
- * leaving -> [removed]), driving them with `PathingSystem`/`computeSteering` — the API
- * both were designed against without a caller since phase 1.5.
+ * Shopper agent system (PLAN.md §16 phase 1.6). Owns active shopper trips (FSM: entering
+ * -> shopping -> checkingOut -> leaving -> [removed]), driving them with
+ * `PathingSystem`/`computeSteering` — the API both were designed against without a caller
+ * since phase 1.5. Households moved to `MarketSystem` in phase 2.0c.
  *
 
  * Satisfaction sums `fillRate`, `discovery`, `spoiledEncounters` (1.7's `InventorySystem`),
@@ -43,19 +42,19 @@ function goodDestinationId(goodId: string): string {
  */
 export class ShoppersSystem implements System {
   readonly name = 'shoppers';
+  readonly #market: MarketSystem;
   readonly #grid: BuildGrid;
   readonly #pathing: PathingSystem;
   readonly #inventory: InventorySystem;
   readonly #checkout: CheckoutSystem;
   readonly #economy: EconomySystem;
-  readonly #catalog: readonly GoodDef[];
   readonly #catalogById: ReadonlyMap<string, GoodDef>;
-  readonly #households = new Map<number, Household>();
   readonly #stocking = new Map<number, string>();
   readonly #shoppers = new Map<number, Shopper>();
   #exitRegistered = false;
 
   constructor(
+    market: MarketSystem,
     grid: BuildGrid,
     pathing: PathingSystem,
     inventory: InventorySystem,
@@ -63,12 +62,12 @@ export class ShoppersSystem implements System {
     economy: EconomySystem,
     catalog: readonly GoodDef[] = DEFAULT_GOODS_CATALOG,
   ) {
+    this.#market = market;
     this.#grid = grid;
     this.#pathing = pathing;
     this.#inventory = inventory;
     this.#checkout = checkout;
     this.#economy = economy;
-    this.#catalog = catalog;
     this.#catalogById = new Map(catalog.map((g) => [g.id, g]));
   }
 
@@ -82,15 +81,6 @@ export class ShoppersSystem implements System {
       });
     }
 
-    if (world.tick % TICKS_PER_SIM_DAY === 0) {
-      for (const [id, household] of this.#households) {
-        this.#households.set(
-          id,
-          advancePantryDay(household, this.#catalog, DEFAULT_SEGMENT_CONFIG),
-        );
-      }
-    }
-
     for (const [id, shopper] of this.#shoppers) {
       const next = this.#stepShopper(world, shopper);
       if (next) this.#shoppers.set(id, next);
@@ -99,16 +89,6 @@ export class ShoppersSystem implements System {
   }
 
   hash(_world: World, hasher: Hasher): void {
-    const householdIds = [...this.#households.keys()].sort((a, b) => a - b);
-    hasher.u32(householdIds.length);
-    for (const id of householdIds) {
-      const household = this.#households.get(id)!;
-      hasher.u32(id).str(household.segment).i32(household.position.x).i32(household.position.y);
-      for (const good of this.#catalog) hasher.f64(household.pantry[good.id] ?? 1);
-      hasher.u32(household.list.length);
-      for (const goodId of household.list) hasher.str(goodId);
-    }
-
     const stockedInstanceIds = [...this.#stocking.keys()].sort((a, b) => a - b);
     hasher.u32(stockedInstanceIds.length);
     for (const instanceId of stockedInstanceIds) {
@@ -146,22 +126,15 @@ export class ShoppersSystem implements System {
 
   applyCommand(world: World, command: Command): boolean {
     switch (command.type) {
-      case 'addHousehold':
-        this.#households.set(command.householdId, {
-          id: command.householdId,
-          segment: command.segment,
-          position: command.position,
-          pantry: {},
-          list: deriveShoppingList({}, this.#catalog),
-        });
-        return true;
       case 'stockFixture':
         this.#stocking.set(command.instanceId, command.goodId);
         this.#refreshGoodDestination(world, command.goodId);
         return true;
       case 'spawnShopper': {
-        const household = this.#households.get(command.householdId);
-        if (!household) throw new Error(`Unknown household id: ${command.householdId}`);
+        if (!this.#market.hasHousehold(command.householdId)) {
+          throw new Error(`Unknown household id: ${command.householdId}`);
+        }
+        const household = this.#market.household(command.householdId);
         this.#shoppers.set(command.shopperId, {
           id: command.shopperId,
           householdId: command.householdId,
@@ -189,10 +162,9 @@ export class ShoppersSystem implements System {
     }
   }
 
+  /** Delegates to `MarketSystem`, which has owned households since phase 2.0c. */
   household(id: number): Household {
-    const household = this.#households.get(id);
-    if (!household) throw new Error(`Unknown household id: ${id}`);
-    return household;
+    return this.#market.household(id);
   }
 
   shopper(id: number): Shopper {
@@ -314,13 +286,7 @@ export class ShoppersSystem implements System {
         total: shopper.cartTotal,
         items: shopper.cart,
       });
-      const household = this.#households.get(shopper.householdId);
-      if (household) {
-        const pantry = { ...household.pantry };
-        for (const goodId of shopper.cart) pantry[goodId] = 1;
-        const list = deriveShoppingList(pantry, this.#catalog);
-        this.#households.set(shopper.householdId, { ...household, pantry, list });
-      }
+      this.#market.replenishPantry(shopper.householdId, shopper.cart);
       return { ...shopper, state: 'leaving', checkoutWaitTicks: waitTicks };
     }
 

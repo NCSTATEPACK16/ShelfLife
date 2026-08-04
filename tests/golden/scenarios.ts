@@ -3,6 +3,7 @@ import {
   EconomySystem,
   GridSystem,
   InventorySystem,
+  MarketSystem,
   PathingSystem,
   ShoppersSystem,
   World,
@@ -158,7 +159,9 @@ export const SCENARIOS: readonly Scenario[] = [
       world.register(checkout);
       const economy = new EconomySystem(checkout, inventory);
       world.register(economy);
-      const shoppers = new ShoppersSystem(grid.grid, pathing, inventory, checkout, economy);
+      const market = new MarketSystem();
+      world.register(market);
+      const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);
       world.register(shoppers);
 
       world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 10, y: 10, rotation: 0 });

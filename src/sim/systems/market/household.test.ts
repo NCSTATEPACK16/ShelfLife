@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GoodDef } from '../goods/types.js';
-import { DEFAULT_CATCHMENT_CONFIG, DEFAULT_SEGMENT_CONFIG, travelCost } from '../market/index.js';
+import { travelCost } from './catchment.js';
+import { DEFAULT_CATCHMENT_CONFIG, DEFAULT_SEGMENT_CONFIG } from './config.js';
 import { advancePantryDay, deriveShoppingList } from './household.js';
 
 const CATALOG: readonly GoodDef[] = [

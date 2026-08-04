@@ -4,6 +4,7 @@ import {
   EconomySystem,
   GridSystem,
   InventorySystem,
+  MarketSystem,
   PathingSystem,
   ShoppersSystem,
   World,
@@ -27,6 +28,7 @@ export class BuildModeBridge {
   readonly #inventory: InventorySystem;
   readonly #checkout: CheckoutSystem;
   readonly #economy: EconomySystem;
+  readonly #market: MarketSystem;
   readonly #shoppers: ShoppersSystem;
 
   constructor(dimensions: GridDimensions, seed = 1) {
@@ -41,7 +43,16 @@ export class BuildModeBridge {
     this.#world.register(this.#checkout);
     this.#economy = new EconomySystem(this.#checkout, this.#inventory);
     this.#world.register(this.#economy);
-    this.#shoppers = new ShoppersSystem(this.#grid.grid, this.#pathing, this.#inventory, this.#checkout, this.#economy);
+    this.#market = new MarketSystem();
+    this.#world.register(this.#market);
+    this.#shoppers = new ShoppersSystem(
+      this.#market,
+      this.#grid.grid,
+      this.#pathing,
+      this.#inventory,
+      this.#checkout,
+      this.#economy,
+    );
     this.#world.register(this.#shoppers);
   }
 

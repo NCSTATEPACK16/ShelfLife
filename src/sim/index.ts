@@ -49,11 +49,14 @@ export { DEFAULT_GOODS_CATALOG, parseGoodsCatalog } from './systems/goods/index.
 export type { GoodDef } from './systems/goods/index.js';
 
 export {
+  advancePantryDay,
   consumptionMultiplierFor,
   DEFAULT_CATCHMENT_CONFIG,
   DEFAULT_MARKET_CONFIG,
   DEFAULT_RIVAL_STORES,
   DEFAULT_SEGMENT_CONFIG,
+  deriveShoppingList,
+  MarketSystem,
   parseCatchmentConfig,
   parseMarketConfig,
   parseRivalStore,
@@ -63,6 +66,7 @@ export {
 } from './systems/market/index.js';
 export type {
   CatchmentConfig,
+  Household,
   MarketConfig,
   Position,
   RivalStore,
@@ -72,14 +76,8 @@ export type {
   UtilityWeights,
 } from './systems/market/index.js';
 
-export {
-  advancePantryDay,
-  DEFAULT_SHOPPERS_CONFIG,
-  deriveShoppingList,
-  parseShoppersConfig,
-  ShoppersSystem,
-} from './systems/shoppers/index.js';
-export type { Household, Shopper, ShopperState, ShoppersConfig } from './systems/shoppers/index.js';
+export { DEFAULT_SHOPPERS_CONFIG, parseShoppersConfig, ShoppersSystem } from './systems/shoppers/index.js';
+export type { Shopper, ShopperState, ShoppersConfig } from './systems/shoppers/index.js';
 
 export {
   DEFAULT_INVENTORY_CONFIG,
