@@ -1,4 +1,6 @@
 export { travelCost } from './catchment.js';
+export { chooseStore, indexToFit, softmax, storeUtility } from './choice.js';
+export type { StoreTerms } from './choice.js';
 export {
   consumptionMultiplierFor,
   DEFAULT_CATCHMENT_CONFIG,

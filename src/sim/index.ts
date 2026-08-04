@@ -50,18 +50,22 @@ export type { GoodDef } from './systems/goods/index.js';
 
 export {
   advancePantryDay,
+  chooseStore,
   consumptionMultiplierFor,
   DEFAULT_CATCHMENT_CONFIG,
   DEFAULT_MARKET_CONFIG,
   DEFAULT_RIVAL_STORES,
   DEFAULT_SEGMENT_CONFIG,
   deriveShoppingList,
+  indexToFit,
   MarketSystem,
   parseCatchmentConfig,
   parseMarketConfig,
   parseRivalStore,
   parseSegmentConfig,
   SEGMENTS,
+  softmax,
+  storeUtility,
   travelCost,
 } from './systems/market/index.js';
 export type {
@@ -69,6 +73,7 @@ export type {
   Household,
   MarketConfig,
   Position,
+  StoreTerms,
   RivalStore,
   Segment,
   SegmentConfig,
