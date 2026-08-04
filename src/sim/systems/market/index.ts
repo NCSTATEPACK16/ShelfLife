@@ -15,5 +15,7 @@ export {
 export type { CatchmentConfig, MarketConfig, SegmentConfig } from './config.js';
 export { advancePantryDay, deriveShoppingList } from './household.js';
 export { MarketSystem } from './system.js';
+export { PLAYER_STORE_ID, playerStoreTerms, rivalStoreTerms } from './terms.js';
+export type { PlayerTermDeps, RivalTermDeps } from './terms.js';
 export { SEGMENTS } from './types.js';
 export type { Household, Position, RivalStore, Segment, SegmentDef, UtilityWeights } from './types.js';

@@ -11,6 +11,7 @@ const StaffingConfigSchema = z
     trainingSkillIncrement: z.number().positive(),
     selfCheckoutServiceMultiplier: z.number().positive(),
     selfCheckoutServiceScorePenalty: z.number().min(0).max(1),
+    selfCheckoutSkillEquivalent: z.number().min(0).max(1),
     cleanlinessDecayPerTick: z.number().min(0).max(1),
     cleanlinessRestorePerStaffPerTick: z.number().min(0).max(1),
   })

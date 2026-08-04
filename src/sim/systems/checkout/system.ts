@@ -204,6 +204,25 @@ export class CheckoutSystem implements System {
     return this.#cleanliness;
   }
 
+  /**
+   * §5.1's `service(s)` for the player's store: what fraction of lanes are actually open,
+   * scaled by how good the people running them are. Zero when nothing is open — that is
+   * the understaffing story the store-choice logit needs to be able to punish.
+   */
+  serviceScore(): number {
+    if (this.#lanes.size === 0) return 0;
+    let open = 0;
+    let skillTotal = 0;
+    for (const lane of this.#lanes.values()) {
+      if (!this.#isOpen(lane)) continue;
+      open++;
+      const staff = lane.staffId === null ? null : this.#staff.get(lane.staffId);
+      skillTotal += staff ? staff.skill : this.#config.selfCheckoutSkillEquivalent;
+    }
+    if (open === 0) return 0;
+    return (open / this.#lanes.size) * (skillTotal / open);
+  }
+
   #isOpen(lane: Lane): boolean {
     return lane.isSelfCheckout || lane.staffId !== null;
   }
