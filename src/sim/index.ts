@@ -51,9 +51,11 @@ export type { GoodDef } from './systems/goods/index.js';
 export {
   consumptionMultiplierFor,
   DEFAULT_CATCHMENT_CONFIG,
+  DEFAULT_MARKET_CONFIG,
   DEFAULT_RIVAL_STORES,
   DEFAULT_SEGMENT_CONFIG,
   parseCatchmentConfig,
+  parseMarketConfig,
   parseRivalStore,
   parseSegmentConfig,
   SEGMENTS,
@@ -61,6 +63,7 @@ export {
 } from './systems/market/index.js';
 export type {
   CatchmentConfig,
+  MarketConfig,
   Position,
   RivalStore,
   Segment,

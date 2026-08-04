@@ -33,6 +33,19 @@ export interface RivalStore {
   readonly service: number;
   /** Store-level U(h,s) term, §5.1 — [0,1]. */
   readonly ambiance: number;
+  /** Basket cost relative to catalog reference prices. < 1 is cheaper than reference. */
+  readonly priceIndex: number;
+  /** Fraction of a typical household's list this store carries — [0,1]. */
+  readonly assortmentBreadth: number;
+  /**
+   * Per-store loyalty decay δ (§5.2). Omitted here; the default from market.json5
+   * applies. The override exists for bosses — "Trailblazer Jim's runs δ/5" is
+   * mechanically what a cult is — and is deliberately unused in phase 2.0c.
+   *
+   * The explicit `| undefined` is what `exactOptionalPropertyTypes` requires to accept
+   * Zod's `.optional()` output.
+   */
+  readonly loyaltyDecay?: number | undefined;
 }
 
 export const SEGMENTS = [
@@ -57,4 +70,6 @@ export interface SegmentDef {
   readonly weights: UtilityWeights;
   /** Multiplies every good's depletionPerDay for a household of this segment. */
   readonly consumptionMultiplier: number;
+  /** βb's input, keyed by store `identity`. An absent identity is neutral (0). */
+  readonly brandAffinity: Readonly<Record<string, number>>;
 }

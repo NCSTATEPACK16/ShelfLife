@@ -85,6 +85,8 @@ const RIVAL = {
   quality: 0.35,
   service: 0.15,
   ambiance: 0.1,
+  priceIndex: 0.82,
+  assortmentBreadth: 0.45,
 };
 
 describe('parseRivalStore', () => {
