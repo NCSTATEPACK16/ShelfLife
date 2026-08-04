@@ -87,6 +87,9 @@ export type { Shopper, ShopperState, ShoppersConfig } from './systems/shoppers/i
 export { LoyaltySystem } from './systems/loyalty/index.js';
 export type { MarketReader, TripOutcome } from './systems/loyalty/index.js';
 
+export { ReputationSystem } from './systems/reputation/index.js';
+export type { NeighborReader } from './systems/reputation/index.js';
+
 export {
   DEFAULT_INVENTORY_CONFIG,
   DEFAULT_SUPPLY_POLICIES,

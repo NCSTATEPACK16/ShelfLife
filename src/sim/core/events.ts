@@ -44,6 +44,15 @@ export type SimEvent =
       readonly shopperId: number;
       readonly householdId: number;
       readonly items: readonly string[];
+    }
+  | {
+      readonly type: 'wordOfMouth';
+      readonly sourceHouseholdId: number;
+      /** 0 = the player's store; 1..n = rivals in roster order. */
+      readonly storeIndex: number;
+      /** +1 for a delighted trip, -1 for a disgusted one. */
+      readonly polarity: 1 | -1;
+      readonly affectedHouseholdIds: readonly number[];
     };
 
 export type SimEventType = SimEvent['type'];
