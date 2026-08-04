@@ -53,6 +53,14 @@ export type SimEvent =
       /** +1 for a delighted trip, -1 for a disgusted one. */
       readonly polarity: 1 | -1;
       readonly affectedHouseholdIds: readonly number[];
+    }
+  | {
+      readonly type: 'rivalTripCompleted';
+      readonly householdId: number;
+      readonly storeId: string;
+      /** 1..n — rivals in roster order; never 0, that is `shopperTripCompleted`'s job. */
+      readonly storeIndex: number;
+      readonly satisfaction: number;
     };
 
 export type SimEventType = SimEvent['type'];

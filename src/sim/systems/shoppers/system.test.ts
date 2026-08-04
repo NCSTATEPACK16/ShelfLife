@@ -47,7 +47,7 @@ function worldWithShoppers(seed = 1): {
   world.register(checkout);
   const economy = new EconomySystem(checkout, inventory, CATALOG);
   world.register(economy);
-  const market = new MarketSystem(CATALOG);
+  const market = new MarketSystem(null, CATALOG);
   world.register(market);
   const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, CATALOG);
   world.register(shoppers);
@@ -180,7 +180,7 @@ describe('ShoppersSystem — commands and wiring', () => {
       w.register(replayCheckout);
       const replayEconomy = new EconomySystem(replayCheckout, replayInventory, CATALOG);
       w.register(replayEconomy);
-      const replayMarket = new MarketSystem(CATALOG);
+      const replayMarket = new MarketSystem(null, CATALOG);
       w.register(replayMarket);
       w.register(
         new ShoppersSystem(replayMarket, replayGrid, replayPathing, replayInventory, replayCheckout, replayEconomy, CATALOG),

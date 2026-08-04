@@ -1,15 +1,28 @@
 import {
   CheckoutSystem,
   DEFAULT_CATALOG,
+  DEFAULT_RIVAL_STORES,
   EconomySystem,
   GridSystem,
   InventorySystem,
+  LoyaltySystem,
   MarketSystem,
   PathingSystem,
+  ReputationSystem,
   ShoppersSystem,
   World,
 } from '../sim/index.js';
-import type { Command, FixtureDef, GridDimensions, Placement, Position, Rotation, Segment, ShopperState } from '../sim/index.js';
+import type {
+  Command,
+  FixtureDef,
+  GridDimensions,
+  MarketReader,
+  Placement,
+  Position,
+  Rotation,
+  Segment,
+  ShopperState,
+} from '../sim/index.js';
 
 export interface BuildModeSnapshot {
   readonly dimensions: GridDimensions;
@@ -30,6 +43,8 @@ export class BuildModeBridge {
   readonly #economy: EconomySystem;
   readonly #market: MarketSystem;
   readonly #shoppers: ShoppersSystem;
+  readonly #loyalty: LoyaltySystem;
+  readonly #reputation: ReputationSystem;
 
   constructor(dimensions: GridDimensions, seed = 1) {
     this.#world = new World({ seed });
@@ -43,7 +58,16 @@ export class BuildModeBridge {
     this.#world.register(this.#checkout);
     this.#economy = new EconomySystem(this.#checkout, this.#inventory);
     this.#world.register(this.#economy);
-    this.#market = new MarketSystem();
+    // `LoyaltySystem` needs a `MarketReader` before `MarketSystem` exists. Safe because
+    // this closure is only invoked during `update`, long after both constructors have
+    // run — it reads `this.#market` through the class field, not a captured value.
+    this.#loyalty = new LoyaltySystem(this.#marketReader(), DEFAULT_RIVAL_STORES);
+    this.#market = new MarketSystem({
+      inventory: this.#inventory,
+      checkout: this.#checkout,
+      economy: this.#economy,
+      loyalty: this.#loyalty,
+    });
     this.#world.register(this.#market);
     this.#shoppers = new ShoppersSystem(
       this.#market,
@@ -54,6 +78,16 @@ export class BuildModeBridge {
       this.#economy,
     );
     this.#world.register(this.#shoppers);
+    this.#world.register(this.#loyalty);
+    this.#reputation = new ReputationSystem(this.#market, this.#loyalty);
+    this.#world.register(this.#reputation);
+  }
+
+  #marketReader(): MarketReader {
+    return {
+      householdIds: () => this.#market.householdIds(),
+      pendingOutcomes: () => this.#market.pendingOutcomes(),
+    };
   }
 
   place(fixtureId: string, x: number, y: number, rotation: Rotation): void {

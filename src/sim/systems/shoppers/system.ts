@@ -352,6 +352,10 @@ export class ShoppersSystem implements System {
       balked: moved.balked,
       abandoned: moved.abandoned,
     });
+    // Feeds LoyaltySystem and ReputationSystem, both registered after this system.
+    // Store index 0 is the player's store — a shopper who physically walked in is by
+    // definition not at a rival.
+    this.#market.recordTripOutcome({ householdId: moved.householdId, storeIndex: 0, satisfaction });
     return null;
   }
 
