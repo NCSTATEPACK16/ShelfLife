@@ -330,8 +330,17 @@ New `hash()` contributions:
   `ShoppersSystem#hash` writes today, moved verbatim in field order to keep the diff
   reviewable, plus scheduling state.
 - `LoyaltySystem#hash` — `L`, `meanSatisfaction`, `daysSinceVisit`, in array order.
-- `ReputationSystem#hash` — the k-NN relation only. Pending outcomes are drained within the
-  tick that produces them and are never live across a `step()` boundary.
+- `ReputationSystem#hash` — the k-NN relation only. It holds no state across ticks.
+
+**Trip outcomes are hashed.** `MarketSystem` owns a `pendingOutcomes` buffer: it clears the
+buffer at the top of its own `update`, appends rival-trip outcomes there, and
+`ShoppersSystem` appends player-trip outcomes as they complete. `LoyaltySystem` and
+`ReputationSystem`, registered after both, read it.
+
+The buffer is therefore still populated when the world hashes at end of tick, so
+`MarketSystem#hash` folds it in. The alternative — having the last system clear it so the
+hash never sees it — makes correctness depend on registration order in a way nothing else
+in the codebase does. State that exists at hash time gets hashed.
 
 ### Golden re-baseline
 
