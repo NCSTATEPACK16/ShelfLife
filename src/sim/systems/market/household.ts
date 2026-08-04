@@ -1,5 +1,5 @@
 import type { GoodDef } from '../goods/types.js';
-import { consumptionMultiplierFor, type SegmentConfig } from '../market/index.js';
+import { consumptionMultiplierFor, type SegmentConfig } from './config.js';
 import type { Household } from './types.js';
 
 /** Goods below their `reorderThreshold`, in catalog order (deterministic — no ties to break). */

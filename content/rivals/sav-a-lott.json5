@@ -1,0 +1,26 @@
+// Rival 1 — Sav-A-Lott (PLAN.md §3, L1 boss). Logged in docs/legal/parody-review.md row 1;
+// the four-part name test passed there before this file was written.
+//
+// A satire of a *category* (the dying deep-discounter), never of any specific chain. No
+// real name, logo, slogan, or trade-dress colour pairing appears here or anywhere else.
+//
+// quality/service/ambiance are new values — §3 only defines Community Love. They are
+// authored low but non-zero to match the signature mechanic ("One register open, ever"):
+// service is the weakest term by far, ambiance is near-abandoned, and quality is
+// weak-to-middling rather than terrible — the store is failing, not dangerous.
+{
+  id: 'sav-a-lott',
+  name: 'Sav-A-Lott',
+  archetype: 'Dying deep-discounter',
+  communityLove: 22,
+  position: { x: 4, y: -3 },
+  identity: 'deep-discount',
+  quality: 0.35,
+  service: 0.15,
+  ambiance: 0.1,
+  // Phase 2.0c. Cheap and narrow is mechanically what "dying deep-discounter" means:
+  // it wins priceHunter and student households on price and loses everyone else on
+  // breadth. §5.8's priceAggression is what will move priceIndex next phase.
+  priceIndex: 0.82,
+  assortmentBreadth: 0.45,
+}

@@ -4,6 +4,7 @@ import { World } from '../../core/world.js';
 import { CheckoutSystem } from '../checkout/system.js';
 import { GridSystem } from '../grid/system.js';
 import { InventorySystem } from '../inventory/system.js';
+import { MarketSystem } from '../market/system.js';
 import { PathingSystem } from '../pathing/system.js';
 import { ShoppersSystem } from '../shoppers/system.js';
 import { DEFAULT_ECONOMY_CONFIG } from './config.js';
@@ -40,7 +41,9 @@ function runStore(): { world: World; economy: EconomySystem } {
     utilitiesPerDay: 0.5,
   });
   world.register(economy);
-  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout, economy);
+  const market = new MarketSystem();
+  world.register(market);
+  const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy);
   world.register(shoppers);
 
   const shelves = [
@@ -61,7 +64,12 @@ function runStore(): { world: World; economy: EconomySystem } {
   world.commands.push({ type: 'setPrice', goodId: 'milk', price: milkCost });
 
   for (let i = 0; i < SHOPPER_COUNT; i++) {
-    world.commands.push({ type: 'addHousehold', householdId: i + 1, segment: 'family' });
+    world.commands.push({
+      type: 'addHousehold',
+      householdId: i + 1,
+      segment: 'family',
+      position: { x: 0, y: 0 },
+    });
   }
   world.step();
   expect(economy.isLossLeader('milk', world.tick)).toBe(true);

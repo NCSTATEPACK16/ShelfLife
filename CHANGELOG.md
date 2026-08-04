@@ -302,3 +302,28 @@ assessment and what M2 inherits.
   `household.segment`, which shifts the recorded hash sequence even though `family`'s neutral
   multiplier leaves behavior unchanged. Tick count unchanged; the other nine scenarios were confirmed
   untouched before re-baselining, not assumed.
+
+#### Phase 2.0b — Catchment graph & rival stores · **gate PASS**
+- `Position` — an abstract integer coordinate on the coarse catchment grid. Deliberately not
+  `pathing`'s `Vec2`: that is a continuous in-store position on the `BuildGrid`, and the two
+  coordinate spaces never interact.
+- `travelCost(a, b, config)` is **Manhattan, not Euclidean** — §5.1 specifies road-network distance
+  on a coarse catchment graph, and Manhattan is the direct reading of that without modelling road
+  geometry. A test asserts `(0,0)→(3,4)` costs 7 units and explicitly *not* the Euclidean 5, so a
+  future straight-line "simplification" fails loudly.
+- `RivalStore` (id, name, archetype, Community Love, position, identity, and the store-level
+  `quality`/`service`/`ambiance` terms `U(h,s)` needs) plus `content/rivals/sav-a-lott.json5` —
+  §3's L1 boss, `communityLove: 22`, logged in `docs/legal/parody-review.md` before implementation
+  and now marked `implemented`. The other nine rivals are added when their level is built (§16
+  phase 5.1); stubbing them now would be content no test could justify.
+- `content/balance/catchment.json5` fixes the player's store at the origin — multi-store is a v2
+  non-goal (§1.3), so a single fixed position is the honest model rather than a placeholder.
+- `Household` and the `addHousehold` command both gain a required `position`, with no default, so
+  every call site states its intent. Positions are caller-supplied, not sampled by the sim — the
+  same stance 2.0a took on segments.
+- **Nothing consumes `travelCost` yet.** There is still only one store to shop at, so a travel-cost
+  number has nothing to influence. This phase proves the function and content are correct; the
+  store-choice logit sub-phase is what reads them.
+- `shopper-trip` was re-baselined in its own commit: `position` is new hashed state in
+  `ShoppersSystem#hash`. Unlike 2.0a, no neutral value could have avoided this. Tick count
+  unchanged; the other nine scenarios were confirmed untouched before re-baselining.

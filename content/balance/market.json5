@@ -1,0 +1,50 @@
+// Phase 2.0c constants (PLAN.md §5.1, §5.2, §5.3). Trip scheduling, the store-choice
+// logit's non-segment terms, loyalty dynamics, and word-of-mouth diffusion.
+//
+// See docs/superpowers/specs/2026-08-03-store-choice-logit-design.md for why each
+// exists. Two values are honest stubs and are commented as such below.
+{
+  // --- trip scheduling (§5.4) -------------------------------------------------
+  // A household shops once its pantry-derived list reaches this many items. Segments
+  // differentiate frequency through consumptionMultiplier (how fast the list fills),
+  // not through a second threshold — one knob per outcome.
+  tripListThreshold: 2,
+
+  // --- utility terms (§5.1) ---------------------------------------------------
+  // index -> fit mapping: fit = clamp01(priceFitNeutral + (1 - index)).
+  // An index of 1.0 (at reference price) maps to priceFitNeutral, and the mapping
+  // discriminates in BOTH directions — a loss leader must not be indistinguishable
+  // from a modest discount.
+  priceFitNeutral: 0.5,
+
+  // STUB: the `cleanliness` system in PLAN.md §4 does not exist yet, so the player
+  // store's ambiance term has no real input. A real term with a fake input, not a
+  // fake term. Revisit when cleanliness lands.
+  playerAmbiance: 0.5,
+
+  // --- loyalty (§5.2) ---------------------------------------------------------
+  loyaltyAlpha: 0.06,          // α — learning rate on (satisfaction - S̄)
+  meanSatisfactionLambda: 0.1, // λ — how fast a household's expectation S̄ adapts
+  loyaltyDecayDefault: 0.004,  // δ per day; RivalStore.loyaltyDecay overrides (bosses)
+  decayCapDays: 30,            // decay(d) = min(d, cap) / cap
+  initialLoyalty: 0.2,
+  initialMeanSatisfaction: 0.5,
+
+  // --- word of mouth (§5.3) ---------------------------------------------------
+  womNeighbors: 3,             // k
+  womDelta: 0.006,             // ω — an order of magnitude below α; hearsay must not
+                               // outweigh having actually shopped somewhere
+  delightThreshold: 0.85,
+  disgustThreshold: 0.25,
+
+  // --- rival trip resolution (§5.8, reduced fidelity) -------------------------
+  // Weights over a rival's authored terms. Sum to 1 so the result is already in [0,1]
+  // before clamping.
+  rivalSatisfactionWeights: {
+    quality: 0.3,
+    service: 0.2,
+    ambiance: 0.1,
+    assortment: 0.2,
+    price: 0.2,
+  },
+}

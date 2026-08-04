@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SEGMENT_CONFIG, parseSegmentConfig } from './config.js';
+import {
+  DEFAULT_MARKET_CONFIG,
+  DEFAULT_RIVAL_STORES,
+  DEFAULT_SEGMENT_CONFIG,
+  parseMarketConfig,
+  parseSegmentConfig,
+} from './config.js';
 import { SEGMENTS } from './types.js';
 
 const WEIGHTS = {
@@ -8,8 +14,15 @@ const WEIGHTS = {
   temperature: 1.0,
 };
 
+const AFFINITY = { player: 0.0, 'deep-discount': 0.0 };
+
 function validConfig(): unknown[] {
-  return SEGMENTS.map((segment) => ({ segment, weights: WEIGHTS, consumptionMultiplier: 1.0 }));
+  return SEGMENTS.map((segment) => ({
+    segment,
+    weights: WEIGHTS,
+    consumptionMultiplier: 1.0,
+    brandAffinity: AFFINITY,
+  }));
 }
 
 describe('parseSegmentConfig', () => {
@@ -25,12 +38,18 @@ describe('parseSegmentConfig', () => {
   });
 
   it('rejects a duplicate segment id', () => {
-    const dup = [...validConfig(), { segment: 'family', weights: WEIGHTS, consumptionMultiplier: 1.0 }];
+    const dup = [
+      ...validConfig(),
+      { segment: 'family', weights: WEIGHTS, consumptionMultiplier: 1.0, brandAffinity: AFFINITY },
+    ];
     expect(() => parseSegmentConfig(dup)).toThrow(/Duplicate segment/);
   });
 
   it('rejects an unknown segment id', () => {
-    const bogus = [...validConfig().slice(1), { segment: 'nonexistent', weights: WEIGHTS, consumptionMultiplier: 1.0 }];
+    const bogus = [
+      ...validConfig().slice(1),
+      { segment: 'nonexistent', weights: WEIGHTS, consumptionMultiplier: 1.0, brandAffinity: AFFINITY },
+    ];
     expect(() => parseSegmentConfig(bogus)).toThrow();
   });
 
@@ -55,5 +74,48 @@ describe('parseSegmentConfig', () => {
   it('loads content/balance/segments.json5 into DEFAULT_SEGMENT_CONFIG', () => {
     expect(DEFAULT_SEGMENT_CONFIG.size).toBe(7);
     expect(DEFAULT_SEGMENT_CONFIG.get('family')?.consumptionMultiplier).toBe(1.0);
+  });
+});
+
+describe('market config', () => {
+  it('loads every phase 2.0c constant', () => {
+    expect(DEFAULT_MARKET_CONFIG.tripListThreshold).toBeGreaterThan(0);
+    expect(DEFAULT_MARKET_CONFIG.priceFitNeutral).toBeGreaterThan(0);
+    expect(DEFAULT_MARKET_CONFIG.loyaltyAlpha).toBeGreaterThan(0);
+    expect(DEFAULT_MARKET_CONFIG.womNeighbors).toBeGreaterThanOrEqual(1);
+    expect(DEFAULT_MARKET_CONFIG.delightThreshold).toBeGreaterThan(DEFAULT_MARKET_CONFIG.disgustThreshold);
+  });
+
+  it('rejects a word-of-mouth nudge that outweighs an actual trip', () => {
+    expect(() =>
+      parseMarketConfig({ ...DEFAULT_MARKET_CONFIG, womDelta: DEFAULT_MARKET_CONFIG.loyaltyAlpha }),
+    ).toThrow();
+  });
+
+  it('rejects a negative neighbour count', () => {
+    expect(() => parseMarketConfig({ ...DEFAULT_MARKET_CONFIG, womNeighbors: 0 })).toThrow();
+  });
+});
+
+describe('rival store fields', () => {
+  it('authors a price index and assortment breadth for Sav-A-Lott', () => {
+    const savALott = DEFAULT_RIVAL_STORES[0]!;
+    expect(savALott.priceIndex).toBeLessThan(1);
+    expect(savALott.assortmentBreadth).toBeGreaterThan(0);
+    expect(savALott.assortmentBreadth).toBeLessThan(1);
+  });
+});
+
+describe('segment brand affinity', () => {
+  it('gives every segment an affinity map', () => {
+    for (const def of DEFAULT_SEGMENT_CONFIG.values()) {
+      expect(def.brandAffinity).toBeDefined();
+      expect(def.brandAffinity['player']).toBeTypeOf('number');
+    }
+  });
+
+  it('treats an unknown identity as neutral rather than throwing', () => {
+    const foodie = DEFAULT_SEGMENT_CONFIG.get('foodie')!;
+    expect(foodie.brandAffinity['no-such-identity'] ?? 0).toBe(0);
   });
 });

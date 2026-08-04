@@ -9,6 +9,7 @@ const VALID = {
   trainingSkillIncrement: 0.1,
   selfCheckoutServiceMultiplier: 0.7,
   selfCheckoutServiceScorePenalty: 0.08,
+  selfCheckoutSkillEquivalent: 0.5,
   cleanlinessDecayPerTick: 0.0002,
   cleanlinessRestorePerStaffPerTick: 0.0005,
 };

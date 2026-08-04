@@ -1,13 +1,17 @@
 import {
   CheckoutSystem,
+  DEFAULT_RIVAL_STORES,
   EconomySystem,
   GridSystem,
   InventorySystem,
+  LoyaltySystem,
+  MarketSystem,
   PathingSystem,
+  ReputationSystem,
   ShoppersSystem,
   World,
 } from '../../src/sim/index.js';
-import type { Hasher, System } from '../../src/sim/index.js';
+import type { Hasher, Position, Segment, System } from '../../src/sim/index.js';
 
 /**
  * Golden scenarios (PLAN.md §11.2).
@@ -158,8 +162,21 @@ export const SCENARIOS: readonly Scenario[] = [
       world.register(checkout);
       const economy = new EconomySystem(checkout, inventory);
       world.register(economy);
-      const shoppers = new ShoppersSystem(grid.grid, pathing, inventory, checkout, economy);
+      const marketBox: { current?: MarketSystem } = {};
+      const loyalty = new LoyaltySystem(
+        {
+          householdIds: () => marketBox.current!.householdIds(),
+          pendingOutcomes: () => marketBox.current!.pendingOutcomes(),
+        },
+        DEFAULT_RIVAL_STORES,
+      );
+      const market = new MarketSystem({ inventory, checkout, economy, loyalty });
+      marketBox.current = market;
+      world.register(market);
+      const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);
       world.register(shoppers);
+      world.register(loyalty);
+      world.register(new ReputationSystem(market, loyalty));
 
       world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 10, y: 10, rotation: 0 });
       world.commands.push({ type: 'placeFixture', fixtureId: 'register', x: 17, y: 17, rotation: 0 });
@@ -169,9 +186,67 @@ export const SCENARIOS: readonly Scenario[] = [
       // instance 2 (placed second) — staffing it is what keeps this scenario's lane open
       // so the trip actually completes rather than balking immediately (phase 1.8).
       world.commands.push({ type: 'stockFixture', instanceId: 1, goodId: 'bread' });
-      world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
+      world.commands.push({
+        type: 'addHousehold',
+        householdId: 1,
+        segment: 'family',
+        position: { x: 0, y: 0 },
+      });
       world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
       world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: 2 });
+      return world;
+    },
+  },
+  {
+    name: 'catchment-week',
+    seed: 20260803,
+    ticks: 14 * 1440,
+    sampleEvery: 400,
+    build() {
+      const world = new World({ seed: this.seed });
+      const grid = new GridSystem({ width: 24, height: 24 });
+      world.register(grid);
+      const pathing = new PathingSystem(grid.grid);
+      world.register(pathing);
+      const inventory = new InventorySystem();
+      world.register(inventory);
+      const checkout = new CheckoutSystem(grid.grid, pathing);
+      world.register(checkout);
+      const economy = new EconomySystem(checkout, inventory);
+      world.register(economy);
+      const marketBox: { current?: MarketSystem } = {};
+      const loyalty = new LoyaltySystem(
+        {
+          householdIds: () => marketBox.current!.householdIds(),
+          pendingOutcomes: () => marketBox.current!.pendingOutcomes(),
+        },
+        DEFAULT_RIVAL_STORES,
+      );
+      const market = new MarketSystem({ inventory, checkout, economy, loyalty });
+      marketBox.current = market;
+      world.register(market);
+      const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);
+      world.register(shoppers);
+      world.register(loyalty);
+      world.register(new ReputationSystem(market, loyalty));
+
+      world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 10, y: 10, rotation: 0 });
+      world.commands.push({ type: 'placeFixture', fixtureId: 'self_checkout', x: 20, y: 20, rotation: 0 });
+      world.commands.push({ type: 'stockFixture', instanceId: 1, goodId: 'milk' });
+      // Five households spread across the catchment and across segments: near the
+      // player's store at the origin, near Sav-A-Lott at (4,-3), and between the two.
+      // This is what exercises both trip paths, loyalty drift, and word-of-mouth in a
+      // single recipe.
+      const households: readonly [number, Segment, Position][] = [
+        [1, 'family', { x: 0, y: 1 }],
+        [2, 'priceHunter', { x: 4, y: -2 }],
+        [3, 'foodie', { x: 1, y: 0 }],
+        [4, 'senior', { x: 3, y: -3 }],
+        [5, 'student', { x: 2, y: -1 }],
+      ];
+      for (const [householdId, segment, position] of households) {
+        world.commands.push({ type: 'addHousehold', householdId, segment, position });
+      }
       return world;
     },
   },

@@ -49,21 +49,51 @@ export { DEFAULT_GOODS_CATALOG, parseGoodsCatalog } from './systems/goods/index.
 export type { GoodDef } from './systems/goods/index.js';
 
 export {
-  consumptionMultiplierFor,
-  DEFAULT_SEGMENT_CONFIG,
-  parseSegmentConfig,
-  SEGMENTS,
-} from './systems/market/index.js';
-export type { Segment, SegmentConfig, SegmentDef, UtilityWeights } from './systems/market/index.js';
-
-export {
   advancePantryDay,
-  DEFAULT_SHOPPERS_CONFIG,
+  chooseStore,
+  consumptionMultiplierFor,
+  DEFAULT_CATCHMENT_CONFIG,
+  DEFAULT_MARKET_CONFIG,
+  DEFAULT_RIVAL_STORES,
+  DEFAULT_SEGMENT_CONFIG,
   deriveShoppingList,
-  parseShoppersConfig,
-  ShoppersSystem,
-} from './systems/shoppers/index.js';
-export type { Household, Shopper, ShopperState, ShoppersConfig } from './systems/shoppers/index.js';
+  indexToFit,
+  MarketSystem,
+  parseCatchmentConfig,
+  parseMarketConfig,
+  parseRivalStore,
+  parseSegmentConfig,
+  PLAYER_STORE_ID,
+  playerStoreTerms,
+  rivalStoreTerms,
+  SEGMENTS,
+  softmax,
+  storeUtility,
+  travelCost,
+} from './systems/market/index.js';
+export type {
+  CatchmentConfig,
+  Household,
+  MarketConfig,
+  PlayerTermDeps,
+  Position,
+  RivalTermDeps,
+  StoreTerms,
+  RivalStore,
+  Segment,
+  SegmentConfig,
+  SegmentDef,
+  UtilityWeights,
+} from './systems/market/index.js';
+
+export { DEFAULT_SHOPPERS_CONFIG, parseShoppersConfig, ShoppersSystem } from './systems/shoppers/index.js';
+export type { Shopper, ShopperState, ShoppersConfig } from './systems/shoppers/index.js';
+
+export { LoyaltySystem } from './systems/loyalty/index.js';
+export type { MarketReader, TripOutcome } from './systems/loyalty/index.js';
+
+export { ReputationSystem } from './systems/reputation/index.js';
+export type { NeighborReader } from './systems/reputation/index.js';
 
 export {
   DEFAULT_INVENTORY_CONFIG,

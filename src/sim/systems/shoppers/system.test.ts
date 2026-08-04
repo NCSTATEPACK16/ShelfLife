@@ -6,6 +6,7 @@ import { BuildGrid } from '../grid/grid.js';
 import { DEFAULT_CATALOG } from '../grid/catalog.js';
 import { InventorySystem } from '../inventory/system.js';
 import type { SupplyPolicy } from '../inventory/types.js';
+import { MarketSystem } from '../market/system.js';
 import { PathingSystem } from '../pathing/system.js';
 import type { GoodDef } from '../goods/types.js';
 import { ShoppersSystem } from './system.js';
@@ -33,6 +34,7 @@ function worldWithShoppers(seed = 1): {
   inventory: InventorySystem;
   checkout: CheckoutSystem;
   economy: EconomySystem;
+  market: MarketSystem;
   shoppers: ShoppersSystem;
 } {
   const world = new World({ seed });
@@ -45,15 +47,17 @@ function worldWithShoppers(seed = 1): {
   world.register(checkout);
   const economy = new EconomySystem(checkout, inventory, CATALOG);
   world.register(economy);
-  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout, economy, CATALOG);
+  const market = new MarketSystem(null, CATALOG);
+  world.register(market);
+  const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, CATALOG);
   world.register(shoppers);
-  return { world, grid, pathing, inventory, checkout, economy, shoppers };
+  return { world, grid, pathing, inventory, checkout, economy, market, shoppers };
 }
 
 describe('ShoppersSystem — commands and wiring', () => {
   it('addHousehold creates a fully-stocked household with an empty list', () => {
     const { world, shoppers } = worldWithShoppers();
-    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
     world.step();
     const household = shoppers.household(1);
     expect(household.list).toEqual([]);
@@ -61,9 +65,44 @@ describe('ShoppersSystem — commands and wiring', () => {
 
   it('addHousehold stores the segment and applies its consumptionMultiplier on depletion', () => {
     const { world, shoppers } = worldWithShoppers();
-    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'convenience' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'convenience', position: { x: 0, y: 0 } });
     world.step();
     expect(shoppers.household(1).segment).toBe('convenience');
+  });
+
+  it('addHousehold stores the catchment position', () => {
+    const { world, shoppers } = worldWithShoppers();
+    world.commands.push({
+      type: 'addHousehold',
+      householdId: 1,
+      segment: 'family',
+      position: { x: 2, y: -5 },
+    });
+    world.step();
+    expect(shoppers.household(1).position).toEqual({ x: 2, y: -5 });
+  });
+
+  it('folds household position into the world hash', () => {
+    const a = worldWithShoppers();
+    a.world.commands.push({
+      type: 'addHousehold',
+      householdId: 1,
+      segment: 'family',
+      position: { x: 1, y: 1 },
+    });
+    a.world.step();
+
+    const b = worldWithShoppers();
+    b.world.commands.push({
+      type: 'addHousehold',
+      householdId: 1,
+      segment: 'family',
+      position: { x: 9, y: 9 },
+    });
+    b.world.step();
+
+    // Same seed, same tick, same everything except where the household lives.
+    expect(a.world.hash).not.toBe(b.world.hash);
   });
 
   it('stockFixture registers a good-specific pathing destination from the fixture cells', () => {
@@ -86,7 +125,7 @@ describe('ShoppersSystem — commands and wiring', () => {
 
   it('advances every household pantry by one day at each day boundary', () => {
     const { world, shoppers } = worldWithShoppers();
-    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
     world.step();
     // TICKS_PER_SIM_DAY (1,440) further ticks crosses exactly one day boundary.
     world.run(1440);
@@ -98,7 +137,7 @@ describe('ShoppersSystem — commands and wiring', () => {
 
   it('spawnShopper snapshots the household list at spawn time', () => {
     const { world, shoppers } = worldWithShoppers();
-    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
     world.step();
     world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
     world.step();
@@ -116,7 +155,7 @@ describe('ShoppersSystem — commands and wiring', () => {
     grid.place('shelf_basic', 3, 3, 0);
     const instanceId = grid.placements()[0]!.instanceId;
     world.commands.push({ type: 'stockFixture', instanceId, goodId: 'milk' });
-    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
     world.step();
     world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
     world.run(30);
@@ -141,7 +180,11 @@ describe('ShoppersSystem — commands and wiring', () => {
       w.register(replayCheckout);
       const replayEconomy = new EconomySystem(replayCheckout, replayInventory, CATALOG);
       w.register(replayEconomy);
-      w.register(new ShoppersSystem(replayGrid, replayPathing, replayInventory, replayCheckout, replayEconomy, CATALOG));
+      const replayMarket = new MarketSystem(null, CATALOG);
+      w.register(replayMarket);
+      w.register(
+        new ShoppersSystem(replayMarket, replayGrid, replayPathing, replayInventory, replayCheckout, replayEconomy, CATALOG),
+      );
     });
     expect(replayed.hash).toBe(finalHash);
   });
@@ -156,7 +199,7 @@ describe('ShoppersSystem — a full trip (PLAN.md §16 phase 1.6 gate)', () => {
     const registerId = grid.placements()[1]!.instanceId;
 
     world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
-    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
     world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
     world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: registerId });
     world.step();

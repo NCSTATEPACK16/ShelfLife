@@ -1,7 +1,11 @@
 // Phase 2.0a household segments (PLAN.md §5.1). Each entry defines a segment's
-// store-choice utility weights (unused until the logit lands in a later 2.0
-// sub-phase) and its consumption multiplier, which already drives pantry
+// store-choice utility weights and its consumption multiplier, which drives pantry
 // depletion rate / shopping frequency (§5.4).
+//
+// Phase 2.0c adds `brandAffinity`: βb's input, keyed by store `identity`
+// ('player' for the player's store, a rival's `identity` tag otherwise). An
+// identity absent from the map is neutral (0) — the map is authored taste, not an
+// exhaustive roster, so adding a rival never requires editing this file.
 //
 // `family` is the neutral segment (consumptionMultiplier: 1.0) so the golden
 // `shopper-trip` fixture can use it without perturbing its recorded hash.
@@ -14,6 +18,7 @@
       temperature: 1.0,
     },
     consumptionMultiplier: 0.9,
+    brandAffinity: { player: 0.0, 'deep-discount': 0.4 },
   },
   {
     segment: 'convenience',
@@ -23,6 +28,7 @@
       temperature: 1.0,
     },
     consumptionMultiplier: 1.1,
+    brandAffinity: { player: 0.1, 'deep-discount': 0.0 },
   },
   {
     segment: 'family',
@@ -32,6 +38,7 @@
       temperature: 1.0,
     },
     consumptionMultiplier: 1.0, // neutral segment — see file header
+    brandAffinity: { player: 0.1, 'deep-discount': 0.1 },
   },
   {
     segment: 'foodie',
@@ -41,6 +48,7 @@
       temperature: 1.0,
     },
     consumptionMultiplier: 0.8,
+    brandAffinity: { player: 0.3, 'deep-discount': -0.3 },
   },
   {
     segment: 'bulk',
@@ -50,6 +58,7 @@
       temperature: 1.0,
     },
     consumptionMultiplier: 1.6,
+    brandAffinity: { player: 0.0, 'deep-discount': 0.3 },
   },
   {
     segment: 'senior',
@@ -59,6 +68,7 @@
       temperature: 1.0,
     },
     consumptionMultiplier: 0.7,
+    brandAffinity: { player: 0.2, 'deep-discount': 0.0 },
   },
   {
     segment: 'student',
@@ -68,5 +78,6 @@
       temperature: 1.0,
     },
     consumptionMultiplier: 0.6,
+    brandAffinity: { player: 0.0, 'deep-discount': 0.35 },
   },
 ]

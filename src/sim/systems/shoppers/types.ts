@@ -1,14 +1,4 @@
-import type { Segment } from '../market/types.js';
 import type { Vec2 } from '../pathing/types.js';
-
-export interface Household {
-  readonly id: number;
-  readonly segment: Segment;
-  /** Stock level (0-1) per good id. A good absent from the map is treated as fully stocked (1). */
-  readonly pantry: Readonly<Record<string, number>>;
-  /** Good ids below their reorderThreshold, in catalog order — deterministic, no ties to break. */
-  readonly list: readonly string[];
-}
 
 export type ShopperState = 'entering' | 'shopping' | 'checkingOut' | 'leaving' | 'done';
 

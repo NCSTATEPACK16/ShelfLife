@@ -174,3 +174,41 @@ describe('CheckoutSystem — queueing', () => {
     expect(replayed.hash).toBe(finalHash);
   });
 });
+
+describe('serviceScore', () => {
+  it('is 0 when no lane is open', () => {
+    const { world, checkout } = worldWithCheckout();
+    world.step();
+    expect(checkout.serviceScore()).toBe(0);
+  });
+
+  it('rises with staff skill on an open register', () => {
+    const low = worldWithCheckout();
+    low.grid.place('register', 3, 3, 0);
+    const lowId = low.grid.placements()[0]!.instanceId;
+    low.world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.2, morale: 0.8 });
+    low.world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: lowId });
+    low.world.step();
+
+    const high = worldWithCheckout();
+    high.grid.place('register', 3, 3, 0);
+    const highId = high.grid.placements()[0]!.instanceId;
+    high.world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.9, morale: 0.8 });
+    high.world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: highId });
+    high.world.step();
+
+    expect(high.checkout.serviceScore()).toBeGreaterThan(low.checkout.serviceScore());
+  });
+
+  it('falls when some registers sit unstaffed', () => {
+    const { world, grid, checkout } = worldWithCheckout();
+    grid.place('register', 3, 3, 0);
+    grid.place('register', 8, 5, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
+    world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId });
+    world.step();
+    expect(checkout.serviceScore()).toBeLessThan(0.8);
+    expect(checkout.serviceScore()).toBeGreaterThan(0);
+  });
+});

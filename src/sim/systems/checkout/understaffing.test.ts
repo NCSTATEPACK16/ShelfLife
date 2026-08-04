@@ -4,6 +4,7 @@ import type { SimEvent } from '../../core/events.js';
 import { EconomySystem } from '../economy/system.js';
 import { GridSystem } from '../grid/system.js';
 import { InventorySystem } from '../inventory/system.js';
+import { MarketSystem } from '../market/system.js';
 import { PathingSystem } from '../pathing/system.js';
 import { ShoppersSystem } from '../shoppers/system.js';
 import { CheckoutSystem } from './system.js';
@@ -33,7 +34,9 @@ function runStore(staffedRegisterCount: 1 | 3): {
   world.register(checkout);
   const economy = new EconomySystem(checkout, inventory);
   world.register(economy);
-  const shoppers = new ShoppersSystem(grid, pathing, inventory, checkout, economy);
+  const market = new MarketSystem();
+  world.register(market);
+  const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy);
   world.register(shoppers);
 
   world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 2, y: 2, rotation: 0 });
@@ -54,7 +57,12 @@ function runStore(staffedRegisterCount: 1 | 3): {
   });
 
   for (let i = 0; i < SHOPPER_COUNT; i++) {
-    world.commands.push({ type: 'addHousehold', householdId: i + 1, segment: 'family' });
+    world.commands.push({
+      type: 'addHousehold',
+      householdId: i + 1,
+      segment: 'family',
+      position: { x: 0, y: 0 },
+    });
   }
   world.step();
 
