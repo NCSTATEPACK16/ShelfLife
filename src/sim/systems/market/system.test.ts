@@ -18,20 +18,16 @@ function worldWithMarket(): { world: World; market: MarketSystem } {
 }
 
 /**
- * The full stack in registration order (grid, pathing, inventory, checkout, economy,
- * market, shoppers, loyalty, reputation) — everything `#scheduleTrips` needs live. Uses
- * `self_checkout` rather than `register` so no staffing command is needed to keep a lane
- * open. `stockShelf: false` leaves the shelf empty, so the player store loses on
- * assortment and quality — used to prove a household will pick the rival.
+ * Registers the full stack onto `world` in registration order (grid, pathing,
+ * inventory, checkout, economy, market, shoppers, loyalty) — everything
+ * `#scheduleTrips` needs live. Exported so `replay()` call sites can rebuild the
+ * identical stack on a fresh `World` without duplicating this wiring.
  */
-function fullMarketWorld(options: { stockShelf?: boolean } = {}): {
-  world: World;
+export function registerFullMarketStack(world: World): {
   market: MarketSystem;
   shoppers: ShoppersSystem;
   loyalty: LoyaltySystem;
 } {
-  const stockShelf = options.stockShelf ?? true;
-  const world = new World({ seed: 1 });
   const grid = new GridSystem({ width: 24, height: 24 });
   world.register(grid);
   const pathing = new PathingSystem(grid.grid);
@@ -56,6 +52,23 @@ function fullMarketWorld(options: { stockShelf?: boolean } = {}): {
   const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);
   world.register(shoppers);
   world.register(loyalty);
+  return { market, shoppers, loyalty };
+}
+
+/**
+ * `stockShelf: false` leaves the shelf empty, so the player store loses on assortment
+ * and quality — used to prove a household will pick the rival. Uses `self_checkout`
+ * rather than `register` so no staffing command is needed to keep a lane open.
+ */
+export function fullMarketWorld(options: { stockShelf?: boolean } = {}): {
+  world: World;
+  market: MarketSystem;
+  shoppers: ShoppersSystem;
+  loyalty: LoyaltySystem;
+} {
+  const stockShelf = options.stockShelf ?? true;
+  const world = new World({ seed: 1 });
+  const { market, shoppers, loyalty } = registerFullMarketStack(world);
 
   world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 10, y: 10, rotation: 0 });
   world.commands.push({ type: 'placeFixture', fixtureId: 'self_checkout', x: 20, y: 20, rotation: 0 });
