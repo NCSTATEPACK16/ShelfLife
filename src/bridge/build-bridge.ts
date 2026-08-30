@@ -156,11 +156,30 @@ export class BuildModeBridge {
     this.#step({ type: 'spawnShopper', shopperId, householdId });
   }
 
-  /** Every active shopper's position and FSM state, for rendering only. */
-  shoppersSnapshot(): readonly { id: number; x: number; y: number; state: ShopperState }[] {
+  /**
+   * Every active shopper's position, FSM state, and household segment, for rendering only.
+   *
+   * `segment` is here so the renderer can palette-swap a shopper to their segment — the
+   * cheapest way to make seven kinds of customer visually distinct (ADR 0006). It is a
+   * read-only projection of state the market already owns, so it adds nothing to the world
+   * hash and nothing to the sim.
+   */
+  shoppersSnapshot(): readonly {
+    id: number;
+    x: number;
+    y: number;
+    state: ShopperState;
+    segment: Segment;
+  }[] {
     return this.#shoppers.activeShopperIds().map((id) => {
       const shopper = this.#shoppers.shopper(id);
-      return { id: shopper.id, x: shopper.position.x, y: shopper.position.y, state: shopper.state };
+      return {
+        id: shopper.id,
+        x: shopper.position.x,
+        y: shopper.position.y,
+        state: shopper.state,
+        segment: this.#market.household(shopper.householdId).segment,
+      };
     });
   }
 

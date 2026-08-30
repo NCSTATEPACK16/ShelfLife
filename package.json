@@ -2,7 +2,7 @@
   "name": "shelf-life",
   "version": "0.1.0",
   "private": true,
-  "description": "An isometric supermarket tycoon. Web first, iOS via Capacitor.",
+  "description": "A 16-bit supermarket tycoon. Web first, iOS via Capacitor.",
   "type": "module",
   "engines": {
     "node": ">=22"
