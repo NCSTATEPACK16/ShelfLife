@@ -1,0 +1,460 @@
+{
+	"textures": [
+		{
+			"image": "ui.png",
+			"format": "RGBA8888",
+			"size": {
+				"w": 64,
+				"h": 512
+			},
+			"scale": 1,
+			"frames": [
+				{
+					"filename": "cursor_tile__invalid",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 32
+					},
+					"frame": {
+						"x": 2,
+						"y": 2,
+						"w": 32,
+						"h": 32
+					}
+				},
+				{
+					"filename": "button_9slice__pressed",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 24,
+						"h": 24
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 24,
+						"h": 24
+					},
+					"frame": {
+						"x": 2,
+						"y": 38,
+						"w": 24,
+						"h": 24
+					}
+				},
+				{
+					"filename": "panel_9slice",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 24,
+						"h": 24
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 24,
+						"h": 24
+					},
+					"frame": {
+						"x": 2,
+						"y": 66,
+						"w": 24,
+						"h": 24
+					}
+				},
+				{
+					"filename": "bubble_frame",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 20,
+						"h": 20
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 20,
+						"h": 20
+					},
+					"frame": {
+						"x": 2,
+						"y": 94,
+						"w": 20,
+						"h": 20
+					}
+				},
+				{
+					"filename": "bubble_clock",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 118,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_exclamation",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 134,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_frown",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 150,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_greenStinkCloud",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 166,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_heart",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 182,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_listStrike",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 198,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_priceTagRaisedEyebrow",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 214,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_questionMark",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 230,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_sparkle",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 246,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "particle_flies__f0",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 8,
+						"h": 8
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 8,
+						"h": 8
+					},
+					"frame": {
+						"x": 2,
+						"y": 262,
+						"w": 8,
+						"h": 8
+					}
+				},
+				{
+					"filename": "bubble_clockRedX",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 118,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_exclamationGold",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 134,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "bubble_priceTagStar",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 12,
+						"h": 12
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 12,
+						"h": 12
+					},
+					"frame": {
+						"x": 2,
+						"y": 214,
+						"w": 12,
+						"h": 12
+					}
+				},
+				{
+					"filename": "button_9slice__rest",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 24,
+						"h": 24
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 24,
+						"h": 24
+					},
+					"frame": {
+						"x": 2,
+						"y": 38,
+						"w": 24,
+						"h": 24
+					}
+				},
+				{
+					"filename": "cursor_tile__valid",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 32
+					},
+					"frame": {
+						"x": 2,
+						"y": 2,
+						"w": 32,
+						"h": 32
+					}
+				},
+				{
+					"filename": "particle_flies__f1",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 8,
+						"h": 8
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 8,
+						"h": 8
+					},
+					"frame": {
+						"x": 2,
+						"y": 262,
+						"w": 8,
+						"h": 8
+					}
+				},
+				{
+					"filename": "particle_flies__f2",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 8,
+						"h": 8
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 8,
+						"h": 8
+					},
+					"frame": {
+						"x": 2,
+						"y": 262,
+						"w": 8,
+						"h": 8
+					}
+				}
+			]
+		}
+	],
+	"meta": {
+		"app": "http://github.com/odrick/free-tex-packer-core",
+		"version": "0.3.9"
+	}
+}
