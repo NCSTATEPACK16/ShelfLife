@@ -327,3 +327,81 @@ assessment and what M2 inherits.
 - `shopper-trip` was re-baselined in its own commit: `position` is new hashed state in
   `ShoppersSystem#hash`. Unlike 2.0a, no neutral value could have avoided this. Tick count
   unchanged; the other nine scenarios were confirmed untouched before re-baselining.
+
+### Milestone 2 — Surface (Track B)
+
+*Runs in parallel with the depth track on `milestone/m2-depth` (ADR 0007). No change on this
+track may move a world hash; the view is downstream of the simulation, so a moved hash is a
+boundary violation to fix, never a re-baseline.*
+
+#### ADRs 0004–0007
+- **0004 — Orthogonal 3/4 projection.** Supersedes `PLAN.md` §9.1's 2:1 dimetric spec. Phaser 4's
+  `TilemapGPULayer` is orthographic-only, so dimetric meant hand-writing the floor renderer;
+  axis-aligned halves the sprite count per fixture, makes tap targets rectangles instead of
+  diamonds, and stops tall shelves occluding the shoppers that carry the game's telemetry. Free to
+  do now because zero art assets existed.
+- **0005 — Pixel renderer strategy.** Phaser on WebGL with `pixelArt`, keeping the dynamic-import
+  and `getContext` guard with a CANVAS fallback. A 32px logical tile with integer zoom, rather than
+  a fixed 256×224 framebuffer — 256×224 scales by 1.52× on a 390px phone, which destroys the pixel
+  grid on the primary target device.
+- **0006 — Art as source code.** 16-bit sprites are small enough to author as text: a 16×24 shopper
+  is 384 pixels, a character grid in a `.py` module, compiled to PNG by the build. Resolves the
+  never-edit-binaries rule against having no pixel artist. Four routes — procedural, text sprite,
+  Blender, generated image — feed one manifest through one quantize pass.
+- **0007 — Parallel-track protocol.** Ownership of every shared file, and the no-moved-hash
+  invariant.
+
+#### Phase S0 — Art pipeline · **gate PASS**
+- `npm run art:build` turns a manifest with zero real art into a complete, validated, packed atlas
+  set: 30 declared assets → 179 frames → 3 atlases, all placeholders, game builds and boots.
+- Placeholder-first (ADR 0006): a placeholder is the declared size, carries its layer's colour, is
+  hatched so nobody mistakes it for finished art, and is labelled by a 3×5 font when it fits. A
+  fully-placeholder store is still readable as a store, so renderer work never blocks on art work.
+- The palette (`tools/art/palette.py`) is **derived from `content/design/tokens.json`**, so that file
+  stays the single source of colour truth and `check-tokens.mjs` keeps working untouched.
+- Frame-key enumeration lives only in `tools/art/manifest.py`; everything downstream reads the index
+  it writes. `src/view/asset-manifest.ts` formats one key at a time rather than re-enumerating, and
+  a parity test compares its enumeration against the index the build actually produced — verified to
+  fail when the two drift.
+- Five validation checks, each verified to fire: wrong dimensions, orphan files, manifest/disk case
+  drift, a fixture anchored off its bottom edge, an unpacked frame. The case check cannot be tested
+  by copying a file on macOS — which is exactly the macOS→Linux 404 hazard it exists for.
+- Pipeline is idempotent: identical inputs produce byte-identical PNGs and atlases.
+- `assets/atlases/` is committed and `assets/src/` is not. Netlify runs `vite build` and nothing
+  else — no Python, no Blender — so the packed atlas is a build input. 16-bit art is small enough
+  that this needs no Git LFS.
+- The palette-swap multiplier in practice: one 16×24 text sprite × 2 states × 4 rotations × 2 frames
+  × 7 segment palettes = 112 frames, which `detectIdentical` then packs into an 820-byte texture.
+
+#### Phase S1 — Orthogonal renderer · **gate PASS**
+- 514 sprites (400 floor tiles, 25 fixtures, 89 shoppers) at **0.15 ms per redraw** and a locked
+  **60 fps at both 390×844 with touch and 1440×900**, no console errors at either. Golden hashes
+  byte-identical.
+- `src/view/iso.ts` retired for `projection.ts`. Depth is y-sort in fixed bands: floors always
+  beneath, overlays always above, fixtures and agents interleaved by row — which is what makes a
+  shopper walk behind one shelf and in front of the next.
+- The pure `*-draw-plan` modules survive nearly unchanged in shape, still free of any Phaser import
+  and still tested without a renderer. They now emit sprite plans instead of rect lists.
+  `BuildScene` pools sprites rather than recreating them per frame.
+- Camera pan rides the existing `dragMove` intent, so the platform boundary holds and no new pointer
+  listener exists. Zoom is integer-only: 1× on a phone, 2× on a desktop.
+- `shoppersSnapshot()` gains `segment` — the one append ADR 0007 permits — so shoppers can be
+  palette-swapped to their household segment.
+
+##### Fixed
+- **The WebGL probe was breaking the thing it probed.** Calling `getContext('webgl2')` on the real
+  canvas means Phaser's later `getContext('webgl')` on that same element returns `null` forever — a
+  canvas hands out exactly one kind of context. The store failed to start with "WebGL unsupported"
+  on a machine that supports it fine. Now probes a throwaway canvas. Caught only because the
+  screenshot pass drove a real browser.
+- **`src/main.ts` was still painting the old projection.** A phase-1.0 `paint()` drew a 128×64
+  dimetric grid underneath Phaser, fought it for canvas sizing via its own DPR scaling, attached a
+  second `PointerSource` to the same canvas, and covered the store with a panel reading *"the canvas
+  is empty on purpose."* The diagnostics panel now appears only when the renderer genuinely cannot
+  start — which is what the boot smoke test was actually asserting. This also retires the
+  untokenized `#2b3a33` that `check-tokens.mjs` could not see, `src/main.ts` being outside its scan
+  directories.
+- **Panning did not compensate the tap transform for camera scroll**, so every tap after a pan
+  landed in the wrong tile.
+- `README.md`, `landing/index.html`, `index.html`, and `package.json` no longer describe the game as
+  isometric (ADR 0004).
