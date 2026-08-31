@@ -33,7 +33,7 @@
     { "id": "cart_abandoned",  "route": "text",       "atlas": "world", "size": [16, 16], "anchor": [0.5, 1], "layer": "fixture", "$why": "docs/design/gentle-surface.md §1 — the balk tell; persists as a world object until staff clears it" },
     { "id": "spill_decal",     "route": "procedural", "atlas": "world", "size": [32, 16], "anchor": [0.5, 1], "layer": "floor", "$why": "cleanliness tell" },
 
-    { "id": "shopper",         "route": "text", "atlas": "agents", "size": [16, 24], "anchor": [0.5, 1], "layer": "agent", "states": ["idle", "walk"], "rotations": 4, "frames": 2, "palettes": ["priceHunter", "convenience", "family", "foodie", "bulk", "senior", "student"] },
+    { "id": "shopper",         "route": "text", "atlas": "agents", "size": [16, 24], "anchor": [0.5, 1], "layer": "agent", "states": ["idle", "walk", "pause", "recoil", "hop"], "rotations": 4, "frames": 2, "palettes": ["priceHunter", "convenience", "family", "foodie", "bulk", "senior", "student"], "$why": "pause/recoil/hop are the shared reaction poses docs/design/gentle-surface.md §1 asks for — three poses cover seven live tells rather than one bespoke pose each. `idle` stays first: it is the default state every frame key falls back to." },
     { "id": "staff",           "route": "text", "atlas": "agents", "size": [16, 24], "anchor": [0.5, 1], "layer": "agent", "states": ["idle", "walk"], "rotations": 4, "frames": 2 },
 
     { "id": "bubble_frame",              "route": "procedural", "atlas": "ui", "size": [20, 20], "anchor": [0.5, 1], "layer": "overlay", "$why": "the speech-bubble chrome every tell icon sits inside" },

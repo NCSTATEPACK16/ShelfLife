@@ -61,13 +61,15 @@ def render(
     return canvas
 
 
-def mirror(grid: str) -> list[str]:
+def mirror(grid: str | list[str]) -> list[str]:
     """Horizontally flip a sprite grid.
 
     Used to get the right-facing sprite from the left-facing one, which is the oldest trick
-    in the medium and halves the character art.
+    in the medium and halves the character art. Accepts already-parsed rows as well as a
+    text block, because the reaction poses derive their second frame before mirroring.
     """
-    return [row[::-1] for row in parse(grid)]
+    rows = parse(grid) if isinstance(grid, str) else grid
+    return [row[::-1] for row in rows]
 
 
 def outline(image: Image.Image, colour_name: str = "ink") -> Image.Image:

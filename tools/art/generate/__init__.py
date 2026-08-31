@@ -12,9 +12,9 @@ from PIL import Image
 
 import manifest as manifest_mod
 import sprite
-from sprites import characters
+from sprites import bubbles, characters
 
-from . import fixtures, tiles
+from . import fixtures, overlays, tiles
 
 # The four rendered facings, in the order `src/view/shopper-draw-plan.ts` indexes them.
 FACINGS = ["down", "left", "right", "up"]
@@ -23,14 +23,20 @@ FACINGS = ["down", "left", "right", "up"]
 def _character(asset, key, man, overrides: dict[str, str] | None = None) -> Image.Image:
     selector = manifest_mod.parse_key(asset, key)
     facing = FACINGS[int(selector["rotation"]) % len(FACINGS)]
-    stand, step_a, step_b = characters.POSES["left" if facing == "right" else facing]
+    source_facing = "left" if facing == "right" else facing
+    state = str(selector["state"])
+    frame = int(selector["frame"])
 
-    if selector["state"] == "walk":
-        grid = step_a if int(selector["frame"]) % 2 == 0 else step_b
+    if state in characters.REACTION_POSES:
+        # The gentle-surface reaction poses (phase S3). Only `shopper` declares them;
+        # `staff` has no tells, so it never reaches this branch.
+        grid: str | list[str] = characters.pose_frame(state, source_facing, frame)
     else:
-        grid = stand
+        stand, step_a, step_b = characters.POSES[source_facing]
+        grid = (step_a if frame % 2 == 0 else step_b) if state == "walk" else stand
 
-    rows = sprite.mirror(grid) if facing == "right" else sprite.parse(grid)
+    parsed = sprite.parse(grid) if isinstance(grid, str) else grid
+    rows = sprite.mirror(parsed) if facing == "right" else parsed
 
     palette_overrides = dict(overrides or {})
     palette_name = selector["palette"]
@@ -99,6 +105,25 @@ def _spill(asset, key, man) -> Image.Image:
     return tiles.spill(*asset.size)
 
 
+def _bubble_frame(asset, key, man) -> Image.Image:
+    return overlays.bubble_frame(*asset.size)
+
+
+def _bubble_icon(asset, key, man) -> Image.Image:
+    # `bubble_greenStinkCloud` -> `greenStinkCloud`, the id `content/design/gentle-surface.json5`
+    # uses for the tell. One naming rule, checked by `tools/validate/assets.mjs`.
+    return sprite.render(bubbles.ICONS[asset.id[len("bubble_") :]], size=asset.size, anchor="centre")
+
+
+def _flies(asset, key, man) -> Image.Image:
+    selector = manifest_mod.parse_key(asset, key)
+    return overlays.flies(*asset.size, frame=int(selector["frame"]))
+
+
+def _cart_abandoned(asset, key, man) -> Image.Image:
+    return sprite.render(bubbles.CART_ABANDONED, size=asset.size, anchor="bottom")
+
+
 GENERATORS = {
     "floor_tile": _floor,
     "floor_entrance": _entrance,
@@ -112,4 +137,8 @@ GENERATORS = {
     "spill_decal": _spill,
     "shopper": _shopper,
     "staff": _staff,
+    "cart_abandoned": _cart_abandoned,
+    "bubble_frame": _bubble_frame,
+    "particle_flies": _flies,
+    **{f"bubble_{name}": _bubble_icon for name in bubbles.ICONS},
 }
