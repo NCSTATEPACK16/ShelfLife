@@ -33,6 +33,7 @@ export class BuildScene extends Phaser.Scene {
   #graphics!: Phaser.GameObjects.Graphics;
   #selectedInstanceId: number | null = null;
   #debugDestinationId: string | null = null;
+  #stockLevels: ReadonlyMap<number, number> | undefined;
   #ready = false;
 
   constructor(bridge: BuildModeBridge, origin: { x: number; y: number }) {
@@ -67,6 +68,19 @@ export class BuildScene extends Phaser.Scene {
     this.redraw();
   }
 
+  /**
+   * How full each fixture is, by instance id, 0..1 — which decides whether a shelf draws
+   * stocked, picked-over, or bare.
+   *
+   * Supplied from outside because the simulation cannot yet answer it: stock is tracked
+   * per good, and the shelf -> good assignment is private to `ShoppersSystem`. See the
+   * note on `buildDrawPlan`'s options.
+   */
+  setStockLevels(levels: ReadonlyMap<number, number> | undefined): void {
+    this.#stockLevels = levels;
+    this.redraw();
+  }
+
   /** Current camera scroll, in scene pixels. Callers need it to map a tap to a tile. */
   scroll(): { x: number; y: number } {
     if (!this.#ready) return { x: 0, y: 0 };
@@ -94,7 +108,9 @@ export class BuildScene extends Phaser.Scene {
   redraw(): void {
     if (!this.#ready) return;
 
-    const plan = buildDrawPlan(this.#bridge.snapshot(), this.#origin, this.#selectedInstanceId);
+    const plan = buildDrawPlan(this.#bridge.snapshot(), this.#origin, this.#selectedInstanceId, {
+      stockLevels: this.#stockLevels,
+    });
     const shoppers = buildShopperDrawPlan(
       this.#bridge.shoppersSnapshot(),
       this.#origin,

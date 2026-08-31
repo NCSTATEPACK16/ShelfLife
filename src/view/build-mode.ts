@@ -246,6 +246,7 @@ export async function mountBuildMode(
 export interface BuildSceneHandle {
   redraw(): void;
   scroll(): { x: number; y: number };
+  setStockLevels(levels: ReadonlyMap<number, number> | undefined): void;
 }
 
 function nextRotation(current: Rotation): Rotation {

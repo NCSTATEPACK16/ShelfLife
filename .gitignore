@@ -38,3 +38,7 @@ playwright-report/
 # Python bytecode from the art pipeline
 __pycache__/
 *.pyc
+
+# Scratch screenshots from the surface track
+/art-direction-candidates.png
+/s1-renderer-*.png

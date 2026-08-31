@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDrawPlan, floorVariant, rotationFrame } from './draw-plan.js';
+import { buildDrawPlan, floorVariant, rotationFrame, stateForStock } from './draw-plan.js';
 import { depthFor, TILE_SIZE } from './projection.js';
 import type { BuildModeSnapshot } from '../bridge/build-bridge.js';
 
@@ -109,5 +109,47 @@ describe('floorVariant', () => {
 
   it('collapses to zero when there is only one variant', () => {
     expect(floorVariant(5, 5, 1)).toBe(0);
+  });
+});
+
+describe('stateForStock', () => {
+  const SHELF_STATES = ['full', 'half', 'empty'];
+
+  it('maps a full shelf to the fullest state and an empty one to the emptiest', () => {
+    expect(stateForStock(SHELF_STATES, 1)).toBe('full');
+    expect(stateForStock(SHELF_STATES, 0)).toBe('empty');
+  });
+
+  it('puts a middling shelf in the middle state', () => {
+    expect(stateForStock(SHELF_STATES, 0.5)).toBe('half');
+  });
+
+  it('clamps out-of-range ratios rather than indexing past the states', () => {
+    expect(stateForStock(SHELF_STATES, 5)).toBe('full');
+    expect(stateForStock(SHELF_STATES, -3)).toBe('empty');
+  });
+
+  it('handles a two-state fixture, which is how registers work', () => {
+    expect(stateForStock(['idle', 'busy'], 1)).toBe('idle');
+    expect(stateForStock(['idle', 'busy'], 0)).toBe('busy');
+  });
+
+  it('returns undefined for a stateless asset, so the caller falls back to the default', () => {
+    expect(stateForStock([], 0.5)).toBeUndefined();
+  });
+});
+
+describe('buildDrawPlan with stock levels', () => {
+  it('draws a shelf in the state matching how full it is', () => {
+    const empty = buildDrawPlan(SNAPSHOT, ORIGIN, null, { stockLevels: new Map([[1, 0]]) });
+    expect(empty.fixtures[0]?.key).toBe('shelf_basic__empty__r0');
+
+    const full = buildDrawPlan(SNAPSHOT, ORIGIN, null, { stockLevels: new Map([[1, 1]]) });
+    expect(full.fixtures[0]?.key).toBe('shelf_basic__full__r0');
+  });
+
+  it('falls back to the default state when no level is known for that instance', () => {
+    const plan = buildDrawPlan(SNAPSHOT, ORIGIN, null, { stockLevels: new Map([[99, 0]]) });
+    expect(plan.fixtures[0]?.key).toBe('shelf_basic__full__r0');
   });
 });

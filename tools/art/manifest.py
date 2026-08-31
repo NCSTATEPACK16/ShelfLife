@@ -124,3 +124,40 @@ if __name__ == "__main__":
         keys = asset.frame_keys()
         preview = keys[0] if len(keys) == 1 else f"{keys[0]} ... {keys[-1]}"
         print(f"  {asset.id:<32} {len(keys):>4}  {preview}")
+
+
+def parse_key(asset: Asset, key: str) -> dict[str, object]:
+    """Decompose a frame key back into the selector that produced it.
+
+    Generators receive a key and need to know which state / rotation / frame / palette it
+    stands for. Parsing here rather than in each generator keeps the key format in one
+    place -- the same reason `frame_keys` lives here.
+    """
+    if not key.startswith(asset.id):
+        raise ValueError(f"key {key!r} does not belong to asset {asset.id!r}")
+
+    selector: dict[str, object] = {
+        "state": asset.states[0] if asset.states else None,
+        "rotation": 0,
+        "frame": 0,
+        "palette": asset.palettes[0] if asset.palettes else None,
+        "variant": 0,
+    }
+
+    for part in key[len(asset.id):].split("__"):
+        if not part:
+            continue
+        if part in asset.states:
+            selector["state"] = part
+        elif part.startswith("r") and part[1:].isdigit():
+            selector["rotation"] = int(part[1:])
+        elif part.startswith("f") and part[1:].isdigit():
+            selector["frame"] = int(part[1:])
+        elif part.startswith("v") and part[1:].isdigit():
+            selector["variant"] = int(part[1:])
+        elif part.startswith("p"):
+            selector["palette"] = part[1:]
+        else:
+            raise ValueError(f"unrecognised key segment {part!r} in {key!r}")
+
+    return selector

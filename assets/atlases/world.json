@@ -4,7 +4,7 @@
 			"image": "world.png",
 			"format": "RGBA8888",
 			"size": {
-				"w": 512,
+				"w": 1024,
 				"h": 128
 			},
 			"scale": 1,
@@ -31,279 +31,6 @@
 					}
 				},
 				{
-					"filename": "self_checkout__busy__r0",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 64,
-						"h": 40
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 64,
-						"h": 40
-					},
-					"frame": {
-						"x": 70,
-						"y": 2,
-						"w": 64,
-						"h": 40
-					}
-				},
-				{
-					"filename": "shelf_basic__empty__r0",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 48
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 48
-					},
-					"frame": {
-						"x": 138,
-						"y": 2,
-						"w": 32,
-						"h": 48
-					}
-				},
-				{
-					"filename": "wall_back",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 48
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 48
-					},
-					"frame": {
-						"x": 2,
-						"y": 46,
-						"w": 32,
-						"h": 48
-					}
-				},
-				{
-					"filename": "wall_side",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 48
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 48
-					},
-					"frame": {
-						"x": 38,
-						"y": 46,
-						"w": 32,
-						"h": 48
-					}
-				},
-				{
-					"filename": "shelf_endcap__empty__r0",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 40
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 40
-					},
-					"frame": {
-						"x": 74,
-						"y": 46,
-						"w": 32,
-						"h": 40
-					}
-				},
-				{
-					"filename": "cart_abandoned",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 16,
-						"h": 16
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 16,
-						"h": 16
-					},
-					"frame": {
-						"x": 110,
-						"y": 46,
-						"w": 16,
-						"h": 16
-					}
-				},
-				{
-					"filename": "cart_corral__empty",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 32
-					},
-					"frame": {
-						"x": 174,
-						"y": 2,
-						"w": 32,
-						"h": 32
-					}
-				},
-				{
-					"filename": "floor_entrance",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 32
-					},
-					"frame": {
-						"x": 210,
-						"y": 2,
-						"w": 32,
-						"h": 32
-					}
-				},
-				{
-					"filename": "floor_tile__v0",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 32
-					},
-					"frame": {
-						"x": 246,
-						"y": 2,
-						"w": 32,
-						"h": 32
-					}
-				},
-				{
-					"filename": "spill_decal",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 16
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 16
-					},
-					"frame": {
-						"x": 282,
-						"y": 2,
-						"w": 32,
-						"h": 16
-					}
-				},
-				{
-					"filename": "cart_corral__full",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 32
-					},
-					"frame": {
-						"x": 174,
-						"y": 2,
-						"w": 32,
-						"h": 32
-					}
-				},
-				{
-					"filename": "floor_tile__v1",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 32
-					},
-					"frame": {
-						"x": 246,
-						"y": 2,
-						"w": 32,
-						"h": 32
-					}
-				},
-				{
-					"filename": "floor_tile__v2",
-					"rotated": false,
-					"trimmed": false,
-					"sourceSize": {
-						"w": 32,
-						"h": 32
-					},
-					"spriteSourceSize": {
-						"x": 0,
-						"y": 0,
-						"w": 32,
-						"h": 32
-					},
-					"frame": {
-						"x": 246,
-						"y": 2,
-						"w": 32,
-						"h": 32
-					}
-				},
-				{
 					"filename": "register__busy__r1",
 					"rotated": false,
 					"trimmed": false,
@@ -318,7 +45,7 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 2,
+						"x": 70,
 						"y": 2,
 						"w": 64,
 						"h": 40
@@ -339,7 +66,7 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 2,
+						"x": 138,
 						"y": 2,
 						"w": 64,
 						"h": 40
@@ -360,7 +87,28 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 2,
+						"x": 206,
+						"y": 2,
+						"w": 64,
+						"h": 40
+					}
+				},
+				{
+					"filename": "self_checkout__busy__r0",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 64,
+						"h": 40
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 64,
+						"h": 40
+					},
+					"frame": {
+						"x": 274,
 						"y": 2,
 						"w": 64,
 						"h": 40
@@ -381,7 +129,7 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 70,
+						"x": 342,
 						"y": 2,
 						"w": 64,
 						"h": 40
@@ -402,7 +150,7 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 70,
+						"x": 410,
 						"y": 2,
 						"w": 64,
 						"h": 40
@@ -423,10 +171,31 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 70,
+						"x": 478,
 						"y": 2,
 						"w": 64,
 						"h": 40
+					}
+				},
+				{
+					"filename": "shelf_basic__empty__r0",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 48
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 48
+					},
+					"frame": {
+						"x": 546,
+						"y": 2,
+						"w": 32,
+						"h": 48
 					}
 				},
 				{
@@ -444,7 +213,7 @@
 						"h": 48
 					},
 					"frame": {
-						"x": 138,
+						"x": 582,
 						"y": 2,
 						"w": 32,
 						"h": 48
@@ -465,7 +234,7 @@
 						"h": 48
 					},
 					"frame": {
-						"x": 138,
+						"x": 618,
 						"y": 2,
 						"w": 32,
 						"h": 48
@@ -486,7 +255,7 @@
 						"h": 48
 					},
 					"frame": {
-						"x": 138,
+						"x": 654,
 						"y": 2,
 						"w": 32,
 						"h": 48
@@ -507,7 +276,7 @@
 						"h": 48
 					},
 					"frame": {
-						"x": 138,
+						"x": 690,
 						"y": 2,
 						"w": 32,
 						"h": 48
@@ -528,10 +297,73 @@
 						"h": 48
 					},
 					"frame": {
-						"x": 138,
+						"x": 726,
 						"y": 2,
 						"w": 32,
 						"h": 48
+					}
+				},
+				{
+					"filename": "wall_back",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 48
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 48
+					},
+					"frame": {
+						"x": 762,
+						"y": 2,
+						"w": 32,
+						"h": 48
+					}
+				},
+				{
+					"filename": "wall_side",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 48
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 48
+					},
+					"frame": {
+						"x": 798,
+						"y": 2,
+						"w": 32,
+						"h": 48
+					}
+				},
+				{
+					"filename": "shelf_endcap__empty__r0",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 40
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 40
+					},
+					"frame": {
+						"x": 834,
+						"y": 2,
+						"w": 32,
+						"h": 40
 					}
 				},
 				{
@@ -549,8 +381,8 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 74,
-						"y": 46,
+						"x": 870,
+						"y": 2,
 						"w": 32,
 						"h": 40
 					}
@@ -570,8 +402,8 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 74,
-						"y": 46,
+						"x": 906,
+						"y": 2,
 						"w": 32,
 						"h": 40
 					}
@@ -591,8 +423,8 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 74,
-						"y": 46,
+						"x": 942,
+						"y": 2,
 						"w": 32,
 						"h": 40
 					}
@@ -612,8 +444,8 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 74,
-						"y": 46,
+						"x": 978,
+						"y": 2,
 						"w": 32,
 						"h": 40
 					}
@@ -633,10 +465,178 @@
 						"h": 40
 					},
 					"frame": {
-						"x": 74,
+						"x": 834,
 						"y": 46,
 						"w": 32,
 						"h": 40
+					}
+				},
+				{
+					"filename": "cart_corral__empty",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 32
+					},
+					"frame": {
+						"x": 870,
+						"y": 46,
+						"w": 32,
+						"h": 32
+					}
+				},
+				{
+					"filename": "cart_corral__full",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 32
+					},
+					"frame": {
+						"x": 906,
+						"y": 46,
+						"w": 32,
+						"h": 32
+					}
+				},
+				{
+					"filename": "floor_entrance",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 32
+					},
+					"frame": {
+						"x": 942,
+						"y": 46,
+						"w": 32,
+						"h": 32
+					}
+				},
+				{
+					"filename": "floor_tile__v0",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 32
+					},
+					"frame": {
+						"x": 978,
+						"y": 46,
+						"w": 32,
+						"h": 32
+					}
+				},
+				{
+					"filename": "floor_tile__v1",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 32
+					},
+					"frame": {
+						"x": 870,
+						"y": 82,
+						"w": 32,
+						"h": 32
+					}
+				},
+				{
+					"filename": "floor_tile__v2",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 32
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 32
+					},
+					"frame": {
+						"x": 906,
+						"y": 82,
+						"w": 32,
+						"h": 32
+					}
+				},
+				{
+					"filename": "spill_decal",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 32,
+						"h": 16
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 32,
+						"h": 16
+					},
+					"frame": {
+						"x": 942,
+						"y": 82,
+						"w": 32,
+						"h": 16
+					}
+				},
+				{
+					"filename": "cart_abandoned",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": {
+						"w": 16,
+						"h": 16
+					},
+					"spriteSourceSize": {
+						"x": 0,
+						"y": 0,
+						"w": 16,
+						"h": 16
+					},
+					"frame": {
+						"x": 978,
+						"y": 82,
+						"w": 16,
+						"h": 16
 					}
 				}
 			]

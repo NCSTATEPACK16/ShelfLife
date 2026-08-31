@@ -48,6 +48,22 @@ export function rotationFrame(
 }
 
 /**
+ * Which declared state a fixture should show, given how full it is.
+ *
+ * States are declared fullest-first in the manifest (`full`, `half`, `empty`), so the
+ * ratio maps straight onto the list. Written generically rather than hard-coding three
+ * names, because registers use `idle`/`busy` against the same machinery.
+ */
+export function stateForStock(states: readonly string[], ratio: number): string | undefined {
+  if (states.length === 0) return undefined;
+  if (states.length === 1) return states[0];
+  const clamped = Math.min(1, Math.max(0, ratio));
+  // Fullest state occupies the top band, emptiest the bottom, evenly split.
+  const index = Math.min(states.length - 1, Math.floor((1 - clamped) * states.length));
+  return states[index];
+}
+
+/**
  * Deterministic floor variation.
  *
  * Purely cosmetic, so it must not touch the sim's RNG streams — those are reserved for
@@ -64,7 +80,20 @@ export function buildDrawPlan(
   snapshot: BuildModeSnapshot,
   origin: ScreenPoint,
   selectedInstanceId: number | null,
-  options: { readonly cursor?: { x: number; y: number; valid: boolean } | null } = {},
+  options: {
+    readonly cursor?: { x: number; y: number; valid: boolean } | null;
+    /**
+     * Instance id -> how full that fixture is, 0..1.
+     *
+     * `docs/design/gentle-surface.md` calls the empty facing the single most important
+     * tell in the game, and the art for all three states ships today. What does not exist
+     * yet is per-shelf stock: `InventorySystem` tracks stock per *good*, and the shelf ->
+     * good assignment lives in `ShoppersSystem`'s private state with no accessor. Wiring
+     * those together is a simulation change (Track A, ADR 0007), so the view takes the
+     * levels as an argument and is ready the moment they exist.
+     */
+    readonly stockLevels?: ReadonlyMap<number, number> | undefined;
+  } = {},
 ): DrawPlan {
   const { width, height } = snapshot.dimensions;
 
@@ -107,8 +136,11 @@ export function buildDrawPlan(
       origin,
     );
 
+    const level = options.stockLevels?.get(placement.instanceId);
+    const state = level === undefined ? undefined : stateForStock(asset.states ?? [], level);
+
     fixtures.push({
-      key: frameKey(placement.fixtureId, { rotation: index }),
+      key: frameKey(placement.fixtureId, { rotation: index, state }),
       atlas: asset.atlas,
       x: anchor.x,
       y: anchor.y,
