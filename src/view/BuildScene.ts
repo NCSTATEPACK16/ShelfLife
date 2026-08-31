@@ -13,6 +13,7 @@ import { toPhaserColor } from './fixture-colors.js';
 import {
   createGentleSurfaceState,
   gentleSurfaceDrawPlan,
+  type GentleSurfacePlan,
   type GentleSurfaceState,
 } from './gentle-surface-draw-plan.js';
 import { buildFlowFieldDrawPlan } from './pathing-debug-plan.js';
@@ -44,6 +45,7 @@ export class BuildScene extends Phaser.Scene {
   #selectedInstanceId: number | null = null;
   #debugDestinationId: string | null = null;
   #stockLevels: ReadonlyMap<number, number> | undefined;
+  #lastGentleSurface: GentleSurfacePlan | null = null;
   #ready = false;
 
   constructor(bridge: BuildModeBridge, origin: { x: number; y: number }) {
@@ -89,6 +91,33 @@ export class BuildScene extends Phaser.Scene {
   setStockLevels(levels: ReadonlyMap<number, number> | undefined): void {
     this.#stockLevels = levels;
     this.redraw();
+  }
+
+  /**
+   * How many of each gentle-surface tell the last frame actually drew, or `null` if no
+   * frame has been drawn yet.
+   *
+   * The E2E gate asserts on this. A screenshot proves a bubble *looks* right; it cannot
+   * prove one is there, and a store where the tells quietly stopped firing looks exactly
+   * like a store where nothing is wrong — which is the whole hazard of a surface designed
+   * to be calm.
+   *
+   * `null` rather than a row of zeros, because the difference matters and is otherwise
+   * invisible: `redraw()` is a no-op until Phaser has run `create()`, and a caller that
+   * drives the sim without ever yielding to the browser's frame loop never gets there. A
+   * zero says the store was calm; `null` says nobody has looked yet.
+   */
+  tellCounts(): TellCounts | null {
+    const plan = this.#lastGentleSurface;
+    if (plan === null) return null;
+    return {
+      // Two sprites per bubble — the chrome and the icon inside it.
+      bubbles: plan.bubbles.length / 2,
+      worldMarks: plan.worldMarks.length,
+      particles: plan.particles.length,
+      cartMarkers: plan.cartMarkers.length,
+      poses: plan.animationOverrides.size,
+    };
   }
 
   /** Current camera scroll, in scene pixels. Callers need it to map a tap to a tile. */
@@ -140,6 +169,7 @@ export class BuildScene extends Phaser.Scene {
       },
       this.#gentleSurface,
     );
+    this.#lastGentleSurface = gentle;
 
     const plan = buildDrawPlan(snapshot, this.#origin, this.#selectedInstanceId, {
       stockLevels: this.#stockLevels,
@@ -202,6 +232,14 @@ export class BuildScene extends Phaser.Scene {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+export interface TellCounts {
+  readonly bubbles: number;
+  readonly worldMarks: number;
+  readonly particles: number;
+  readonly cartMarkers: number;
+  readonly poses: number;
 }
 
 /** Above every world sprite; the debug overlay is a tool, not part of the scene. */

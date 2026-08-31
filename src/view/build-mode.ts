@@ -5,6 +5,7 @@ import { breakpointFor, type Breakpoint } from '../platform/layout/index.js';
 import { BuildModePanel } from '../ui/BuildModePanel.js';
 import { SelectionActionBar } from '../ui/SelectionActionBar.js';
 import { fitZoom, screenToWorld, TILE_SIZE, worldToScreen } from './projection.js';
+import type { TellCounts } from './BuildScene.js';
 import { TICK_MS } from '../sim/index.js';
 import type { Rotation } from '../sim/index.js';
 
@@ -247,6 +248,8 @@ export interface BuildSceneHandle {
   redraw(): void;
   scroll(): { x: number; y: number };
   setStockLevels(levels: ReadonlyMap<number, number> | undefined): void;
+  /** Null until Phaser has drawn a first frame — see `BuildScene#tellCounts`. */
+  tellCounts(): TellCounts | null;
 }
 
 function nextRotation(current: Rotation): Rotation {

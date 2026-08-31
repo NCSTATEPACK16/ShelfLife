@@ -130,6 +130,24 @@ const POSE_FOR_TERM: Readonly<Record<LiveTerm, Pose | null>> = {
   queuePenaltyBalk: null,
 };
 
+/**
+ * The tint each term flashes on the fixture the shopper is standing at, if any.
+ *
+ * Only two terms mark the world this way. `fillRateMiss` declares `worldMark: true` in the
+ * tell table and is deliberately absent here: docs/design/gentle-surface.md §1 says its
+ * world mark is "the facing shows a visible gap" — the shelf's own empty state, which S2's
+ * art already renders and which no tint should stand in for. Flashing a colour there both
+ * says the wrong thing and, since a dry shelf misses for every shopper who walks up to it,
+ * turns the store's most common tell into its loudest.
+ *
+ * `visibility` is the same story from the other direction: a well-faced shelf *is* the
+ * tell. Neither needs anything from this module.
+ */
+const TINT_FOR_TERM: Readonly<Partial<Record<LiveTerm, () => number>>> = {
+  spoiledEncounters: spoiledTint,
+  priceSurpriseNegative: priceMarkTint,
+};
+
 /** Rank by the content file's order, highest first. Unlisted terms sort last. */
 const PRIORITY: ReadonlyMap<string, number> = new Map(
   TUNING.priority.map((term, index) => [term, TUNING.priority.length - index]),
@@ -399,16 +417,16 @@ function admit(
     return;
   }
 
-  if (!tell.worldMark && tell.particle === null) return;
+  const tint = TINT_FOR_TERM[term];
+  if (tint === undefined && tell.particle === null) return;
 
   const nearest = nearestFixture(shopper, input);
   if (nearest === null) return;
 
-  if (tell.worldMark) {
-    const tint = term === 'spoiledEncounters' ? spoiledTint() : priceMarkTint();
+  if (tint !== undefined) {
     state.marks.push({
       instanceId: nearest.instanceId,
-      tint,
+      tint: tint(),
       expiresAtTick: input.tick + TUNING.worldMarkTicks,
     });
   }
