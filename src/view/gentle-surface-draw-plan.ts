@@ -99,6 +99,20 @@ export type LiveTerm = (typeof LIVE_TERMS)[number];
 export type Pose = 'pause' | 'recoil' | 'hop';
 
 /**
+ * A reaction pose and which of its two frames to draw.
+ *
+ * The frame comes from here rather than from `ShopperAnimator` because the animator times
+ * the walk cycle by distance travelled, and a shopper holding a pose is standing still —
+ * their walk phase never advances, so the pose would freeze on its first frame. Timing it
+ * on the sim clock keeps it honest for the same reason the walk cycle is timed on
+ * distance: neither should depend on how often the renderer happens to redraw.
+ */
+export interface PosedShopper {
+  readonly pose: Pose;
+  readonly frame: number;
+}
+
+/**
  * Which shared reaction pose each term plays (spec §1.2).
  *
  * Three poses, not seven: the bubble is already unique per term and carries the primary
@@ -149,6 +163,7 @@ interface ActiveBubble {
 
 interface ActivePose {
   readonly pose: Pose;
+  readonly startedAtTick: number;
   readonly expiresAtTick: number;
 }
 
@@ -215,7 +230,7 @@ export interface GentleSurfacePlan {
   readonly worldMarks: readonly SpritePlan[];
   readonly particles: readonly SpritePlan[];
   readonly cartMarkers: readonly SpritePlan[];
-  readonly animationOverrides: ReadonlyMap<number, Pose>;
+  readonly animationOverrides: ReadonlyMap<number, PosedShopper>;
 }
 
 export interface GentleSurfaceInput {
@@ -368,7 +383,11 @@ function admit(
   // once the bubble budget is spent — which is the §3 rule, not an exception to it.
   const pose = POSE_FOR_TERM[term];
   if (pose !== null && tell.animation !== null) {
-    state.poses.set(shopper.id, { pose, expiresAtTick: input.tick + TUNING.animationPoseTicks });
+    state.poses.set(shopper.id, {
+      pose,
+      startedAtTick: input.tick,
+      expiresAtTick: input.tick + TUNING.animationPoseTicks,
+    });
   }
 
   if (term === 'queuePenaltyBalk') {
@@ -439,6 +458,9 @@ const BUBBLE_TAIL_HEIGHT = 5;
 
 /** Pixels between the top of a shopper's head and the point of their bubble's tail. */
 const BUBBLE_GAP = 2;
+
+/** Animation frames per reaction pose — the manifest declares two for every shopper state. */
+const POSE_FRAMES = 2;
 
 function render(input: GentleSurfaceInput, state: GentleSurfaceState): GentleSurfacePlan {
   const byId = new Map(input.shoppers.map((shopper) => [shopper.id, shopper]));
@@ -532,9 +554,17 @@ function render(input: GentleSurfaceInput, state: GentleSurfaceState): GentleSur
     };
   });
 
-  const animationOverrides = new Map<number, Pose>();
-  for (const [shopperId, pose] of state.poses) {
-    if (byId.has(shopperId)) animationOverrides.set(shopperId, pose.pose);
+  // Both frames of a pose get equal time, so a six-tick pose is three ticks of the
+  // drawing and three of its derived second frame — one beat, not a flicker.
+  const ticksPerPoseFrame = Math.max(1, Math.round(TUNING.animationPoseTicks / POSE_FRAMES));
+  const animationOverrides = new Map<number, PosedShopper>();
+  for (const [shopperId, active] of state.poses) {
+    if (!byId.has(shopperId)) continue;
+    const elapsed = input.tick - active.startedAtTick;
+    animationOverrides.set(shopperId, {
+      pose: active.pose,
+      frame: Math.floor(elapsed / ticksPerPoseFrame) % POSE_FRAMES,
+    });
   }
 
   return { bubbles, worldMarks, particles, cartMarkers, animationOverrides };

@@ -1,5 +1,6 @@
 import { assetById, frameKey } from './asset-manifest.js';
 import type { SpritePlan } from './draw-plan.js';
+import type { PosedShopper } from './gentle-surface-draw-plan.js';
 import { depthFor, worldToScreen, type ScreenPoint } from './projection.js';
 
 export interface ShopperView {
@@ -64,6 +65,15 @@ export function buildShopperDrawPlan(
   shoppers: readonly ShopperView[],
   origin: ScreenPoint,
   animator: ShopperAnimator,
+  options: {
+    /**
+     * Shoppers currently playing a gentle-surface reaction pose, from
+     * `gentleSurfaceDrawPlan`. A posed shopper draws that pose instead of their walk or
+     * idle cycle, and falls back on its own the moment the override expires — the pose
+     * has a lifetime, and this map simply stops mentioning them.
+     */
+    readonly animationOverrides?: ReadonlyMap<number, PosedShopper> | undefined;
+  } = {},
 ): readonly SpritePlan[] {
   const asset = assetById('shopper');
   const palettes = asset.palettes ?? [];
@@ -80,11 +90,16 @@ export function buildShopperDrawPlan(
     const palette =
       shopper.segment !== undefined && palettes.includes(shopper.segment) ? shopper.segment : palettes[0];
 
+    // The pose wins over the walk cycle: a shopper who stops dead to recoil at a spoiled
+    // carton must not keep striding on the spot. Facing is still the animator's, so they
+    // recoil in the direction they were already looking.
+    const posed = options.animationOverrides?.get(shopper.id);
+
     return {
       key: frameKey('shopper', {
-        state: moving ? 'walk' : 'idle',
+        state: posed?.pose ?? (moving ? 'walk' : 'idle'),
         rotation: FACINGS.indexOf(facing),
-        frame,
+        frame: posed?.frame ?? frame,
         palette,
       }),
       atlas: asset.atlas,

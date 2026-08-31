@@ -85,27 +85,29 @@ describe('the seven live tells', () => {
   it('fires spoiledEncounters when the spoil counter increments', () => {
     const { plan } = step(shopper(), shopper({ spoiledEncounters: 1, listRemaining: 2 }));
     expect(bubbleTerms(plan)).toEqual([iconFor('spoiledEncounters')]);
-    expect(plan.animationOverrides.get(1)).toBe('recoil');
+    expect(plan.animationOverrides.get(1)?.pose).toBe('recoil');
   });
 
   it('fires impulsePurchase when the impulse counter increments', () => {
     const { plan } = step(shopper(), shopper({ impulseHits: 1 }));
     expect(bubbleTerms(plan)).toEqual([iconFor('impulsePurchase')]);
-    expect(plan.animationOverrides.get(1)).toBe('hop');
+    expect(plan.animationOverrides.get(1)?.pose,
+).toBe('hop');
   });
 
   it('fires priceSurpriseNegative on a purchase that cost more than the reference price', () => {
     const threshold = tellFor('priceSurpriseNegative').threshold;
     const { plan } = step(shopper(), shopper({ cartSize: 1, listRemaining: 2, priceSurpriseSum: -threshold }));
     expect(bubbleTerms(plan)).toEqual([iconFor('priceSurpriseNegative')]);
-    expect(plan.animationOverrides.get(1)).toBe('recoil');
+    expect(plan.animationOverrides.get(1)?.pose).toBe('recoil');
   });
 
   it('fires priceSurprisePositive on a purchase that cost less', () => {
     const threshold = tellFor('priceSurprisePositive').threshold;
     const { plan } = step(shopper(), shopper({ cartSize: 1, listRemaining: 2, priceSurpriseSum: threshold }));
     expect(bubbleTerms(plan)).toEqual([iconFor('priceSurprisePositive')]);
-    expect(plan.animationOverrides.get(1)).toBe('hop');
+    expect(plan.animationOverrides.get(1)?.pose,
+).toBe('hop');
   });
 
   it('stays silent for a price difference under the declared threshold', () => {
@@ -119,7 +121,7 @@ describe('the seven live tells', () => {
   it('fires fillRateMiss when the list shrinks with no sale and no spoilage', () => {
     const { plan } = step(shopper(), shopper({ listRemaining: 2 }));
     expect(bubbleTerms(plan)).toEqual([iconFor('fillRateMiss')]);
-    expect(plan.animationOverrides.get(1)).toBe('pause');
+    expect(plan.animationOverrides.get(1)?.pose).toBe('pause');
   });
 
   it('does not fire fillRateMiss when the list shrank because something was bought', () => {
@@ -330,7 +332,7 @@ describe('lifetimes', () => {
       gentleSurfaceDrawPlan(
         input({ tick: 1 + TUNING.animationPoseTicks, shoppers: [hopping] }),
         state,
-      ).animationOverrides.get(1),
+      ).animationOverrides.get(1)?.pose,
     ).toBe('hop');
     expect(
       gentleSurfaceDrawPlan(

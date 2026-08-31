@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildShopperDrawPlan, facingFor, ShopperAnimator, type ShopperView } from './shopper-draw-plan.js';
+import {
+  buildShopperDrawPlan,
+  facingFor,
+  FACINGS,
+  ShopperAnimator,
+  type ShopperView,
+} from './shopper-draw-plan.js';
+import type { PosedShopper } from './gentle-surface-draw-plan.js';
 import { depthFor, TILE_SIZE } from './projection.js';
 
 const at = (id: number, x: number, y: number, segment?: string): ShopperView => ({
@@ -46,6 +53,56 @@ describe('buildShopperDrawPlan', () => {
   it('scales with the tile size rather than assuming pixels', () => {
     const plan = buildShopperDrawPlan([at(1, 1, 1)], { x: 0, y: 0 }, new ShopperAnimator());
     expect(plan[0]?.x).toBe(TILE_SIZE);
+  });
+});
+
+describe('reaction poses', () => {
+  const overrides = (pose: 'pause' | 'recoil' | 'hop', frame = 0): ReadonlyMap<number, PosedShopper> =>
+    new Map([[1, { pose, frame }]]);
+
+  it('draws the pose instead of the walk or idle cycle', () => {
+    const plan = buildShopperDrawPlan([at(1, 0, 0)], { x: 0, y: 0 }, new ShopperAnimator(), {
+      animationOverrides: overrides('recoil'),
+    });
+    expect(plan[0]?.key).toContain('__recoil__');
+  });
+
+  it('beats the walk cycle for a shopper who is still moving', () => {
+    // A shopper who stops dead to recoil at a spoiled carton must not keep striding on
+    // the spot — the pose is the whole tell.
+    const animator = new ShopperAnimator();
+    const walking = [at(1, 0, 0)];
+    buildShopperDrawPlan(walking, { x: 0, y: 0 }, animator);
+    const plan = buildShopperDrawPlan([at(1, 1, 0)], { x: 0, y: 0 }, animator, {
+      animationOverrides: overrides('pause'),
+    });
+    expect(plan[0]?.key).toContain('__pause__');
+  });
+
+  it('keeps the facing the animator derived, so they react where they were looking', () => {
+    const animator = new ShopperAnimator();
+    buildShopperDrawPlan([at(1, 5, 5)], { x: 0, y: 0 }, animator);
+    const plan = buildShopperDrawPlan([at(1, 4, 5)], { x: 0, y: 0 }, animator, {
+      animationOverrides: overrides('hop'),
+    });
+    expect(plan[0]?.key).toContain(`__r${FACINGS.indexOf('left')}__`);
+  });
+
+  it('takes the frame from the pose, not from distance travelled', () => {
+    // A posed shopper is standing still, so their walk phase never advances. Reading the
+    // frame from the animator would freeze every pose on its first drawing.
+    const plan = buildShopperDrawPlan([at(1, 0, 0)], { x: 0, y: 0 }, new ShopperAnimator(), {
+      animationOverrides: overrides('hop', 1),
+    });
+    expect(plan[0]?.key).toContain('__f1__');
+  });
+
+  it('falls back to the normal cycle for a shopper with no override', () => {
+    const plan = buildShopperDrawPlan([at(1, 0, 0), at(2, 3, 3)], { x: 0, y: 0 }, new ShopperAnimator(), {
+      animationOverrides: overrides('recoil'),
+    });
+    expect(plan[0]?.key).toContain('__recoil__');
+    expect(plan[1]?.key).toContain('__idle__');
   });
 });
 
