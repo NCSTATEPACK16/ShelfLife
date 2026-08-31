@@ -405,3 +405,38 @@ boundary violation to fix, never a re-baseline.*
   landed in the wrong tile.
 - `README.md`, `landing/index.html`, `index.html`, and `package.json` no longer describe the game as
   isometric (ADR 0004).
+
+#### Phase S2 — Real art: the store reads · **gate PASS**
+- **157 of 179 frames are real art.** The 22 that remain placeholder are the thought
+  bubbles and UI frames that phases S3 and S4 own — which is placeholder-first working as
+  designed, not an omission.
+- House style is **chunky outlined**, chosen from three candidates rendered through the real
+  pipeline rather than from a description. Every form carries a one-pixel ink outline: it is
+  what welds separately-authored sprites into one world, and what keeps a 16×24 shopper
+  readable at 1× on a 390 px screen.
+- Characters are authored as text (ADR 0006). Three facings drawn by hand, `right` mirrored
+  from `left`, three poses each for a two-frame walk. **One 16×24 grid becomes 112 frames**
+  across seven segment palettes, and `detectIdentical` packs the whole agent atlas into 33 KB.
+- Fixtures are generated, not drawn: shelves must exist in three stock states across two
+  rotations and several widths — twenty sprites that must stay consistent by hand, or one
+  function that cannot drift.
+- `self_checkout` gets its own art (a screen on a post, unmistakably not a staffed lane).
+  It had been falling through to the anonymous grey fallback since phase 1.4.
+
+##### Fixed
+- The first pass drew shelf carcasses in near-black, so an **empty shelf read as a hole in
+  the floor** rather than as shelving with nothing on it — fatal, since `gentle-surface.md`
+  calls the empty facing the single most important tell in the game. Lightened the carcass
+  and added a recessed back panel behind bright planks.
+- The register's lane light was a three-pixel dot floating in the corner of the frame,
+  reading as a rendering artefact. It now sits on the register where a real one does, and an
+  open lane is visible across a zoomed-out store.
+
+##### Known gap, deliberately not closed here
+- **The renderer accepts stock levels; the simulation cannot yet supply them.**
+  `InventorySystem` tracks stock per *good*, and the shelf → good assignment lives in
+  `ShoppersSystem`'s private `#stocking` map with no accessor. Exposing it is a `src/sim`
+  change, which ADR 0007 assigns to Track A. `buildDrawPlan` therefore takes
+  `stockLevels` as an argument and is ready the moment they exist; the gate screenshot
+  drives them directly, which is what proves all three states render. **Wiring this is a
+  one-line Track A task and is what makes the game's most important tell live.**
