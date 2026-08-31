@@ -440,3 +440,70 @@ boundary violation to fix, never a re-baseline.*
   `stockLevels` as an argument and is ready the moment they exist; the gate screenshot
   drives them directly, which is what proves all three states render. **Wiring this is a
   one-line Track A task and is what makes the game's most important tell live.**
+
+#### Phase S3 — The gentle surface: shoppers react · **gate PASS**
+- **The tell table stops being a promise.** `content/design/gentle-surface.json5` has declared a
+  bubble, animation, particle, world mark and threshold for every §5.3/§5.4 term since phase 1.1,
+  CI-validated the whole time, and nothing in `src/view` had ever drawn one. Seven of the fifteen
+  terms now fire in the game, on the exact condition the design doc names.
+- **342 of 347 frames are real art**, up from 157 of 179. Twelve 12×12 thought-bubble icons authored
+  as text, each with a distinct outer silhouette so colour is confirmation rather than the only
+  difference — `exclamation`/`exclamationGold` is the one deliberate exception, and it is the same
+  event at two rarities, which is what the design doc asks for. `bubble_frame` and `particle_flies`
+  are generated instead of drawn, because they are shapes rather than pictures.
+- **Three shared reaction poses, not fifteen.** `pause`, `recoil` and `hop` cover all seven live
+  tells: the bubble is already unique per term and carries the primary signal (`gentle-surface.md`
+  §12.1), so the body only has to say what *kind* of reaction it is. One grid per pose per facing;
+  the second animation frame is derived — the head sinks a pixel for pause and recoil, the whole
+  body lifts for hop — the same economy that makes `right` the mirror of `left`. 168 new frames
+  took the agents atlas from 33 KB to 77 KB, against a budget the whole game uses 13% of.
+- `src/view/gentle-surface-draw-plan.ts` decides which tell fires. It is pure, like every other
+  `*-draw-plan`, and it computes nothing the simulation does not: every trigger is a delta over a
+  counter `ShoppersSystem` already keeps *and already hashes*, or an event it already emits. That is
+  what makes ADR 0007's no-moved-hash invariant true by construction rather than by care.
+- **Silence is a feature, structurally.** `gentle-surface.md` §3's three rules are data shapes, not
+  conventions somebody has to remember: thresholds come from the tell table, active bubbles are
+  keyed by shopper id so one-bubble-per-shopper cannot be violated, and overflow past the
+  per-breakpoint cap (8 at regular, 4 at compact) is dropped rather than queued.
+- The rising-queue tell is **edge-triggered**: it fires the tick the wait crosses the declared 0.3,
+  not every tick above it. Level-triggered, a long queue is a strobe.
+- Three read-only bridge appends, the only kind ADR 0007 permits this track: the shopper counters,
+  `drainEvents()`, and `currentTick()`. `drainEvents` had no consumer at all before this, which also
+  means the event bus had been growing without bound for the life of a session.
+- Verified in a real browser at **1440×900 and 390×844**, with an emergent scenario — shoppers
+  arrive with real lists, the shelves run dry, one self-checkout cannot keep up — rather than a
+  staged one. Golden hashes byte-identical.
+
+##### Fixed
+- **The fill-rate miss painted the shelf red.** The first pass flashed a tint for every tell
+  declaring `worldMark: true`, but §1 says the miss's world mark is the empty facing itself. A dry
+  shelf misses for every shopper who walks up to it, so the game's most common tell was also its
+  loudest — and the colour said "error" where the design says "gap". Caught by looking at the first
+  browser screenshot rather than by a test, which is the argument for taking the screenshot.
+- `playwright.config.ts` takes a `PLAYWRIGHT_PORT` override. `reuseExistingServer` adopts whatever
+  is already listening on 5173 — including an unrelated project's dev server, which then fails every
+  test with a missing selector instead of an obvious error.
+
+##### Known gaps, deliberately not closed here
+- **Eight of the fifteen terms are drawn but wired to nothing.** `staffInteractionGood`,
+  `staffInteractionAbsent` and `cleanlinessLow` have no sim mechanic (`ShoppersSystem`'s own comment:
+  "not consumed yet"); `adjacencyBonus`, `promoLift` and `needState` have no term in `#rollImpulse`;
+  `visibility` is already satisfied by S2's shelf states and needs nothing. `discovery` is the
+  interesting one: it and `impulsePurchase` both trace to the same `impulseHits` increment, and the
+  sim has no signal distinguishing an ordinary impulse buy from a delightful discovery. Firing both
+  bubbles for one event would break the one-bubble-per-shopper rule and overstate what the sim
+  knows, so the literal, unambiguous term fires and `discovery` waits for a real signal. All eight
+  have manifest-declared art and will light up the day a Track A change adds the mechanic — the same
+  placeholder-first pattern S2 used for stock levels.
+- **`queuePenaltyBalk` cannot be reached from the bridge**, so the browser check does not exercise
+  it. It fires off the `cartAbandoned` event, which needs a shopper to wait out
+  `abandonToleranceTicks` (400) in a queue; `CheckoutSystem` caps its queue well before that, and no
+  command assigns staff, so a staffed register never opens a lane at all. Crowding the store harder
+  plateaus the longest wait at ~290 ticks. The trigger is covered against hand-built snapshots in
+  the unit tests; making it reachable is a Track A concern.
+- **The queue-penalty exponent (1.6) is copied, not imported.** It is written inline in
+  `ShoppersSystem#stepLeaving` rather than exported. A test pins the view's copy to the sim's
+  formula; if Track A exports it, delete the copy.
+- **The abandoned cart fades on a timer.** Its tell says it "persists until staff clears it", and
+  there is no staff-clearing mechanic. The marker is view-local with a fixed lifetime — the same
+  category of documented simplification as 1.7's per-good inventory tracking.
