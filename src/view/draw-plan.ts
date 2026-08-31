@@ -1,4 +1,5 @@
 import type { BuildModeSnapshot } from '../bridge/build-bridge.js';
+import type { FixtureDef, Placement } from '../sim/index.js';
 import { assetById, frameKey, TILE_SIZE } from './asset-manifest.js';
 import { selectionColor } from './fixture-colors.js';
 import { depthFor, worldToScreen, type ScreenPoint } from './projection.js';
@@ -76,6 +77,59 @@ export function floorVariant(x: number, y: number, variants: number): number {
   return ((h >>> 16) ^ (h >>> 4)) % variants;
 }
 
+/**
+ * One placed fixture as a sprite.
+ *
+ * Pulled out of `buildDrawPlan` so the gentle surface can re-emit the *same* sprite with a
+ * tint on top of the untinted one — the "item briefly highlights" and "shelf gets a brown
+ * tint" world marks (docs/design/gentle-surface.md §1). Duplicating this anchoring maths
+ * for the sake of a tint is exactly how the two copies quietly drift apart.
+ *
+ * `subOrder` nudges the copy in front of the original without leaving the fixture's own
+ * depth band, so a shopper on the same row still draws in front of both.
+ */
+export function fixtureSpritePlan(
+  placement: Placement,
+  catalogById: ReadonlyMap<string, FixtureDef>,
+  origin: ScreenPoint,
+  options: {
+    readonly stockLevel?: number | undefined;
+    readonly tint?: number | null;
+    readonly subOrder?: number;
+  } = {},
+): SpritePlan {
+  const asset = assetById(placement.fixtureId);
+  const def = catalogById.get(placement.fixtureId);
+  const footprintHeight = def?.footprint.height ?? 1;
+  const footprintWidth = def?.footprint.width ?? 1;
+
+  const { index, flipX } = rotationFrame(placement.rotation, asset.rotations ?? 1);
+
+  // Anchor at the bottom-centre of the footprint, which is what y-sort depth measures
+  // from (ADR 0004). For a 2x1 register that is half a tile right of its origin tile;
+  // for a 1x2 shelf it is one full tile down.
+  const anchor = worldToScreen(
+    placement.x + footprintWidth / 2,
+    placement.y + footprintHeight,
+    origin,
+  );
+
+  const level = options.stockLevel;
+  const state = level === undefined ? undefined : stateForStock(asset.states ?? [], level);
+
+  return {
+    key: frameKey(placement.fixtureId, { rotation: index, state }),
+    atlas: asset.atlas,
+    x: anchor.x,
+    y: anchor.y,
+    depth: depthFor('fixture', placement.y + footprintHeight, options.subOrder ?? 0),
+    originX: asset.anchor[0],
+    originY: asset.anchor[1],
+    flipX,
+    tint: options.tint ?? null,
+  };
+}
+
 export function buildDrawPlan(
   snapshot: BuildModeSnapshot,
   origin: ScreenPoint,
@@ -120,36 +174,12 @@ export function buildDrawPlan(
   const catalogById = new Map(snapshot.catalog.map((def) => [def.id, def]));
   const fixtures: SpritePlan[] = [];
   for (const placement of snapshot.placements) {
-    const asset = assetById(placement.fixtureId);
-    const def = catalogById.get(placement.fixtureId);
-    const footprintHeight = def?.footprint.height ?? 1;
-    const footprintWidth = def?.footprint.width ?? 1;
-
-    const { index, flipX } = rotationFrame(placement.rotation, asset.rotations ?? 1);
-
-    // Anchor at the bottom-centre of the footprint, which is what y-sort depth measures
-    // from (ADR 0004). For a 2x1 register that is half a tile right of its origin tile;
-    // for a 1x2 shelf it is one full tile down.
-    const anchor = worldToScreen(
-      placement.x + footprintWidth / 2,
-      placement.y + footprintHeight,
-      origin,
+    fixtures.push(
+      fixtureSpritePlan(placement, catalogById, origin, {
+        stockLevel: options.stockLevels?.get(placement.instanceId),
+        tint: placement.instanceId === selectedInstanceId ? selectionColor() : null,
+      }),
     );
-
-    const level = options.stockLevels?.get(placement.instanceId);
-    const state = level === undefined ? undefined : stateForStock(asset.states ?? [], level);
-
-    fixtures.push({
-      key: frameKey(placement.fixtureId, { rotation: index, state }),
-      atlas: asset.atlas,
-      x: anchor.x,
-      y: anchor.y,
-      depth: depthFor('fixture', placement.y + footprintHeight),
-      originX: asset.anchor[0],
-      originY: asset.anchor[1],
-      flipX,
-      tint: placement.instanceId === selectedInstanceId ? selectionColor() : null,
-    });
   }
 
   const cursor: SpritePlan[] = [];
