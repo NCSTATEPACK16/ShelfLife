@@ -7,8 +7,14 @@ import uiAtlasUrl from '../../assets/atlases/ui.png';
 import worldAtlasData from '../../assets/atlases/world.json';
 import agentsAtlasData from '../../assets/atlases/agents.json';
 import uiAtlasData from '../../assets/atlases/ui.json';
+import { breakpointFor } from '../platform/layout/index.js';
 import { buildDrawPlan, type SpritePlan } from './draw-plan.js';
 import { toPhaserColor } from './fixture-colors.js';
+import {
+  createGentleSurfaceState,
+  gentleSurfaceDrawPlan,
+  type GentleSurfaceState,
+} from './gentle-surface-draw-plan.js';
 import { buildFlowFieldDrawPlan } from './pathing-debug-plan.js';
 import { buildShopperDrawPlan, ShopperAnimator } from './shopper-draw-plan.js';
 
@@ -28,6 +34,10 @@ export class BuildScene extends Phaser.Scene {
   readonly #bridge: BuildModeBridge;
   readonly #origin: { x: number; y: number };
   readonly #animator = new ShopperAnimator();
+  // The one piece of cross-tick state the gentle surface needs: which bubbles, marks and
+  // poses are up, and last tick's shopper counters to diff against. All view-local —
+  // nothing here reaches the world hash, and losing it costs at most a frame of bubbles.
+  readonly #gentleSurface: GentleSurfaceState = createGentleSurfaceState();
   readonly #pool: Phaser.GameObjects.Image[] = [];
   #used = 0;
   #graphics!: Phaser.GameObjects.Graphics;
@@ -108,19 +118,44 @@ export class BuildScene extends Phaser.Scene {
   redraw(): void {
     if (!this.#ready) return;
 
-    const plan = buildDrawPlan(this.#bridge.snapshot(), this.#origin, this.#selectedInstanceId, {
+    const snapshot = this.#bridge.snapshot();
+    const shoppers = this.#bridge.shoppersSnapshot();
+
+    // This is the only consumer of `drainEvents()`, and draining is destructive — see the
+    // note on the bridge method. Redraws happen more often than ticks, but events can only
+    // exist immediately after a `world.step()`, which always advances the tick, so a
+    // redraw with no tick behind it drains an empty batch. If two ticks do pass between
+    // redraws the deltas simply span both, which fires the same tells one frame later.
+    const gentle = gentleSurfaceDrawPlan(
+      {
+        events: this.#bridge.drainEvents(),
+        shoppers,
+        snapshot,
+        tick: this.#bridge.currentTick(),
+        origin: this.#origin,
+        // Read off the live viewport rather than passed in: the bubble cap is about how
+        // many fit on *this* screen, and nothing else then has to remember to keep it
+        // current across a device rotation.
+        breakpoint: breakpointFor(this.scale.width),
+      },
+      this.#gentleSurface,
+    );
+
+    const plan = buildDrawPlan(snapshot, this.#origin, this.#selectedInstanceId, {
       stockLevels: this.#stockLevels,
     });
-    const shoppers = buildShopperDrawPlan(
-      this.#bridge.shoppersSnapshot(),
-      this.#origin,
-      this.#animator,
-    );
+    const shopperSprites = buildShopperDrawPlan(shoppers, this.#origin, this.#animator, {
+      animationOverrides: gentle.animationOverrides,
+    });
 
     this.#used = 0;
     for (const sprite of plan.floor) this.#draw(sprite);
     for (const sprite of plan.fixtures) this.#draw(sprite);
-    for (const sprite of shoppers) this.#draw(sprite);
+    for (const sprite of gentle.worldMarks) this.#draw(sprite);
+    for (const sprite of gentle.cartMarkers) this.#draw(sprite);
+    for (const sprite of shopperSprites) this.#draw(sprite);
+    for (const sprite of gentle.particles) this.#draw(sprite);
+    for (const sprite of gentle.bubbles) this.#draw(sprite);
     for (const sprite of plan.cursor) this.#draw(sprite);
 
     // Sprites are pooled rather than created and destroyed each frame: at 400 agents and
