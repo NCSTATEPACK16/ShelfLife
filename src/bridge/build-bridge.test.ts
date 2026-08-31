@@ -104,4 +104,48 @@ describe('BuildModeBridge', () => {
     const after = bridge.shoppersSnapshot()[0]!;
     expect(after.x !== before.x || after.y !== before.y).toBe(true);
   });
+
+  it('exposes the counters the gentle surface diffs, alongside position and segment', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.place('shelf_basic', 5, 5, 0);
+    bridge.stockFixture(bridge.snapshot().placements[0]!.instanceId, 'milk');
+    bridge.addHousehold(1, 'family', { x: 0, y: 0 });
+    bridge.spawnShopper(100, 1);
+
+    const shopper = bridge.shoppersSnapshot()[0]!;
+    expect(shopper.segment).toBe('family');
+    // Every field the draw plan reads has to be present from the first tick, not appear
+    // once it becomes non-zero — a missing key and a zero are the same `undefined` to a
+    // delta check, and the tell would silently never fire.
+    for (const field of [
+      'listRemaining',
+      'cartSize',
+      'spoiledEncounters',
+      'priceSurpriseSum',
+      'impulseHits',
+    ] as const) {
+      expect(typeof shopper[field]).toBe('number');
+    }
+    expect(shopper.balked).toBe(false);
+    expect(shopper.abandoned).toBe(false);
+    expect(shopper.checkoutJoinedAtTick).toBeNull();
+  });
+
+  it('drains sim events once, in emission order', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.tick();
+    const first = bridge.drainEvents();
+    expect(first.some((event) => event.type === 'tick')).toBe(true);
+    // Draining is destructive on purpose (src/sim/core/events.ts): events are never
+    // buffered across ticks, so a second consumer would silently starve the first.
+    expect(bridge.drainEvents()).toHaveLength(0);
+  });
+
+  it('reports the current tick, so the view can age its own timers against sim time', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    const start = bridge.currentTick();
+    bridge.tick();
+    bridge.tick();
+    expect(bridge.currentTick()).toBe(start + 2);
+  });
 });

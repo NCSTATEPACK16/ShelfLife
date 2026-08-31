@@ -22,12 +22,38 @@ import type {
   Rotation,
   Segment,
   ShopperState,
+  SimEvent,
 } from '../sim/index.js';
 
 export interface BuildModeSnapshot {
   readonly dimensions: GridDimensions;
   readonly catalog: readonly FixtureDef[];
   readonly placements: readonly Placement[];
+}
+
+/**
+ * One shopper as the renderer sees them: where they are, what they are doing, and the
+ * running counters the gentle surface diffs to decide which tell fires this tick.
+ *
+ * Deliberately a flat structural type rather than a re-export of the sim's `Shopper`. The
+ * view gets exactly the fields it needs and cannot reach the rest — no `remainingList`
+ * contents, no `checkoutLaneId`, nothing it could accidentally start treating as state.
+ */
+export interface ShopperSnapshot {
+  readonly id: number;
+  readonly x: number;
+  readonly y: number;
+  readonly state: ShopperState;
+  readonly segment: Segment;
+  /** How many list items are still unfulfilled. Shrinks on a sale, a spoil, or a miss. */
+  readonly listRemaining: number;
+  readonly cartSize: number;
+  readonly spoiledEncounters: number;
+  readonly priceSurpriseSum: number;
+  readonly impulseHits: number;
+  readonly balked: boolean;
+  readonly abandoned: boolean;
+  readonly checkoutJoinedAtTick: number | null;
 }
 
 /**
@@ -157,20 +183,19 @@ export class BuildModeBridge {
   }
 
   /**
-   * Every active shopper's position, FSM state, and household segment, for rendering only.
+   * Every active shopper's position, FSM state, household segment, and the counters the
+   * gentle surface reads — for rendering only.
    *
    * `segment` is here so the renderer can palette-swap a shopper to their segment — the
-   * cheapest way to make seven kinds of customer visually distinct (ADR 0006). It is a
-   * read-only projection of state the market already owns, so it adds nothing to the world
-   * hash and nothing to the sim.
+   * cheapest way to make seven kinds of customer visually distinct (ADR 0006).
+   *
+   * The counters after it exist for `src/view/gentle-surface-draw-plan.ts`, which decides
+   * which tell fires by diffing this snapshot against the previous tick's. They are a
+   * read-only projection of state `ShoppersSystem` already owns and already hashes, so
+   * they add nothing to the world hash and nothing to the sim — the one kind of append
+   * ADR 0007 permits Track B to make.
    */
-  shoppersSnapshot(): readonly {
-    id: number;
-    x: number;
-    y: number;
-    state: ShopperState;
-    segment: Segment;
-  }[] {
+  shoppersSnapshot(): readonly ShopperSnapshot[] {
     return this.#shoppers.activeShopperIds().map((id) => {
       const shopper = this.#shoppers.shopper(id);
       return {
@@ -179,8 +204,36 @@ export class BuildModeBridge {
         y: shopper.position.y,
         state: shopper.state,
         segment: this.#market.household(shopper.householdId).segment,
+        listRemaining: shopper.remainingList.length,
+        cartSize: shopper.cart.length,
+        spoiledEncounters: shopper.spoiledEncounters,
+        priceSurpriseSum: shopper.priceSurpriseSum,
+        impulseHits: shopper.impulseHits,
+        balked: shopper.balked,
+        abandoned: shopper.abandoned,
+        checkoutJoinedAtTick: shopper.checkoutJoinedAtTick,
       };
     });
+  }
+
+  /**
+   * Everything the simulation emitted since the last call, in emission order.
+   *
+   * Draining is destructive by design (`src/sim/core/events.ts`: events are never buffered
+   * across ticks), so there is exactly one consumer — `BuildScene#redraw`. Anything else
+   * that wants events must be fed by that consumer rather than draining behind its back.
+   */
+  drainEvents(): readonly SimEvent[] {
+    return this.#world.events.drain();
+  }
+
+  /**
+   * The most recently completed tick. The view needs it to age its own timers — how long
+   * a bubble has been up, how long a shopper has been queueing — against sim time rather
+   * than against wall-clock frames, which would drift the moment the tab is backgrounded.
+   */
+  currentTick(): number {
+    return this.#world.tick;
   }
 
   /** Advances the world one tick with no command — build mode is otherwise action-driven,
