@@ -1,0 +1,19 @@
+// Phase 2.0 (M2) rival dynamics constants — PLAN.md §5.8. See
+// docs/superpowers/specs/2026-08-04-rival-dynamics-design.md.
+{
+  weeklyWindowDays: 7,        // reactivity cadence — "checked weekly, not daily"
+  minPriceIndex: 0.7,         // rivals cut toward viability, never below (no money cheat)
+  reactionRate: 0.05,         // base step size before personality scaling
+  // derivation: how personality shifts the authored baseline into initial terms
+  derive: {
+    qualityFromInvestment: 0.25,  // quality += qualityInvestment * this
+    priceFromAggression: 0.20,    // priceIndex -= priceAggression * this
+    ambianceFromMarketing: 0.15,  // ambiance += marketingSpend * this
+    decayFloorFromLove: 0.5,      // effective loyaltyDecay scaled down as CL/100 rises
+  },
+  signatures: {
+    oneRegister: { serviceCongestion: 0.4 },   // service -= share * this
+    neverCloses: { segmentBump: 0.2 },         // service/ambiance += this for convenience/student
+    membershipLockIn: { decayMultiplier: 0.3, assortmentBump: 0.15 },
+  },
+}
