@@ -4,6 +4,7 @@ import { LoyaltySystem } from '../loyalty/system.js';
 import type { TripOutcome } from '../loyalty/types.js';
 import { DEFAULT_MARKET_CONFIG, DEFAULT_RIVAL_STORES } from '../market/config.js';
 import type { Position } from '../market/types.js';
+import { staticRivalsView } from '../rivals/system.js';
 import { ReputationSystem } from './system.js';
 import type { NeighborReader } from './types.js';
 
@@ -35,7 +36,7 @@ function setup(): { world: World; market: FakeMarket; loyalty: LoyaltySystem; re
   ]);
   const world = new World({ seed: 1 });
   const market = new FakeMarket(positions);
-  const loyalty = new LoyaltySystem(market, DEFAULT_RIVAL_STORES);
+  const loyalty = new LoyaltySystem(market, staticRivalsView(DEFAULT_RIVAL_STORES));
   world.register(loyalty);
   const reputation = new ReputationSystem(market, loyalty);
   world.register(reputation);
@@ -58,7 +59,7 @@ describe('the neighbour relation', () => {
     ]);
     const world = new World({ seed: 1 });
     const market = new FakeMarket(positions);
-    const loyalty = new LoyaltySystem(market, DEFAULT_RIVAL_STORES);
+    const loyalty = new LoyaltySystem(market, staticRivalsView(DEFAULT_RIVAL_STORES));
     world.register(loyalty);
     const reputation = new ReputationSystem(market, loyalty);
     world.register(reputation);

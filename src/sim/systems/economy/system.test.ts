@@ -85,6 +85,20 @@ describe('EconomySystem — pricing', () => {
   });
 });
 
+describe('EconomySystem — priceLevel', () => {
+  it('returns 1 when every good is at reference price', () => {
+    const { world, economy } = worldWithEconomy();
+    expect(economy.priceLevel(world.tick)).toBeCloseTo(1);
+  });
+
+  it('is below 1 after a setPrice below reference', () => {
+    const { world, economy } = worldWithEconomy();
+    world.commands.push({ type: 'setPrice', goodId: 'milk', price: 1.5 });
+    world.step();
+    expect(economy.priceLevel(world.tick)).toBeLessThan(1);
+  });
+});
+
 describe('EconomySystem — P&L', () => {
   it('recordSale feeds revenue/cogs into the next daily statement', () => {
     const { world, economy } = worldWithEconomy();

@@ -4,6 +4,8 @@ import raw from '../../../../content/balance/segments.json5?raw';
 import catchmentRaw from '../../../../content/balance/catchment.json5?raw';
 import marketRaw from '../../../../content/balance/market.json5?raw';
 import savALottRaw from '../../../../content/rivals/sav-a-lott.json5?raw';
+import grocerteriaRaw from '../../../../content/rivals/grocerteria-24.json5?raw';
+import bulkhausRaw from '../../../../content/rivals/bulkhaus-club.json5?raw';
 import { RIVAL_SIGNATURES, SEGMENTS, type RivalStore, type Segment, type SegmentDef } from './types.js';
 
 const UtilityWeightsSchema = z.object({
@@ -100,13 +102,13 @@ export function parseRivalStore(raw: unknown): RivalStore {
 }
 
 /**
- * Only Sav-A-Lott (§3's L1 boss) is in the default roster so far. Grocerteria 24 and
- * BulkHaus Club content exists (this file) but the roster grows to all three once the
- * `rivals` system exists to consume them (`src/sim/systems/rivals/`, Task 7) — stubbing
- * the roster early would leave nothing hashing the two extra rivals' evolving state.
+ * §16 M2 scope: Sav-A-Lott (L1), Grocerteria 24 (L2), BulkHaus Club (L3) — ascending by
+ * Community Love. Bosses 4–10 are added when their level is built (§16 phase 5.1).
  */
 export const DEFAULT_RIVAL_STORES: readonly RivalStore[] = [
   parseRivalStore(JSON5.parse(savALottRaw)),
+  parseRivalStore(JSON5.parse(grocerteriaRaw)),
+  parseRivalStore(JSON5.parse(bulkhausRaw)),
 ];
 
 const MarketConfigSchema = z

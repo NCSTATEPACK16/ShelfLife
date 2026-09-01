@@ -1,6 +1,5 @@
 import {
   CheckoutSystem,
-  DEFAULT_RIVAL_STORES,
   EconomySystem,
   GridSystem,
   InventorySystem,
@@ -8,6 +7,7 @@ import {
   MarketSystem,
   PathingSystem,
   ReputationSystem,
+  RivalsSystem,
   ShoppersSystem,
   World,
 } from '../../src/sim/index.js';
@@ -163,14 +163,19 @@ export const SCENARIOS: readonly Scenario[] = [
       const economy = new EconomySystem(checkout, inventory);
       world.register(economy);
       const marketBox: { current?: MarketSystem } = {};
+      const rivals = new RivalsSystem({
+        outcomes: () => marketBox.current!.pendingOutcomes(),
+        playerPriceLevel: () => economy.priceLevel(world.tick),
+      });
+      world.register(rivals);
       const loyalty = new LoyaltySystem(
         {
           householdIds: () => marketBox.current!.householdIds(),
           pendingOutcomes: () => marketBox.current!.pendingOutcomes(),
         },
-        DEFAULT_RIVAL_STORES,
+        rivals,
       );
-      const market = new MarketSystem({ inventory, checkout, economy, loyalty });
+      const market = new MarketSystem({ inventory, checkout, economy, loyalty }, undefined, undefined, rivals);
       marketBox.current = market;
       world.register(market);
       const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);
@@ -215,14 +220,19 @@ export const SCENARIOS: readonly Scenario[] = [
       const economy = new EconomySystem(checkout, inventory);
       world.register(economy);
       const marketBox: { current?: MarketSystem } = {};
+      const rivals = new RivalsSystem({
+        outcomes: () => marketBox.current!.pendingOutcomes(),
+        playerPriceLevel: () => economy.priceLevel(world.tick),
+      });
+      world.register(rivals);
       const loyalty = new LoyaltySystem(
         {
           householdIds: () => marketBox.current!.householdIds(),
           pendingOutcomes: () => marketBox.current!.pendingOutcomes(),
         },
-        DEFAULT_RIVAL_STORES,
+        rivals,
       );
-      const market = new MarketSystem({ inventory, checkout, economy, loyalty });
+      const market = new MarketSystem({ inventory, checkout, economy, loyalty }, undefined, undefined, rivals);
       marketBox.current = market;
       world.register(market);
       const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);

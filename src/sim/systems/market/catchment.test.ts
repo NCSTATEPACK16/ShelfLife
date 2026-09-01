@@ -129,7 +129,9 @@ describe('parseRivalStore', () => {
   });
 
   it('loads content/rivals/sav-a-lott.json5 with PLAN.md §3 table values', () => {
-    expect(DEFAULT_RIVAL_STORES).toHaveLength(1);
+    // Roster: Sav-A-Lott (L1), Grocerteria 24 (L2), BulkHaus Club (L3) — Rival Dynamics
+    // (M2 2.0 sub-project A) grew this from 1 to 3.
+    expect(DEFAULT_RIVAL_STORES).toHaveLength(3);
     const savALott = DEFAULT_RIVAL_STORES[0]!;
     expect(savALott.id).toBe('sav-a-lott');
     expect(savALott.archetype).toBe('Dying deep-discounter');

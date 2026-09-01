@@ -105,6 +105,21 @@ export class EconomySystem implements System {
     return base;
   }
 
+  /**
+   * The player's basket price index relative to reference — 1.0 at reference, `< 1`
+   * discounted. Consumed by `RivalsSystem` (`RivalDeps#playerPriceLevel`) so a rival's
+   * weekly price reaction has something real to undercut against.
+   */
+  priceLevel(tick: number): number {
+    const ids = [...this.#catalogById.keys()];
+    if (ids.length === 0) return 1;
+    const sum = ids.reduce((total, id) => {
+      const reference = this.referencePriceOf(id);
+      return total + (reference > 0 ? this.priceOf(id, tick) / reference : 1);
+    }, 0);
+    return sum / ids.length;
+  }
+
   isLossLeader(goodId: string, tick: number): boolean {
     const cost = this.#catalogById.get(goodId)?.cost ?? 0;
     return this.priceOf(goodId, tick) <= cost * this.#config.lossLeaderMarginThreshold;

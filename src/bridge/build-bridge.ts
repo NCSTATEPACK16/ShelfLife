@@ -1,7 +1,6 @@
 import {
   CheckoutSystem,
   DEFAULT_CATALOG,
-  DEFAULT_RIVAL_STORES,
   EconomySystem,
   GridSystem,
   InventorySystem,
@@ -9,6 +8,7 @@ import {
   MarketSystem,
   PathingSystem,
   ReputationSystem,
+  RivalsSystem,
   ShoppersSystem,
   World,
 } from '../sim/index.js';
@@ -41,6 +41,7 @@ export class BuildModeBridge {
   readonly #inventory: InventorySystem;
   readonly #checkout: CheckoutSystem;
   readonly #economy: EconomySystem;
+  readonly #rivals: RivalsSystem;
   readonly #market: MarketSystem;
   readonly #shoppers: ShoppersSystem;
   readonly #loyalty: LoyaltySystem;
@@ -58,16 +59,29 @@ export class BuildModeBridge {
     this.#world.register(this.#checkout);
     this.#economy = new EconomySystem(this.#checkout, this.#inventory);
     this.#world.register(this.#economy);
+    // Same late-binding as `#loyalty` below: `this.#market` isn't assigned yet, but
+    // these closures only run during `update`, long after every constructor here has
+    // finished.
+    this.#rivals = new RivalsSystem({
+      outcomes: () => this.#market.pendingOutcomes(),
+      playerPriceLevel: () => this.#economy.priceLevel(this.#world.tick),
+    });
+    this.#world.register(this.#rivals);
     // `LoyaltySystem` needs a `MarketReader` before `MarketSystem` exists. Safe because
     // this closure is only invoked during `update`, long after both constructors have
     // run — it reads `this.#market` through the class field, not a captured value.
-    this.#loyalty = new LoyaltySystem(this.#marketReader(), DEFAULT_RIVAL_STORES);
-    this.#market = new MarketSystem({
-      inventory: this.#inventory,
-      checkout: this.#checkout,
-      economy: this.#economy,
-      loyalty: this.#loyalty,
-    });
+    this.#loyalty = new LoyaltySystem(this.#marketReader(), this.#rivals);
+    this.#market = new MarketSystem(
+      {
+        inventory: this.#inventory,
+        checkout: this.#checkout,
+        economy: this.#economy,
+        loyalty: this.#loyalty,
+      },
+      undefined,
+      undefined,
+      this.#rivals,
+    );
     this.#world.register(this.#market);
     this.#shoppers = new ShoppersSystem(
       this.#market,
