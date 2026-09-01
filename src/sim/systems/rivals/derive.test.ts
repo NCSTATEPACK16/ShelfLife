@@ -21,7 +21,7 @@ describe('deriveInitialTerms', () => {
     }
   });
   it('is a no-op for a rival without a personality', () => {
-    const { personality, ...noPersona } = base;
+    const { personality: _personality, ...noPersona } = base;
     expect(deriveInitialTerms(noPersona as typeof base, DEFAULT_RIVALS_CONFIG)).toEqual(noPersona);
   });
   it('lowers effective loyaltyDecay as community love rises', () => {

@@ -96,6 +96,24 @@ export { ReputationSystem } from './systems/reputation/index.js';
 export type { NeighborReader } from './systems/reputation/index.js';
 
 export {
+  DEFAULT_RIVALS_CONFIG,
+  deriveInitialTerms,
+  parseRivalsConfig,
+  reactWeekly,
+  RivalsSystem,
+  signatureFor,
+  staticRivalsView,
+} from './systems/rivals/index.js';
+export type {
+  RivalDeps,
+  RivalShare,
+  RivalSignature,
+  RivalState,
+  RivalsView,
+  RivalsConfig,
+} from './systems/rivals/index.js';
+
+export {
   DEFAULT_INVENTORY_CONFIG,
   DEFAULT_SUPPLY_POLICIES,
   freshnessAt,
