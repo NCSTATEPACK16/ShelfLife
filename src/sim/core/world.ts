@@ -45,13 +45,13 @@ export class World {
   #speed = 1;
   #paused = false;
   #hash = 0;
+  #hashDirty = true;
 
   constructor(options: WorldOptions) {
     if (!Number.isInteger(options.seed)) {
       throw new TypeError(`World seed must be an integer, got ${options.seed}`);
     }
     this.rng = new StreamSet(options.seed);
-    this.#hash = this.computeHash();
   }
 
   get seed(): number {
@@ -70,8 +70,22 @@ export class World {
     return this.#paused;
   }
 
-  /** The hash as of the most recently completed tick. */
+  /**
+   * The hash as of the most recently completed tick.
+   *
+   * Computed lazily and cached: `step()`/`register()` only mark it dirty, since
+   * `computeHash()` folds every system's *entire* state through `Hasher` and dominates
+   * runtime (profiled ~80% of a harness sweep) when nothing actually reads it that tick —
+   * true for nearly every real caller (gameplay, the balance harness). Golden tests and
+   * replay verification only sample `.hash` periodically, never every tick, so this is
+   * bit-identical to the old eager-every-step value at every point anything ever reads it —
+   * `computeHash()` is a pure function of current state, not of how many times it's run.
+   */
   get hash(): number {
+    if (this.#hashDirty) {
+      this.#hash = this.computeHash();
+      this.#hashDirty = false;
+    }
     return this.#hash;
   }
 
@@ -87,7 +101,7 @@ export class World {
       throw new Error(`Duplicate system name: ${system.name}`);
     }
     this.#systems.push(system);
-    this.#hash = this.computeHash();
+    this.#hashDirty = true;
   }
 
   get systemNames(): readonly string[] {
@@ -119,7 +133,7 @@ export class World {
     }
     this.events.emit({ type: 'tick', tick });
 
-    this.#hash = this.computeHash();
+    this.#hashDirty = true;
   }
 
   /** Runs `count` ticks. The harness and golden tests drive the world this way. */
@@ -190,7 +204,7 @@ export class World {
     return freezeSnapshot({
       tick: this.clock.tick,
       time: this.clock.time,
-      hash: this.#hash,
+      hash: this.hash,
       seed: this.seed,
       speed: this.#speed,
       paused: this.#paused,
