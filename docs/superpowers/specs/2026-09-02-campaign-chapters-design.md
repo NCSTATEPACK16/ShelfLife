@@ -243,14 +243,36 @@ bosses 4–10 land) and adds it to `unlockedLevelIds` if not already present. Th
 because it's cross-run, storage-backed, and — unlike `CampaignSystem`'s per-run objective state — has
 no bearing on any single world's hash or replay. Nothing in `src/sim` knows this exists.
 
-## 7. Entitlements integration point
+## 7. Bridge integration point — `src/bridge/campaign-bridge.ts`
+
+There's no UI consumer yet (§1), but the gate still needs something real to drive `advanceChapter`
+and prove the unlock fires — not just unit tests reaching into `CampaignSystem` directly. A new
+`CampaignBridge` class, the same shape and role as the existing `BuildModeBridge`
+(`src/bridge/build-bridge.ts`) but built on `buildCampaignWorld`/`loadCampaignWorld` (§5) rather than
+registering its own systems inline:
+
+```ts
+class CampaignBridge {
+  static start(levelId: string, seed: number): CampaignBridge;
+  static resume(save: SaveEnvelope): CampaignBridge;
+
+  tick(): void;                    // world.step()
+  advanceChapter(): boolean;       // false if entitlements.canPlay() denies it; throws if the
+                                    // sim itself rejects it (chapter not actually complete)
+  save(): SaveEnvelope;
+}
+```
 
 `entitlements.canPlay(levelId, chapterIndex)` (already implemented, `src/platform/entitlements`,
-returns `true` unconditionally today) is called at the bridge layer at two points: before a fresh level
-start, and before an `advanceChapter` command is actually queued (after `CampaignSystem`'s own
-`chapterStatus === 'complete'` is already known from the current snapshot — no point asking permission
-for a transition that hasn't been earned yet). This phase wires the call sites; it does not change
-`canPlay`'s behavior.
+returns `true` unconditionally today) is called inside `advanceChapter()` — after `CampaignSystem`'s
+own `chapterStatus === 'complete'` is already known from the current snapshot, so permission is only
+asked for a transition that's actually been earned — and inside `start()`/`resume()` for chapter 0 of
+a fresh or reloaded level. This phase wires the call sites; it does not change `canPlay`'s behavior.
+`CampaignBridge` also drains `levelWon` events after each `tick()`/`advanceChapter()` and calls
+`markLevelComplete` (§6) when one fires — the one place outside `src/sim` that connects a level result
+to the profile record. `src/view`/`src/ui` will consume `CampaignBridge` from phase 2.2/2.3 onward,
+exactly as they already consume `BuildModeBridge`; this phase's own use of it is the gate-proof
+integration test (§11) plus a minimal debug affordance, not real UI.
 
 ## 8. Harness convergence
 
@@ -260,13 +282,22 @@ and monotonic-CL logic are unchanged — they consume the same function signatur
 module. This is a pure relocation: no behavior change, so no golden re-baseline from this specific
 step (the harness never touched `World.hash` to begin with, per its own spec §9).
 
-## 9. Golden re-baseline
+## 9. Golden scenarios — no re-baseline, one new scenario
 
-Registering `CampaignSystem` in every golden scenario's world-build changes `World.computeHash`'s
-`hasher.u32(this.#systems.length)` and adds a new per-system hash contribution — **every** golden
-scenario's hash moves, not a subset. Per `CLAUDE.md`'s golden-hash rule, this happens in its own commit
-that does nothing else, with a note explaining why (a new system was registered), after confirming
-scenarios untouched by anything else in this phase would otherwise have been byte-identical.
+Correction from an earlier draft of this spec: `CampaignSystem` is **not** registered into any of
+`tests/golden/scenarios.ts`'s existing ten scenarios. Six of the ten (`empty-world`, `single-system`,
+`three-systems`, `speed-and-pause`, `grid-build`, `grid-and-pathing`) never register `MarketSystem`/
+`EconomySystem` at all, and the other four (`shopper-trip`, `catchment-week`, `rival-reaction`,
+`pricing-and-promotions`) are synthetic engine-behavior recipes with no relationship to any authored
+`LevelDef` — `CampaignSystem` needs both a market/economy pair *and* a specific level's content to mean
+anything, so forcing it into a generic recipe would be inventing a fake level for no reason. **No
+existing golden hash moves, and no re-baseline commit is needed.**
+
+Instead, `tests/golden/scenarios.ts` gains **one new, additive** `'campaign-l1'` entry built via
+`buildCampaignWorld('l1', seed)` (§5.1), run long enough for the first chapter's objective to be met
+and an `advanceChapter` command to fire — proving `CampaignSystem`'s own hash sequence is stable over
+time, the same tripwire every other system already has, without touching anything the other ten
+scenarios record.
 
 ## 10. File layout
 
@@ -282,6 +313,9 @@ src/sim/campaignWorld.ts   # buildCampaignWorld, loadCampaignWorld, SaveEnvelope
 src/platform/profile/
 ├── index.ts          # ProfileState, getProfile, markLevelComplete, isLevelUnlocked
 └── profile.test.ts
+src/bridge/
+├── campaign-bridge.ts     # CampaignBridge — §7
+└── campaign-bridge.test.ts
 content/levels/
 ├── l1-sav-a-lott.json5
 ├── l2-grocerteria-24.json5
@@ -309,8 +343,9 @@ update accordingly.
   `markLevelComplete('l1')` unlocks `'l2'` in a fresh `ProfileState`.
 - **`profile.ts` unit tests:** unlock table lookup, idempotent `markLevelComplete` (calling it twice
   doesn't duplicate an id), `isLevelUnlocked` default state (only `l1` unlocked with no prior profile).
-- **Golden re-baseline:** its own commit per §9, confirming every scenario's hash moved for the same
-  documented reason (new system registered) and nothing else.
+- **Golden scenario:** the new additive `'campaign-l1'` entry per §9 — recorded fresh via
+  `UPDATE_GOLDEN=1 npm test` (it has no prior baseline to compare against, unlike the existing ten),
+  in the same commit that adds it. The existing ten scenarios' recorded hashes are asserted unchanged.
 
 ## 12. Explicitly out of scope
 
