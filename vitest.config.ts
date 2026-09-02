@@ -16,7 +16,7 @@ export default defineConfig({
     // Default is node: the simulation must run headless, so it gets no DOM by default.
     // Files that need one opt in with `// @vitest-environment jsdom`.
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}', 'tools/**/*.test.{ts,tsx}'],
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
     coverage: {
       provider: 'v8',

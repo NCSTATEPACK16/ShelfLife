@@ -1,0 +1,39 @@
+// Balance harness constants (PLAN.md §11.3). Not real level content — the harness owns its
+// own starting-store and household-generation defaults until phase 2.1 builds the real level
+// schema. See docs/superpowers/specs/2026-09-01-balance-harness-design.md §3-4.
+{
+  world: {
+    householdCount: 24,
+    // Proportional weights, not required to sum to 1 — normalized at generation time.
+    // Uniform is the right neutral default for a *balance* harness; skewed mixes are a lever
+    // for the difficulty-curve pass (phase 5.4), not this sub-project.
+    segmentMix: {
+      priceHunter: 1, convenience: 1, family: 1, foodie: 1, bulk: 1, senior: 1, student: 1,
+    },
+    catchmentMarginCells: 4,
+  },
+  winCondition: {
+    trailingWindowDays: 30,
+    shareThreshold: 0.5,
+  },
+  strategies: {
+    random: {
+      actionChance: 0.15,
+    },
+    priceWar: {
+      cutFraction: 0.15,
+      promotionCadenceDays: 5,
+      promotionDiscountFraction: 0.3,
+      promotionDurationDays: 3,
+    },
+    premium: {
+      markupFraction: 0.2,
+    },
+    service: {
+      staffTarget: 3,
+      hireSkill: 0.85,
+      hireMorale: 0.85,
+      trainCadenceDays: 14,
+    },
+  },
+}
