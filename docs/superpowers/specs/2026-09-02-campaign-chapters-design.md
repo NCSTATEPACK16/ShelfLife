@@ -130,15 +130,19 @@ and the golden tests wouldn't catch it).
 
 ### 4.1 Schema
 
+**The starting store's fixture layout is TypeScript, not JSON5** — a deliberate split, not an
+oversight. `content/levels/*.json5` holds everything that's genuinely tunable data (objective
+thresholds, day windows, copy); a `Command[]` recipe like "place `shelf_basic` at (10, 10)" is
+exactly what `tools/sim-harness/world.ts`'s baseline store and every golden scenario in
+`tests/golden/scenarios.ts` already author as plain TypeScript literals, not content — matching that
+precedent avoids hand-rolling a full Zod mirror of `core/commands.ts`'s large discriminated union just
+to validate JSON5 fixture placements. `content/levels/*.json5`:
+
 ```json5
 {
   id: 'l1',
   rivalId: 'sav-a-lott',
   name: 'Level 1: Sav-A-Lott',
-  startingStore: {
-    // Command[]-shaped setup, same convention tools/sim-harness/world.ts and
-    // tests/golden/scenarios.ts already use — no new "starting store" concept.
-  },
   chapters: [
     {
       id: 'ch1',
@@ -155,11 +159,17 @@ and the golden tests wouldn't catch it).
 }
 ```
 
-Zod-validated via `parseLevelConfig(raw: unknown): LevelDef`, `DEFAULT_LEVELS` map keyed by `id` —
-same `?raw` + `JSON5.parse` + Zod pattern every `content/balance/*.json5` loader already follows
-(`src/sim/systems/rivals/config.ts` is the closest analog). Objective types are a small closed union
-(`shareThreshold` today; new types added only when a later boss actually needs one — no speculative
-generic DSL).
+Zod-validated via `parseLevelContent(raw: unknown): LevelContent` — the same `?raw` + `JSON5.parse` +
+Zod pattern every `content/balance/*.json5` loader already follows (`src/sim/systems/rivals/config.ts`
+is the closest analog). Objective types are a small closed union (`shareThreshold` today; new types
+added only when a later boss actually needs one — no speculative generic DSL).
+
+`src/sim/systems/campaign/starting-stores.ts` hand-authors each level's fixture recipe as a plain
+`readonly Command[]`, keyed by level id — the direct TypeScript analog of
+`tools/sim-harness/world.ts`'s baseline-store block. `buildLevelDef(id: string): LevelDef` (§10) joins
+a `LevelContent` (from `DEFAULT_LEVEL_CONTENT`, the parsed JSON5 map) with its `startingStores.ts`
+entry into the full `LevelDef` the rest of the system consumes — `LevelDef = LevelContent &
+{ startingStore: readonly Command[] }`.
 
 ### 4.2 Authored content
 
@@ -276,11 +286,14 @@ integration test (§11) plus a minimal debug affordance, not real UI.
 
 ## 8. Harness convergence
 
-`tools/sim-harness/metrics.ts`'s `computeShareTrajectory` and `computeWinResult` are deleted and
-re-imported from `src/sim`'s new `systems/campaign/objectives.ts` export. `gate.ts`'s acceptance-rule
-and monotonic-CL logic are unchanged — they consume the same function signatures, just from a different
-module. This is a pure relocation: no behavior change, so no golden re-baseline from this specific
-step (the harness never touched `World.hash` to begin with, per its own spec §9).
+`tools/sim-harness/metrics.ts`'s `computeShareTrajectory`, `computeWinResult`, and `TripCounter` (plus
+its `DailyTripCounts` type — the day-bucketing helper that feeds both) are deleted and re-imported from
+`src/sim`'s new `systems/campaign/objectives.ts` export, which `CampaignSystem` itself uses for its own
+day-bucketing (§3.2). `tools/sim-harness/run.ts` and `metrics.test.ts` update their imports only —
+`gate.ts`'s acceptance-rule and monotonic-CL logic are unchanged, since they consume `run.ts`'s
+`RunResult`, not these functions directly. This is a pure relocation: no behavior change, so no golden
+re-baseline from this specific step (the harness never touched `World.hash` to begin with, per its own
+spec §9).
 
 ## 9. Golden scenarios — no re-baseline, one new scenario
 
@@ -303,10 +316,12 @@ scenarios record.
 
 ```
 src/sim/systems/campaign/
-├── types.ts        # CampaignState, ChapterStatus, LevelStatus, LevelDef, ChapterDef, Objective
-├── config.ts        # parseLevelConfig, DEFAULT_LEVELS (content/levels/*.json5 loader)
-├── objectives.ts     # computeShareTrajectory, computeWinResult (moved from the harness), ebitdaStreak check
-├── system.ts         # CampaignSystem
+├── types.ts           # CampaignState, ChapterStatus, LevelStatus, LevelContent, LevelDef, ChapterDef, Objective
+├── config.ts           # parseLevelContent, DEFAULT_LEVEL_CONTENT (content/levels/*.json5 loader)
+├── starting-stores.ts   # per-level Command[] fixture recipes (TypeScript, not JSON5 — §4.1)
+├── level.ts             # buildLevelDef(id), DEFAULT_LEVELS
+├── objectives.ts         # computeShareTrajectory, computeWinResult, TripCounter (moved from the harness), ebitdaStreak check
+├── system.ts             # CampaignSystem
 ├── index.ts
 └── *.test.ts
 src/sim/campaignWorld.ts   # buildCampaignWorld, loadCampaignWorld, SaveEnvelope, migrateSaveEnvelope
@@ -334,8 +349,9 @@ update accordingly.
 - **`objectives.ts` unit tests:** the existing harness test cases for `computeShareTrajectory`/
   `computeWinResult` move over unchanged (crosses-and-holds, crosses-and-reverts, never-crosses,
   exactly-at-threshold) — proving the relocation didn't alter behavior.
-- **Content schema tests:** `parseLevelConfig` rejects a level with zero chapters, an unknown objective
-  `type`, or a `rivalId` not present in `DEFAULT_RIVAL_STORES`.
+- **Content schema tests:** `parseLevelContent` rejects a level with zero chapters, an unknown
+  objective `type`, or a malformed chapter; `buildLevelDef` throws for a `rivalId` not present in
+  `DEFAULT_RIVAL_STORES` or a level id with no `starting-stores.ts` entry.
 - **`buildCampaignWorld`/save-load integration test — the actual gate proof:** build L1, run to the
   last chapter's objective threshold, save mid-chapter (partial command log), `loadCampaignWorld` from
   that save, confirm `world.hash` matches a world that never saved/reloaded and instead ran the same
