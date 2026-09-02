@@ -8,10 +8,10 @@ import { reactWeekly } from './reactivity.js';
 const base = parseRivalStore(JSON5.parse(savALott));
 
 describe('reactWeekly', () => {
-  it('cuts price toward undercutting the player when losing share, never below the floor', () => {
+  it('strictly cuts price when losing share, even when already cheaper than the player', () => {
     const losing = { playerShare: 0.8, ownShare: 0.2 };
     const next = reactWeekly(base, losing, 1.0, DEFAULT_RIVALS_CONFIG);
-    expect(next.priceIndex).toBeLessThanOrEqual(base.priceIndex);
+    expect(next.priceIndex).toBeLessThan(base.priceIndex);
     expect(next.priceIndex).toBeGreaterThanOrEqual(DEFAULT_RIVALS_CONFIG.minPriceIndex);
   });
   it('lifts ambiance when the player is taking share', () => {

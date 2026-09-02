@@ -4,6 +4,8 @@
   weeklyWindowDays: 7,        // reactivity cadence — "checked weekly, not daily"
   minPriceIndex: 0.7,         // rivals cut toward viability, never below (no money cheat)
   reactionRate: 0.05,         // base step size before personality scaling
+  undercutFraction: 0.35,     // at priceAggression=1, the reaction target sits this far below
+                              // the player's price; scaled down for less aggressive rivals
   // derivation: how personality shifts the authored baseline into initial terms
   derive: {
     qualityFromInvestment: 0.25,  // quality += qualityInvestment * this

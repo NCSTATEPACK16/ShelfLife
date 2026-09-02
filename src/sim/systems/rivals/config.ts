@@ -8,6 +8,7 @@ const RivalsConfigSchema = z.object({
   weeklyWindowDays: z.number().int().positive(),
   minPriceIndex: z.number().positive().max(1),
   reactionRate: nonNegativeFinite,
+  undercutFraction: z.number().positive().max(1),
   derive: z.object({
     qualityFromInvestment: nonNegativeFinite,
     priceFromAggression: nonNegativeFinite,
