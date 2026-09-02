@@ -28,7 +28,8 @@
     "check:content": "node tools/check-gentle-surface.mjs",
     "check:budget": "node tools/check-budget.mjs",
     "harness:build": "vite build --config vite.harness.config.ts",
-    "harness": "npm run harness:build --silent && node dist/harness/cli.js"
+    "harness": "npm run harness:build --silent && node dist/harness/cli.js",
+    "balance:gate": "npm run harness:build --silent && node dist/harness/gate.js"
   },
   "dependencies": {
     "@preact/signals": "2.4.0",
