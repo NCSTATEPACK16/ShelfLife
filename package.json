@@ -26,7 +26,9 @@
     "cap:open": "cap open ios",
     "check:tokens": "node tools/check-tokens.mjs",
     "check:content": "node tools/check-gentle-surface.mjs",
-    "check:budget": "node tools/check-budget.mjs"
+    "check:budget": "node tools/check-budget.mjs",
+    "harness:build": "vite build --config vite.harness.config.ts",
+    "harness": "npm run harness:build --silent && node dist/harness/cli.js"
   },
   "dependencies": {
     "@preact/signals": "2.4.0",
