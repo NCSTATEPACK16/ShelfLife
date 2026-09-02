@@ -156,6 +156,12 @@ to validate JSON5 fixture placements. `content/levels/*.json5`:
     // the final chapter's threshold is the level's real win condition.
   ],
   loseCondition: { type: 'ebitdaStreak', maxNegativeDays: 14 },
+  households: {
+    // Same shape as content/balance/harness.json5's `world` block — see §5.1.
+    count: 24,
+    segmentMix: { priceHunter: 1, convenience: 1, family: 1, foodie: 1, bulk: 1, senior: 1, student: 1 },
+    catchmentMarginCells: 4,
+  },
 }
 ```
 
@@ -187,15 +193,33 @@ by construction. Real tuning is phase 5.4, exactly as the balance-harness spec a
 `src/sim/campaignWorld.ts` (exported from `src/sim/index.ts`):
 
 ```ts
-function buildCampaignWorld(levelId: string, seed: number): World
+interface CampaignWorldHandle {
+  readonly world: World;
+  readonly campaign: CampaignSystem;
+}
+function buildCampaignWorld(levelId: string, seed: number): CampaignWorldHandle
 ```
 
 Constructs a `World`, registers every system in the canonical order (§3), seeds the rival roster with
 exactly the level's one boss (looked up from `DEFAULT_RIVAL_STORES` by `rivalId`), pushes the level's
 `startingStore` commands, and registers `CampaignSystem` with the parsed `LevelDef`. This is the
 **single source of truth for registration order** for real gameplay — both a fresh level start and a
-save reload go through it, so the two can never drift apart the way a hand-duplicated registration list
-could.
+save reload go through it (§5.2), so the two can never drift apart the way a hand-duplicated
+registration list could.
+
+**Households.** `startingStore` is a static `Command[]` fixed at module load, before any `World` or
+seed exists — it cannot itself express "N households at random catchment positions," which needs a
+live RNG stream. `buildCampaignWorld` generates them the same way
+`tools/sim-harness/world.ts#generateHouseholds` already does (uniform position within a bounding box
+around the player's store and the level's one boss, proportional segment draw) and pushes them as
+`addHousehold` commands immediately after `startingStore`'s — but drawing from a **new** `'campaign'`
+RNG stream (`src/sim/core/rng.ts`'s `STREAM_NAMES`), not harness's `'harness'` stream. Reusing
+`'harness'` for real gameplay would conflate a tooling-only stream with one that now has to stay
+replay-stable for real saves and, eventually, verified leaderboard runs — a new stream name is the
+safer boundary, and adding one never reshuffles existing streams (§6.3). Household count/segment mix
+for L1–L3 are authored alongside each level's content (a `households` block in the same JSON5,
+same shape as `content/balance/harness.json5`'s `world` block) — genuinely tunable data, unlike fixture
+placement.
 
 ### 5.2 Save format
 
@@ -204,6 +228,7 @@ interface SaveEnvelope {
   readonly version: 1;
   readonly levelId: string;
   readonly seed: number;
+  readonly tick: number;               // world.tick at save time — replay()'s throughTick
   readonly commandLog: readonly LoggedCommand[];
 }
 ```
@@ -214,18 +239,36 @@ log, no full-state snapshot. Replay is cheap enough not to need one — a chapte
 thousand ticks, and the balance harness already replays whole 90-day (129,600-tick) runs in-process in
 well under a second per run.
 
-**Load:**
+**Load.** `buildCampaignWorld` internally splits into a registration-only helper (systems, no
+commands) and a thin wrapper that also pushes `startingStore` — the same split
+`market/system.test.ts`'s `registerFullMarketStack`/`fullMarketWorld` already establishes as the
+project's pattern for "build fresh" vs. "rebuild for replay," and for the same reason
+`store-choice.test.ts`'s replay-fidelity test calls out: pushing `startingStore` again during replay
+would double it, since a save's `commandLog` already contains those commands as tick-0 entries (they
+were logged the first time `world.step()` drained them, same as any other pre-tick-0 push in this
+codebase):
 
 ```ts
-function loadCampaignWorld(save: SaveEnvelope): World {
-  const world = buildCampaignWorld(save.levelId, save.seed); // fresh registration, tick 0
-  // then replay save.commandLog against it via the existing replay()/CommandQueue.fromLog machinery
+function registerCampaignSystems(world: World, levelId: string): CampaignSystem { /* registration only */ }
+
+function buildCampaignWorld(levelId: string, seed: number): CampaignWorldHandle {
+  const world = new World({ seed });
+  const campaign = registerCampaignSystems(world, levelId);
+  for (const command of campaign.level.startingStore) world.commands.push(command);
+  return { world, campaign };
+}
+
+function loadCampaignWorld(save: SaveEnvelope): CampaignWorldHandle {
+  let campaign: CampaignSystem;
+  const world = replay(save.seed, save.commandLog, save.tick, (w) => {
+    campaign = registerCampaignSystems(w, save.levelId);
+  });
+  return { world, campaign: campaign! };
 }
 ```
 
-Concretely, this reuses `replay()`/`CommandQueue.fromLog` (`src/sim/core/world.ts`) exactly as-built —
-`buildCampaignWorld` supplies the `registerSystems` callback `replay()` already accepts. No changes to
-`replay()` itself.
+This reuses `replay()`/`CommandQueue.fromLog` (`src/sim/core/world.ts`) exactly as-built — no changes
+to `replay()` itself.
 
 **Migrations.** `migrateSaveEnvelope(raw: unknown): SaveEnvelope` validates against a Zod schema keyed
 on `version`. Today there is exactly one version (`1`) and the function is a documented no-op pass
