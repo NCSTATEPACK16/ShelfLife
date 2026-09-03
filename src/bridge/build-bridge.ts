@@ -22,7 +22,9 @@ import type {
   Rotation,
   Segment,
   ShopperState,
+  SimEvent,
 } from '../sim/index.js';
+import type { TellOccurrence } from '../view/tell-draw-plan.js';
 
 export interface BuildModeSnapshot {
   readonly dimensions: GridDimensions;
@@ -176,6 +178,29 @@ export class BuildModeBridge {
       const shopper = this.#shoppers.shopper(id);
       return { id: shopper.id, x: shopper.position.x, y: shopper.position.y, state: shopper.state };
     });
+  }
+
+  /** Every tellFired event since the last read — the first (and only, per redraw cycle)
+   *  consumer of world.events for gentle-surface rendering. */
+  pendingTells(): readonly TellOccurrence[] {
+    return this.#world.events
+      .drain()
+      .filter((e): e is Extract<SimEvent, { type: 'tellFired' }> => e.type === 'tellFired')
+      .map((e) => ({ shopperId: e.shopperId, term: e.term, magnitude: e.magnitude }));
+  }
+
+  /** Every stocked shelf's fraction of capacity (0-1) — feeds the visibility world-mark
+   *  tell (full/half/empty), a per-frame world read rather than an event. */
+  shelfFullness(): readonly { instanceId: number; fraction: number }[] {
+    const result: { instanceId: number; fraction: number }[] = [];
+    for (const placement of this.#grid.grid.placements()) {
+      const goodId = this.#shoppers.stockedGoodAt(placement.instanceId);
+      if (!goodId) continue;
+      const capacity = this.#inventory.capacityOf(goodId);
+      const fraction = capacity > 0 ? Math.min(1, this.#inventory.stockOf(goodId) / capacity) : 0;
+      result.push({ instanceId: placement.instanceId, fraction });
+    }
+    return result;
   }
 
   /** Advances the world one tick with no command — build mode is otherwise action-driven,

@@ -104,4 +104,42 @@ describe('BuildModeBridge', () => {
     const after = bridge.shoppersSnapshot()[0]!;
     expect(after.x !== before.x || after.y !== before.y).toBe(true);
   });
+
+  it('pendingTells drains tellFired events since the last read', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.place('shelf_basic', 5, 5, 0);
+    const instanceId = bridge.snapshot().placements[0]!.instanceId;
+    bridge.stockFixture(instanceId, 'milk');
+    bridge.addHousehold(1, 'family', { x: 0, y: 0 });
+    for (let i = 0; i < 5 * 1440; i++) bridge.tick();
+    bridge.spawnShopper(100, 1);
+    // No checkout fixture placed at all — a guaranteed instant balk (queuePenaltyBalk)
+    // once the shopper reaches checkingOut, regardless of whether milk was fulfilled.
+    let sawFirst: readonly { shopperId: number }[] = [];
+    for (let i = 0; i < 2000 && bridge.shoppersSnapshot().length > 0; i++) {
+      bridge.tick();
+      const tells = bridge.pendingTells();
+      if (tells.length > 0) sawFirst = tells;
+    }
+    expect(sawFirst.length).toBeGreaterThan(0);
+    expect(bridge.pendingTells()).toHaveLength(0); // already drained
+  });
+
+  it('shelfFullness reports a stocked shelf\'s fraction of capacity', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.place('shelf_basic', 5, 5, 0);
+    const instanceId = bridge.snapshot().placements[0]!.instanceId;
+    bridge.stockFixture(instanceId, 'milk');
+    const fullness = bridge.shelfFullness();
+    expect(fullness).toHaveLength(1);
+    expect(fullness[0]?.instanceId).toBe(instanceId);
+    expect(fullness[0]?.fraction).toBeGreaterThan(0);
+    expect(fullness[0]?.fraction).toBeLessThanOrEqual(1);
+  });
+
+  it('shelfFullness is empty when no shelf is stocked', () => {
+    const bridge = new BuildModeBridge({ width: 10, height: 10 });
+    bridge.place('shelf_basic', 5, 5, 0);
+    expect(bridge.shelfFullness()).toHaveLength(0);
+  });
 });
