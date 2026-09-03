@@ -10,6 +10,8 @@ const ShoppersConfigSchema = z.object({
   abandonExtraPenalty: z.number().nonnegative(),
   exposureRadius: z.number().positive(),
   adjacentCellThreshold: z.number().positive(),
+  cleanlinessWeight: z.number().nonnegative(),
+  staffInteractionWeight: z.number().nonnegative(),
 });
 
 export type ShoppersConfig = z.infer<typeof ShoppersConfigSchema>;
