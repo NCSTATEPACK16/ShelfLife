@@ -34,6 +34,16 @@ describe('InventorySystem', () => {
     expect(inventory.stockOf('milk')).toBe(5);
   });
 
+  it("capacityOf returns the good's orderUpToLevel from its supply policy", () => {
+    const { inventory } = worldWithInventory([RELIABLE_POLICY]);
+    expect(inventory.capacityOf('milk')).toBe(5);
+  });
+
+  it('capacityOf returns 0 for a good with no policy', () => {
+    const { inventory } = worldWithInventory([RELIABLE_POLICY]);
+    expect(inventory.capacityOf('nonexistent-good')).toBe(0);
+  });
+
   it('consume() sells one unit at a time, FIFO, when freshness is above the markdown threshold', () => {
     const { world, inventory } = worldWithInventory([RELIABLE_POLICY]);
     world.step();
