@@ -1,0 +1,52 @@
+// Level 3 — BulkHaus Club (PLAN.md §3). See l1-sav-a-lott.json5's header note — same
+// first-pass caveat applies. Five chapters and a longer trailing window than L1/L2, matching
+// PLAN.md §3.1's difficulty curve (later levels take longer, need a coherent strategy).
+{
+  id: 'l3',
+  rivalId: 'bulkhaus-club',
+  name: 'Level 3: BulkHaus Club',
+  chapters: [
+    {
+      id: 'ch1',
+      title: 'Open Your Doors',
+      mechanicUnlock: 'assortment',
+      introCopy: { advisor: 'chloe', line: "BulkHaus locks people into 40-pound bags of rice. Most households don't want that." },
+      outroCopy: { advisor: 'chloe', line: 'A foothold. Keep the assortment tight and useful.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 10, threshold: 0.10 },
+    },
+    {
+      id: 'ch2',
+      title: 'Build Assortment',
+      introCopy: { advisor: 'chloe', line: 'Give people reasons to shop small and often.' },
+      outroCopy: { advisor: 'chloe', line: 'The regulars are noticing.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 10, threshold: 0.20 },
+    },
+    {
+      id: 'ch3',
+      title: 'Undercut The Bulk',
+      introCopy: { advisor: 'chloe', line: "Per-unit, you can win this. Don't let their membership fee do the talking." },
+      outroCopy: { advisor: 'chloe', line: 'Their sample corridor is losing pull.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 10, threshold: 0.30 },
+    },
+    {
+      id: 'ch4',
+      title: 'Convenience Wins',
+      introCopy: { advisor: 'chloe', line: 'Nobody wants a warehouse trip for a Tuesday dinner. Be the easy choice.' },
+      outroCopy: { advisor: 'chloe', line: 'Membership lock-in only holds so long.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 10, threshold: 0.40 },
+    },
+    {
+      id: 'ch5',
+      title: 'Close The Gap',
+      introCopy: { advisor: 'chloe', line: 'Finish it. BulkHaus has nothing left but the fee.' },
+      outroCopy: { advisor: 'chloe', line: 'BulkHaus Club is done. On to the next one.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 10, threshold: 0.50 },
+    },
+  ],
+  loseCondition: { type: 'ebitdaStreak', maxNegativeDays: 14 },
+  households: {
+    householdCount: 24,
+    segmentMix: { priceHunter: 1, convenience: 1, family: 1, foodie: 1, bulk: 1, senior: 1, student: 1 },
+    catchmentMarginCells: 4,
+  },
+}
