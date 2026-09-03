@@ -92,6 +92,16 @@ export class CampaignSystem implements System {
     return true;
   }
 
+  objectiveProgress(): { readonly current: number; readonly target: number } {
+    if (this.#levelStatus !== 'inProgress' || this.#chapterStatus !== 'inProgress') {
+      return { current: 1, target: 1 };
+    }
+    const chapter = this.#level.chapters[this.#chapterIndex]!;
+    const trajectory = computeShareTrajectory(this.#tripCounter.dailyCounts(), chapter.objective.trailingWindowDays);
+    const last = trajectory[trajectory.length - 1];
+    return { current: Number.isNaN(last) ? 0 : (last ?? 0), target: chapter.objective.threshold };
+  }
+
   state(): CampaignState {
     return {
       levelId: this.#level.id,

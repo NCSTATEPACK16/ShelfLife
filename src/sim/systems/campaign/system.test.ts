@@ -148,6 +148,30 @@ describe('CampaignSystem', () => {
     expect(campaign.level.id).toBe('test-level');
   });
 
+  it('objectiveProgress reports 0 before any trips and the real trailing share after some', () => {
+    const { world, market, campaign } = testWorld(TWO_CHAPTER_LEVEL);
+    expect(campaign.objectiveProgress()).toEqual({ current: 0, target: 0.5 });
+
+    // A target-store-only trip (never crosses the 0.5 threshold, so the chapter stays
+    // inProgress) still moves dailyCounts off empty — proves the trajectory read is real,
+    // not just the empty-array early-return case above.
+    market.queueOutcome({ householdId: 1, storeIndex: 1, satisfaction: 1 });
+    for (let i = 0; i < 1440; i++) world.step();
+    expect(campaign.state().chapterStatus).toBe('inProgress');
+    expect(campaign.objectiveProgress()).toEqual({ current: 0, target: 0.5 });
+  });
+
+  it('objectiveProgress reports 1/1 once the level is no longer in progress', () => {
+    const oneChapterLevel: LevelDef = { ...TWO_CHAPTER_LEVEL, chapters: [TWO_CHAPTER_LEVEL.chapters[0]!] };
+    const { world, market, campaign } = testWorld(oneChapterLevel);
+    market.queueOutcome({ householdId: 1, storeIndex: 0, satisfaction: 1 });
+    for (let i = 0; i < 1440; i++) world.step();
+    world.commands.push({ type: 'advanceChapter' });
+    world.step();
+    expect(campaign.state().levelStatus).toBe('won');
+    expect(campaign.objectiveProgress()).toEqual({ current: 1, target: 1 });
+  });
+
   it('hash changes when chapterStatus changes, stable otherwise', () => {
     const a = testWorld(TWO_CHAPTER_LEVEL);
     const b = testWorld(TWO_CHAPTER_LEVEL);
