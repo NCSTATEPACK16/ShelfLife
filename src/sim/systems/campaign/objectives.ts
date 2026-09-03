@@ -1,4 +1,13 @@
-import type { TripOutcome } from '../../src/sim/index.js';
+import type { DailyStatement } from '../economy/types.js';
+import type { TripOutcome } from '../loyalty/types.js';
+
+/**
+ * Win-condition math (PLAN.md §11.3, §16 phase 2.1). Originally built for
+ * `tools/sim-harness/metrics.ts`; relocated here so real campaign play
+ * (`CampaignSystem`) and the balance harness share one implementation instead of two
+ * that can silently drift apart — see
+ * docs/superpowers/specs/2026-09-02-campaign-chapters-design.md §8.
+ */
 
 export interface DailyTripCounts {
   readonly player: number;
@@ -72,4 +81,26 @@ export function computeWinResult(
     start = day;
   }
   return { won: true, daysToWin: start };
+}
+
+/**
+ * The campaign lose condition (spec §3.2): `N` consecutive trailing days of negative EBITDA.
+ * Scans `statements` backward from the most recent entry; a positive-or-zero day anywhere in
+ * that trailing scan breaks the streak. No cumulative-cash concept — PLAN.md §5.7 has no balance
+ * sheet, and `EconomySystem#statements()` already carries the daily history this needs.
+ */
+export function ebitdaStreakBreached(
+  statements: readonly DailyStatement[],
+  maxNegativeDays: number,
+): boolean {
+  let streak = 0;
+  for (let i = statements.length - 1; i >= 0; i--) {
+    if (statements[i]!.ebitda < 0) {
+      streak++;
+      if (streak >= maxNegativeDays) return true;
+    } else {
+      break;
+    }
+  }
+  return false;
 }

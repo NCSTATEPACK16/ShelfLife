@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { computeShareTrajectory, computeWinResult, TripCounter } from './metrics.js';
+import type { DailyStatement } from '../economy/types.js';
+import { computeShareTrajectory, computeWinResult, ebitdaStreakBreached, TripCounter } from './objectives.js';
 
 describe('TripCounter', () => {
   it('tallies player vs. target trips per day and ignores other rivals', () => {
@@ -31,7 +32,6 @@ describe('computeShareTrajectory', () => {
     );
     expect(trajectory[0]).toBeNaN();
     expect(trajectory[1]).toBeCloseTo(3 / 4);
-    // trailing window of 2 covers days 1-2: player 3+1=4, target 1+3=4
     expect(trajectory[2]).toBeCloseTo(4 / 8);
   });
 });
@@ -54,5 +54,37 @@ describe('computeWinResult', () => {
   });
   it('loses on an empty trajectory', () => {
     expect(computeWinResult([], 0.5)).toEqual({ won: false, daysToWin: null });
+  });
+});
+
+describe('ebitdaStreakBreached', () => {
+  const stmt = (ebitda: number): DailyStatement => ({
+    day: 0,
+    revenue: 0,
+    cogs: 0,
+    labor: 0,
+    rent: 0,
+    utilities: 0,
+    marketing: 0,
+    shrink: 0,
+    spoilage: 0,
+    ebitda,
+  });
+
+  it('is not breached below the streak length', () => {
+    expect(ebitdaStreakBreached([stmt(-1), stmt(-1)], 3)).toBe(false);
+  });
+  it('is breached at exactly the streak length', () => {
+    expect(ebitdaStreakBreached([stmt(-1), stmt(-1), stmt(-1)], 3)).toBe(true);
+  });
+  it('a positive day anywhere in the trailing window resets the streak', () => {
+    expect(ebitdaStreakBreached([stmt(-1), stmt(5), stmt(-1), stmt(-1)], 3)).toBe(false);
+  });
+  it('treats exactly-zero EBITDA as not negative', () => {
+    expect(ebitdaStreakBreached([stmt(0), stmt(-1), stmt(-1)], 2)).toBe(true); // last two are the streak
+    expect(ebitdaStreakBreached([stmt(-1), stmt(0)], 2)).toBe(false);
+  });
+  it('handles an empty history', () => {
+    expect(ebitdaStreakBreached([], 1)).toBe(false);
   });
 });

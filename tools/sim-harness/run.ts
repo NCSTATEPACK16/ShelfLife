@@ -1,6 +1,6 @@
 import { TICKS_PER_SIM_DAY } from '../../src/sim/index.js';
 import { DEFAULT_HARNESS_CONFIG, type HarnessConfig } from './config.js';
-import { computeShareTrajectory, computeWinResult, TripCounter } from './metrics.js';
+import { computeShareTrajectory, computeWinResult, TripCounter } from '../../src/sim/systems/campaign/objectives.js';
 import { strategyFor, type StrategyName } from './strategies/index.js';
 import { buildHarnessWorld } from './world.js';
 
