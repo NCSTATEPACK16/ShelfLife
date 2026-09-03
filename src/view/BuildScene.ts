@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { BuildModeBridge } from '../bridge/build-bridge.js';
+import type { CampaignBridge } from '../bridge/campaign-bridge.js';
 import tokens from '../../content/design/tokens.json';
 import { DEFAULT_GENTLE_SURFACE_CONTENT } from '../sim/content/gentle-surface.js';
 import { buildDrawPlan } from './draw-plan.js';
@@ -16,13 +16,13 @@ import { buildTellDrawPlan } from './tell-draw-plan.js';
  * `setSelected()` after every bridge mutation to keep the view in sync.
  */
 export class BuildScene extends Phaser.Scene {
-  readonly #bridge: BuildModeBridge;
+  readonly #bridge: CampaignBridge;
   readonly #origin: { x: number; y: number };
   #graphics!: Phaser.GameObjects.Graphics;
   #selectedInstanceId: number | null = null;
   #debugDestinationId: string | null = null;
 
-  constructor(bridge: BuildModeBridge, origin: { x: number; y: number }) {
+  constructor(bridge: CampaignBridge, origin: { x: number; y: number }) {
     super({ key: 'build', active: true });
     this.#bridge = bridge;
     this.#origin = origin;

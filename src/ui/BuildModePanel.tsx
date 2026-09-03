@@ -1,8 +1,8 @@
-import type { BuildModeBridge } from '../bridge/build-bridge.js';
+import type { CampaignBridge } from '../bridge/campaign-bridge.js';
 import type { Breakpoint } from '../platform/layout/index.js';
 
 export interface BuildModePanelProps {
-  readonly bridge: BuildModeBridge;
+  readonly bridge: CampaignBridge;
   readonly breakpoint: Breakpoint;
   readonly onSelect: (instanceId: number | null) => void;
   readonly onArm: (fixtureId: string | null) => void;

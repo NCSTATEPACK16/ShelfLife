@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildDrawPlan } from './draw-plan.js';
-import type { BuildModeSnapshot } from '../bridge/build-bridge.js';
+import type { CampaignSnapshot } from '../bridge/campaign-bridge.js';
 
-const SNAPSHOT: BuildModeSnapshot = {
+const SNAPSHOT: CampaignSnapshot = {
   dimensions: { width: 5, height: 5 },
   catalog: [
     { id: 'shelf_basic', name: 'Basic Shelf', footprint: { width: 1, height: 2 }, walkable: false },

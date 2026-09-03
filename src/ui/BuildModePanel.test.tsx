@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { render } from 'preact';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BuildModeBridge } from '../bridge/build-bridge.js';
+import { CampaignBridge } from '../bridge/campaign-bridge.js';
 import { BuildModePanel } from './BuildModePanel.js';
 
-function mount(bridge: BuildModeBridge, breakpoint: 'compact' | 'regular' = 'compact'): HTMLDivElement {
+function mount(bridge: CampaignBridge, breakpoint: 'compact' | 'regular' = 'compact'): HTMLDivElement {
   const root = document.createElement('div');
   document.body.appendChild(root);
   render(
@@ -24,10 +24,15 @@ function mount(bridge: BuildModeBridge, breakpoint: 'compact' | 'regular' = 'com
 }
 
 describe('BuildModePanel', () => {
-  let bridge: BuildModeBridge;
+  let bridge: CampaignBridge;
+  let baselinePlacementCount: number;
 
-  beforeEach(() => {
-    bridge = new BuildModeBridge({ width: 10, height: 10 });
+  beforeEach(async () => {
+    bridge = CampaignBridge.start('l1', 1);
+    // l1's starting store (4 fixtures) is queued but not applied until the first world.step()
+    // — flush it here so every test's counts are relative to a settled baseline, not zero.
+    await bridge.tick();
+    baselinePlacementCount = bridge.snapshot().placements.length;
   });
 
   it('renders a palette button for every catalog fixture', () => {
@@ -40,14 +45,16 @@ describe('BuildModePanel', () => {
   it('shows the placement count', () => {
     bridge.place('shelf_basic', 0, 0, 0);
     const root = mount(bridge);
-    expect(root.querySelector('[data-testid="placement-count"]')?.textContent).toBe('1');
+    expect(root.querySelector('[data-testid="placement-count"]')?.textContent).toBe(
+      String(baselinePlacementCount + 1),
+    );
   });
 
-  it('disables undo/redo when their stacks are empty', () => {
+  it('disables redo when nothing has been undone (undo itself is enabled — l1 always has an undoable starting store)', () => {
     const root = mount(bridge);
     const undoBtn = root.querySelector<HTMLButtonElement>('[data-testid="undo"]');
     const redoBtn = root.querySelector<HTMLButtonElement>('[data-testid="redo"]');
-    expect(undoBtn?.disabled).toBe(true);
+    expect(undoBtn?.disabled).toBe(false);
     expect(redoBtn?.disabled).toBe(true);
   });
 

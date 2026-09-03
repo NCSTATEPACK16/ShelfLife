@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { BuildModeBridge } from '../bridge/build-bridge.js';
+import { CampaignBridge } from '../bridge/campaign-bridge.js';
 import { PointerSource } from '../platform/input/index.js';
 import { breakpointFor, type Breakpoint } from '../platform/layout/index.js';
 import { BuildModePanel } from '../ui/BuildModePanel.js';
@@ -7,8 +7,6 @@ import { SelectionActionBar } from '../ui/SelectionActionBar.js';
 import { screenToWorld, worldToScreen } from './iso.js';
 import { TICK_MS } from '../sim/index.js';
 import type { Rotation } from '../sim/index.js';
-
-const GRID_DIMENSIONS = { width: 20, height: 20 };
 
 /**
  * Mounts build mode: a Phaser scene on `canvas`, a Preact palette + action bar in
@@ -19,11 +17,15 @@ const GRID_DIMENSIONS = { width: 20, height: 20 };
  * Phaser is imported dynamically, *after* that check, because Phaser probes canvas
  * rendering capability as an import-time side effect — importing it unconditionally
  * would crash under jsdom (which has no canvas backend) even with this guard in place.
+ *
+ * NOTE: this file is superseded by campaign-mode.ts (phase 2.3, Task 23) — this is a
+ * minimal patch (bridge type only) to keep the tree compiling between Task 5 and Task 23,
+ * not the real HUD/manage-mode integration.
  */
 export async function mountBuildMode(
   canvas: HTMLCanvasElement,
   uiRoot: HTMLElement,
-): Promise<{ bridge: BuildModeBridge } | null> {
+): Promise<{ bridge: CampaignBridge } | null> {
   const ctx = canvas.getContext('2d') ?? canvas.getContext('webgl');
   if (!ctx) return null;
 
@@ -32,15 +34,16 @@ export async function mountBuildMode(
     import('./BuildScene.js'),
   ]);
 
-  const bridge = new BuildModeBridge(GRID_DIMENSIONS);
+  const bridge = CampaignBridge.start('l1', 1);
   const origin = { x: canvas.clientWidth / 2, y: 80 };
 
   // A fixed debug-only destination so the flow-field overlay always has something to
   // show. Real shopper destinations (shelf faces, registers, exits) are phase 1.6's
   // concern; this one exists purely to exercise PathingSystem's debug accessor.
   const DEBUG_DESTINATION_ID = 'debug-exit';
+  const dimensions = bridge.snapshot().dimensions;
   bridge.registerDestination(DEBUG_DESTINATION_ID, [
-    { x: GRID_DIMENSIONS.width - 1, y: GRID_DIMENSIONS.height - 1 },
+    { x: dimensions.width - 1, y: dimensions.height - 1 },
   ]);
 
   const scene = new BuildScene(bridge, origin);
@@ -169,7 +172,7 @@ export async function mountBuildMode(
   // own tick rate, redrawing the scene (UI panels don't depend on tick-by-tick state, so
   // they're left to their existing event-driven renderUi() calls).
   globalThis.setInterval(() => {
-    bridge.tick();
+    void bridge.tick();
     scene.redraw();
   }, TICK_MS);
 

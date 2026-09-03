@@ -1,4 +1,4 @@
-import type { BuildModeSnapshot } from '../bridge/build-bridge.js';
+import type { CampaignSnapshot } from '../bridge/campaign-bridge.js';
 import { colorForFixture, selectionColor } from './fixture-colors.js';
 import { TILE_HEIGHT, TILE_WIDTH, worldToScreen } from './iso.js';
 
@@ -18,7 +18,7 @@ export interface DrawPlan {
 }
 
 export function buildDrawPlan(
-  snapshot: BuildModeSnapshot,
+  snapshot: CampaignSnapshot,
   origin: { x: number; y: number },
   selectedInstanceId: number | null,
 ): DrawPlan {
