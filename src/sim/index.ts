@@ -173,3 +173,6 @@ export type {
   Objective,
   ShareThresholdObjective,
 } from './systems/campaign/index.js';
+
+export { buildCampaignWorld, loadCampaignWorld, migrateSaveEnvelope } from './campaignWorld.js';
+export type { CampaignWorldHandle, SaveEnvelope } from './campaignWorld.js';
