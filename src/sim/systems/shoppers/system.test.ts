@@ -149,6 +149,20 @@ describe('ShoppersSystem — commands and wiring', () => {
     expect(shopper.state).toBe('checkingOut');
   });
 
+  it('stockedGoodAt returns the good stocked at a fixture instance', () => {
+    const { world, grid, shoppers } = worldWithShoppers();
+    grid.place('shelf_basic', 3, 3, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId, goodId: 'milk' });
+    world.step();
+    expect(shoppers.stockedGoodAt(instanceId)).toBe('milk');
+  });
+
+  it('stockedGoodAt returns null for an unstocked instance', () => {
+    const { shoppers } = worldWithShoppers();
+    expect(shoppers.stockedGoodAt(999999)).toBeNull();
+  });
+
   it('replaying the command log reproduces the same hash', () => {
     const seed = 7;
     const { world, grid } = worldWithShoppers(seed);

@@ -177,6 +177,12 @@ export class ShoppersSystem implements System {
     return [...this.#shoppers.keys()].sort((a, b) => a - b);
   }
 
+  /** The good stocked at a fixture instance, or null if unstocked. Render-only accessor —
+   *  feeds the visibility world-mark tell (shelf full/half/empty). */
+  stockedGoodAt(instanceId: number): string | null {
+    return this.#stocking.get(instanceId) ?? null;
+  }
+
   #refreshGoodDestination(world: World, goodId: string): void {
     const cells = this.#grid
       .placements()
