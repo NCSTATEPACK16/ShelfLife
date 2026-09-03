@@ -133,6 +133,7 @@ const MarketConfigSchema = z
       assortment: z.number().min(0),
       price: z.number().min(0),
     }),
+    adjacencyCombos: z.array(z.tuple([z.string().min(1), z.string().min(1)])),
   })
   .refine((c) => c.delightThreshold > c.disgustThreshold, {
     message: 'delightThreshold must exceed disgustThreshold',
@@ -148,3 +149,9 @@ export function parseMarketConfig(raw: unknown): MarketConfig {
 }
 
 export const DEFAULT_MARKET_CONFIG: MarketConfig = parseMarketConfig(JSON5.parse(marketRaw));
+
+export function isAdjacencyCombo(config: MarketConfig, categoryA: string, categoryB: string): boolean {
+  return config.adjacencyCombos.some(
+    ([a, b]) => (a === categoryA && b === categoryB) || (a === categoryB && b === categoryA),
+  );
+}

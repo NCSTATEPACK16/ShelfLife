@@ -1,6 +1,6 @@
 [
-  { "id": "milk", "name": "Milk", "unitPrice": 3.49, "cost": 2.20, "depletionPerDay": 0.15, "reorderThreshold": 0.3, "impulseBase": 0.05 },
-  { "id": "bread", "name": "Bread", "unitPrice": 2.99, "cost": 1.60, "depletionPerDay": 0.2, "reorderThreshold": 0.3, "impulseBase": 0.05 },
-  { "id": "eggs", "name": "Eggs", "unitPrice": 4.29, "cost": 2.80, "depletionPerDay": 0.1, "reorderThreshold": 0.3, "impulseBase": 0.05 },
-  { "id": "snacks", "name": "Snacks", "unitPrice": 3.99, "cost": 1.90, "depletionPerDay": 0.08, "reorderThreshold": 0.25, "impulseBase": 0.2 }
+  { "id": "milk", "name": "Milk", "unitPrice": 3.49, "cost": 2.20, "depletionPerDay": 0.15, "reorderThreshold": 0.3, "impulseBase": 0.05, "category": "dairy" },
+  { "id": "bread", "name": "Bread", "unitPrice": 2.99, "cost": 1.60, "depletionPerDay": 0.2, "reorderThreshold": 0.3, "impulseBase": 0.05, "category": "bakery" },
+  { "id": "eggs", "name": "Eggs", "unitPrice": 4.29, "cost": 2.80, "depletionPerDay": 0.1, "reorderThreshold": 0.3, "impulseBase": 0.05, "category": "dairy" },
+  { "id": "snacks", "name": "Snacks", "unitPrice": 3.99, "cost": 1.90, "depletionPerDay": 0.08, "reorderThreshold": 0.25, "impulseBase": 0.2, "category": "snacks" }
 ]

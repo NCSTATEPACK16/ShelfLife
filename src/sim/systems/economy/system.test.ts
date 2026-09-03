@@ -11,7 +11,7 @@ import { DEFAULT_CATALOG } from '../grid/catalog.js';
 import { EconomySystem } from './system.js';
 
 const CATALOG: readonly GoodDef[] = [
-  { id: 'milk', name: 'Milk', unitPrice: 3, cost: 2, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
+  { id: 'milk', name: 'Milk', unitPrice: 3, cost: 2, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05, category: 'dairy' },
 ];
 
 const FAST_SPOILING_POLICY: SupplyPolicy = {

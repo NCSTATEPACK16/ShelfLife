@@ -7,6 +7,7 @@ import {
   DEFAULT_MARKET_CONFIG,
   DEFAULT_RIVAL_STORES,
   DEFAULT_SEGMENT_CONFIG,
+  isAdjacencyCombo,
   parseMarketConfig,
   parseRivalStore,
   parseSegmentConfig,
@@ -99,6 +100,17 @@ describe('market config', () => {
 
   it('rejects a negative neighbour count', () => {
     expect(() => parseMarketConfig({ ...DEFAULT_MARKET_CONFIG, womNeighbors: 0 })).toThrow();
+  });
+});
+
+describe('adjacencyCombos', () => {
+  it('recognizes an authored combo in either order', () => {
+    expect(isAdjacencyCombo(DEFAULT_MARKET_CONFIG, 'dairy', 'bakery')).toBe(true);
+    expect(isAdjacencyCombo(DEFAULT_MARKET_CONFIG, 'bakery', 'dairy')).toBe(true);
+  });
+
+  it('rejects an unauthored pair', () => {
+    expect(isAdjacencyCombo(DEFAULT_MARKET_CONFIG, 'dairy', 'snacks')).toBe(false);
   });
 });
 

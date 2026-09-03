@@ -118,7 +118,7 @@ describe('InventorySystem', () => {
   it('drainSpoilageValue accumulates cost for every spoiled unit and resets on read', () => {
     const spoilsFast: SupplyPolicy = { ...RELIABLE_POLICY, spoilageTauDays: 0.001 };
     const catalog = [
-      { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.5, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
+      { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.5, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05, category: 'dairy' },
     ];
     const { world, inventory } = worldWithInventory([spoilsFast], 1, catalog);
     world.step();

@@ -47,4 +47,12 @@
     assortment: 0.2,
     price: 0.2,
   },
+
+  // --- adjacency (§5.4's adjacencyBonus) ---------------------------------------
+  // Category pairs that combo for a gold "!" impulse tell when both are stocked within
+  // exposureRadius of each other. Deliberately short — §12.1's own note: "rare enough to
+  // feel like a discovery."
+  adjacencyCombos: [
+    ['dairy', 'bakery'],
+  ],
 }
