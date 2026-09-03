@@ -163,6 +163,17 @@ describe('ShoppersSystem — commands and wiring', () => {
     expect(shoppers.stockedGoodAt(999999)).toBeNull();
   });
 
+  it('spawnShopper starts a new shopper with staffInteractionGood null and queuePenaltyRisingFired false', () => {
+    const { world, shoppers } = worldWithShoppers();
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    world.step();
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+    const shopper = shoppers.shopper(100);
+    expect(shopper.staffInteractionGood).toBeNull();
+    expect(shopper.queuePenaltyRisingFired).toBe(false);
+  });
+
   it('replaying the command log reproduces the same hash', () => {
     const seed = 7;
     const { world, grid } = worldWithShoppers(seed);

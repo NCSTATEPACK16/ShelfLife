@@ -116,7 +116,10 @@ export class ShoppersSystem implements System {
         .bool(shopper.usedSelfCheckout)
         .bool(shopper.balked)
         .bool(shopper.abandoned)
-        .f64(shopper.priceSurpriseSum);
+        .f64(shopper.priceSurpriseSum)
+        .bool(shopper.staffInteractionGood ?? false)
+        .bool(shopper.staffInteractionGood !== null) // distinguishes null from false
+        .bool(shopper.queuePenaltyRisingFired);
       hasher.u32(shopper.remainingList.length);
       for (const goodId of shopper.remainingList) hasher.str(goodId);
       hasher.u32(shopper.cart.length);
@@ -154,6 +157,8 @@ export class ShoppersSystem implements System {
           balked: false,
           abandoned: false,
           priceSurpriseSum: 0,
+          staffInteractionGood: null,
+          queuePenaltyRisingFired: false,
         });
         return true;
       }
