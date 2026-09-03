@@ -158,3 +158,16 @@ describe('harness stream', () => {
     expect(spawnAfter).toBe(spawnBefore);
   });
 });
+
+describe('campaign stream', () => {
+  it('is a distinct stream that does not perturb the others', () => {
+    const before = new StreamSet(12345);
+    const spawnBefore = before.get('spawn').nextUint32();
+
+    const after = new StreamSet(12345);
+    after.get('campaign').nextUint32(); // draw from the new stream first
+    const spawnAfter = after.get('spawn').nextUint32();
+
+    expect(spawnAfter).toBe(spawnBefore);
+  });
+});

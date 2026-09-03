@@ -28,6 +28,7 @@ export const STREAM_NAMES = [
   'checkout',
   'staff',
   'harness',
+  'campaign',
 ] as const;
 
 export type StreamName = (typeof STREAM_NAMES)[number];
