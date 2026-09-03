@@ -19,6 +19,8 @@ import type { Vec2 } from '../pathing/types.js';
 import { DEFAULT_SHOPPERS_CONFIG } from './config.js';
 import type { Shopper, ShopperState } from './types.js';
 import { DEFAULT_GENTLE_SURFACE_CONTENT, thresholdFor } from '../../content/gentle-surface.js';
+import type { TellTerm } from '../../content/gentle-surface.js';
+import { DEFAULT_MARKET_CONFIG, isAdjacencyCombo } from '../market/config.js';
 
 const EXIT_DESTINATION_ID = 'exit';
 const ENTRANCE_POSITION: Vec2 = { x: 0.5, y: 0.5 };
@@ -481,6 +483,18 @@ export class ShoppersSystem implements System {
   /** Path exposure (PLAN.md §5.4): roll impulse only for goods near where the shopper just walked. */
   #rollImpulse(world: World, shopper: Shopper, justPickedGoodId: string): number {
     let hits = 0;
+    const nearbyCategories: string[] = [];
+    for (const [instanceId, goodId] of this.#stocking) {
+      if (goodId === justPickedGoodId) continue;
+      const placement = this.#grid.placements().find((p) => p.instanceId === instanceId);
+      if (!placement) continue;
+      const dx = placement.x - shopper.position.x;
+      const dy = placement.y - shopper.position.y;
+      if (Math.hypot(dx, dy) > DEFAULT_SHOPPERS_CONFIG.exposureRadius) continue;
+      const category = this.#catalogById.get(goodId)?.category;
+      if (category) nearbyCategories.push(category);
+    }
+
     for (const [instanceId, goodId] of this.#stocking) {
       if (goodId === justPickedGoodId) continue;
       const placement = this.#grid.placements().find((p) => p.instanceId === instanceId);
@@ -499,7 +513,28 @@ export class ShoppersSystem implements System {
       const elasticityMultiplier =
         reference > 0 && current > 0 ? (reference / current) ** DEFAULT_ECONOMY_CONFIG.elasticityCoefficient : 1;
       const probability = Math.min(1, good.impulseBase * elasticityMultiplier);
-      if (world.rng.get('impulse').chance(probability)) hits++;
+      if (!world.rng.get('impulse').chance(probability)) continue;
+
+      hits++;
+      const isFirstHitThisTrip = shopper.impulseHits === 0 && hits === 1;
+      if (isFirstHitThisTrip) {
+        world.events.emit({ type: 'tellFired', shopperId: shopper.id, term: 'discovery', magnitude: 1 });
+      }
+
+      const hasNearbyCombo = nearbyCategories.some((c) => isAdjacencyCombo(DEFAULT_MARKET_CONFIG, good.category, c));
+      let term: TellTerm;
+      if (hasNearbyCombo) term = 'adjacencyBonus';
+      else if (this.#economy.isPromoted(goodId, world.tick)) term = 'promoLift';
+      else if (this.#market.household(shopper.householdId).segment === 'family') term = 'needState';
+      else term = 'impulsePurchase';
+
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term,
+        magnitude: 1,
+        worldRef: { instanceId },
+      });
     }
     return hits;
   }

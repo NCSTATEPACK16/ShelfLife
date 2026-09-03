@@ -8,6 +8,7 @@ import { DEFAULT_CATALOG } from '../grid/catalog.js';
 import { InventorySystem } from '../inventory/system.js';
 import type { SupplyPolicy } from '../inventory/types.js';
 import { MarketSystem } from '../market/system.js';
+import type { Segment } from '../market/types.js';
 import { PathingSystem } from '../pathing/system.js';
 import type { GoodDef } from '../goods/types.js';
 import { ShoppersSystem } from './system.js';
@@ -567,6 +568,134 @@ describe('staff interaction and cleanliness satisfaction terms', () => {
       }
     }
     expect(sawCleanlinessLow).toBe(true);
+  });
+});
+
+describe('impulse-hit tell precedence', () => {
+  // impulseBase: 1 makes every eligible impulse roll a guaranteed hit — deterministic
+  // coverage without touching sim RNG internals.
+  const GUARANTEED_CATALOG: readonly GoodDef[] = [
+    { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.8, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05, category: 'dairy' },
+    { id: 'bread', name: 'Bread', unitPrice: 2, cost: 1.2, depletionPerDay: 0.01, reorderThreshold: 0.3, impulseBase: 1, category: 'bakery' },
+    { id: 'eggs', name: 'Eggs', unitPrice: 4, cost: 2.5, depletionPerDay: 0.01, reorderThreshold: 0.3, impulseBase: 1, category: 'dairy' },
+    { id: 'snacks', name: 'Snacks', unitPrice: 4, cost: 2, depletionPerDay: 0.01, reorderThreshold: 0.3, impulseBase: 1, category: 'snacks' },
+  ];
+
+  function buildImpulseWorld(opts: {
+    segment: Segment;
+    /** Impulse-eligible goods to stock alongside milk, at (7,6)/(6,7)/(7,7) as needed. */
+    stockExtraGoodIds: readonly string[];
+    promoteGoodId?: string;
+  }): { world: World; shoppers: ShoppersSystem } {
+    const world = new World({ seed: 3 });
+    const grid = new BuildGrid({ width: 12, height: 12 }, DEFAULT_CATALOG);
+    const pathing = new PathingSystem(grid);
+    world.register(pathing);
+    const policies: readonly SupplyPolicy[] = GUARANTEED_CATALOG.map((g) => ({
+      goodId: g.id,
+      reorderPoint: 5,
+      orderUpToLevel: 1000,
+      leadTimeTicks: 10,
+      supplierReliability: 1,
+      spoilageTauDays: 10_000,
+    }));
+    const inventory = new InventorySystem(policies, undefined, GUARANTEED_CATALOG);
+    world.register(inventory);
+    const checkout = new CheckoutSystem(grid, pathing);
+    world.register(checkout);
+    const economy = new EconomySystem(checkout, inventory, GUARANTEED_CATALOG);
+    world.register(economy);
+    const market = new MarketSystem(null, GUARANTEED_CATALOG);
+    world.register(market);
+    const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, GUARANTEED_CATALOG);
+    world.register(shoppers);
+
+    // milk (the required list item) at (6,6); only the caller's chosen extra goods are
+    // stocked nearby at (7,6)/(6,7)/(7,7), so adjacency coverage is exact per test —
+    // stocking every impulse-eligible good always would make bread+eggs (an authored
+    // combo) fire regardless of which scenario a test is trying to isolate.
+    const extraPositions: readonly [number, number][] = [
+      [7, 6],
+      [6, 7],
+      [7, 7],
+    ];
+    grid.place('shelf_endcap', 6, 6, 0);
+    const milkShelf = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: milkShelf, goodId: 'milk' });
+    opts.stockExtraGoodIds.forEach((goodId, i) => {
+      const [x, y] = extraPositions[i]!;
+      grid.place('shelf_endcap', x, y, 0);
+      const instanceId = grid.placements()[grid.placements().length - 1]!.instanceId;
+      world.commands.push({ type: 'stockFixture', instanceId, goodId });
+    });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: opts.segment, position: { x: 0, y: 0 } });
+    if (opts.promoteGoodId) {
+      world.commands.push({ type: 'startPromotion', goodId: opts.promoteGoodId, discountFraction: 0.2, durationTicks: 100_000 });
+    }
+    world.step();
+    world.run(7 * 1440); // priceHunter's 0.9x consumptionMultiplier needs extra days to cross reorderThreshold
+    expect(shoppers.household(1).list).toEqual(['milk']);
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+    return { world, shoppers };
+  }
+
+  function collectImpulseTells(world: World, shoppers: ShoppersSystem): { type: 'tellFired'; term: string }[] {
+    const seen: { type: 'tellFired'; term: string }[] = [];
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      for (const e of world.events.drain()) {
+        if (e.type === 'tellFired') seen.push({ type: 'tellFired', term: e.term });
+      }
+    }
+    return seen;
+  }
+
+  it('tags adjacencyBonus when a combo category is nearby, even if also promoted', () => {
+    // bread (bakery) is stocked adjacent to eggs (dairy) — an authored combo — and bread
+    // is also promoted; adjacencyBonus must still win.
+    // bread (bakery) stocked alongside eggs (dairy) — an authored combo — and bread is
+    // also promoted; adjacencyBonus must still win.
+    const { world, shoppers } = buildImpulseWorld({
+      segment: 'priceHunter',
+      stockExtraGoodIds: ['bread', 'eggs'],
+      promoteGoodId: 'bread',
+    });
+    const tells = collectImpulseTells(world, shoppers);
+    const impulseTerms = new Set(['adjacencyBonus', 'promoLift', 'needState', 'impulsePurchase']);
+    const impulseTells = tells.filter((t) => impulseTerms.has(t.term));
+    expect(impulseTells.length).toBeGreaterThan(0);
+    expect(impulseTells.every((t) => t.term === 'adjacencyBonus')).toBe(true);
+  });
+
+  it('tags promoLift when promoted but not adjacent to a combo good', () => {
+    // snacks stocked alone — no combo partner nearby.
+    const { world, shoppers } = buildImpulseWorld({
+      segment: 'priceHunter',
+      stockExtraGoodIds: ['snacks'],
+      promoteGoodId: 'snacks',
+    });
+    const tells = collectImpulseTells(world, shoppers);
+    expect(tells.some((t) => t.term === 'promoLift')).toBe(true);
+    expect(tells.some((t) => t.term === 'adjacencyBonus')).toBe(false);
+  });
+
+  it('tags needState for a family-segment shopper with no promo/adjacency', () => {
+    const { world, shoppers } = buildImpulseWorld({ segment: 'family', stockExtraGoodIds: ['bread'] });
+    const tells = collectImpulseTells(world, shoppers);
+    expect(tells.some((t) => t.term === 'needState')).toBe(true);
+  });
+
+  it('tags plain impulsePurchase for a non-family shopper with no promo/adjacency', () => {
+    const { world, shoppers } = buildImpulseWorld({ segment: 'priceHunter', stockExtraGoodIds: ['bread'] });
+    const tells = collectImpulseTells(world, shoppers);
+    expect(tells.some((t) => t.term === 'impulsePurchase')).toBe(true);
+  });
+
+  it('fires discovery once, on the first impulse hit of a trip', () => {
+    const { world, shoppers } = buildImpulseWorld({ segment: 'priceHunter', stockExtraGoodIds: ['bread'] });
+    const tells = collectImpulseTells(world, shoppers);
+    expect(tells.filter((t) => t.term === 'discovery')).toHaveLength(1);
   });
 });
 
