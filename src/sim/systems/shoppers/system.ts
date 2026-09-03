@@ -294,6 +294,7 @@ export class ShoppersSystem implements System {
       if (laneId === null) {
         // No open lane at all — the understaffing story: nothing to queue for, so the
         // trip ends here rather than waiting forever for a lane that will never open.
+        world.events.emit({ type: 'tellFired', shopperId: shopper.id, term: 'queuePenaltyBalk', magnitude: 1 });
         return { ...shopper, state: 'leaving', balked: true };
       }
       this.#checkout.reserveLane(laneId);
@@ -314,7 +315,25 @@ export class ShoppersSystem implements System {
     }
 
     const outcome = this.#checkout.statusOf(shopper.id);
-    if (outcome === 'waiting' || outcome === 'beingServed' || outcome === 'notInQueue') return shopper;
+
+    if (outcome === 'waiting' || outcome === 'beingServed') {
+      if (!shopper.queuePenaltyRisingFired && shopper.checkoutJoinedAtTick !== null) {
+        const liveWaitTicks = world.tick - shopper.checkoutJoinedAtTick;
+        const liveMagnitude = Math.min(1, (liveWaitTicks / DEFAULT_STAFFING_CONFIG.balkToleranceTicks) ** 1.6);
+        if (liveMagnitude >= thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'queuePenaltyRising')) {
+          world.events.emit({
+            type: 'tellFired',
+            shopperId: shopper.id,
+            term: 'queuePenaltyRising',
+            magnitude: liveMagnitude,
+            worldRef: { instanceId: laneId },
+          });
+          return { ...shopper, queuePenaltyRisingFired: true };
+        }
+      }
+      return shopper;
+    }
+    if (outcome === 'notInQueue') return shopper;
 
     const waitTicks = shopper.checkoutJoinedAtTick !== null ? world.tick - shopper.checkoutJoinedAtTick : 0;
 
@@ -342,10 +361,24 @@ export class ShoppersSystem implements System {
         householdId: shopper.householdId,
         items: shopper.cart,
       });
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'queuePenaltyBalk',
+        magnitude: 1,
+        worldRef: { instanceId: laneId },
+      });
       return { ...shopper, state: 'leaving', checkoutWaitTicks: waitTicks, abandoned: true };
     }
 
     // 'balked'
+    world.events.emit({
+      type: 'tellFired',
+      shopperId: shopper.id,
+      term: 'queuePenaltyBalk',
+      magnitude: 1,
+      worldRef: { instanceId: laneId },
+    });
     return { ...shopper, state: 'leaving', checkoutWaitTicks: waitTicks, balked: true };
   }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { replay, World } from '../../core/world.js';
+import { DEFAULT_STAFFING_CONFIG } from '../checkout/config.js';
 import { CheckoutSystem } from '../checkout/system.js';
 import { EconomySystem } from '../economy/system.js';
 import { BuildGrid } from '../grid/grid.js';
@@ -368,6 +369,78 @@ describe('tellFired for stepShopping terms', () => {
       }
     }
     expect(sawPriceSurpriseTell).toBe(false);
+  });
+});
+
+describe('live queuePenalty tells', () => {
+  function buildQueuedBehindBlockerWorld(staffingOverrides: { balkToleranceTicks: number; abandonToleranceTicks: number }): {
+    world: World;
+    checkout: CheckoutSystem;
+    shoppers: ShoppersSystem;
+    laneId: number;
+  } {
+    const world = new World({ seed: 1 });
+    const grid = new BuildGrid({ width: 12, height: 12 }, DEFAULT_CATALOG);
+    const pathing = new PathingSystem(grid);
+    world.register(pathing);
+    const inventory = new InventorySystem(POLICIES);
+    world.register(inventory);
+    const checkout = new CheckoutSystem(grid, pathing, {
+      ...DEFAULT_STAFFING_CONFIG,
+      ...staffingOverrides,
+    });
+    world.register(checkout);
+    const economy = new EconomySystem(checkout, inventory, CATALOG);
+    world.register(economy);
+    const market = new MarketSystem(null, CATALOG);
+    world.register(market);
+    const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, CATALOG);
+    world.register(shoppers);
+
+    grid.place('shelf_basic', 3, 3, 0);
+    const shelfId = grid.placements()[0]!.instanceId;
+    grid.place('register', 10, 10, 0);
+    const laneId = grid.placements()[1]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.8 });
+    world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: laneId });
+    world.step();
+    // A synthetic blocker (not tracked by ShoppersSystem, same precedent as
+    // checkout/system.test.ts's own balk/abandon tests) occupies the lane indefinitely
+    // so the real shopper below queues behind it and accumulates real wait ticks.
+    checkout.reserveLane(laneId);
+    checkout.joinQueue(999_999, laneId, 100_000, world.tick);
+
+    world.run(5 * 1440); // milk crosses its reorder threshold, entering the list
+    expect(shoppers.household(1).list).toEqual(['milk']);
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+
+    return { world, checkout, shoppers, laneId };
+  }
+
+  it('fires queuePenaltyRising once, mid-trip, once wait crosses the rising threshold', () => {
+    const { world, shoppers } = buildQueuedBehindBlockerWorld({ balkToleranceTicks: 200, abandonToleranceTicks: 400 });
+    let firedCount = 0;
+    for (let i = 0; i < 3000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      firedCount += world.events.drain().filter((e) => e.type === 'tellFired' && e.term === 'queuePenaltyRising').length;
+    }
+    expect(firedCount).toBe(1); // fires once, not once per tick above threshold
+  });
+
+  it('fires queuePenaltyBalk exactly when the trip abandons', () => {
+    const { world, shoppers } = buildQueuedBehindBlockerWorld({ balkToleranceTicks: 50, abandonToleranceTicks: 51 });
+    let balkTellSeen = false;
+    for (let i = 0; i < 3000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term === 'queuePenaltyBalk')) {
+        balkTellSeen = true;
+      }
+    }
+    expect(balkTellSeen).toBe(true);
+    expect(shoppers.activeShopperIds()).not.toContain(100);
   });
 });
 
