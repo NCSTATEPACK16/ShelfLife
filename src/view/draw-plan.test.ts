@@ -33,4 +33,9 @@ describe('buildDrawPlan', () => {
     const plan = buildDrawPlan(SNAPSHOT, ORIGIN, null);
     expect(typeof plan.fixtures[0]?.color).toBe('number');
   });
+
+  it('carries the placement instanceId, for matching against shelf-fullness data', () => {
+    const plan = buildDrawPlan(SNAPSHOT, ORIGIN, null);
+    expect(plan.fixtures[0]?.instanceId).toBe(1);
+  });
 });

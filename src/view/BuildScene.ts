@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import type { BuildModeBridge } from '../bridge/build-bridge.js';
 import tokens from '../../content/design/tokens.json';
+import { DEFAULT_GENTLE_SURFACE_CONTENT } from '../sim/content/gentle-surface.js';
 import { buildDrawPlan } from './draw-plan.js';
 import { toPhaserColor } from './fixture-colors.js';
 import { buildFlowFieldDrawPlan } from './pathing-debug-plan.js';
 import { buildShopperDrawPlan } from './shopper-draw-plan.js';
+import { buildTellDrawPlan } from './tell-draw-plan.js';
 
 /**
  * Renders the build-mode grid. Reads the bridge's snapshot; never mutates it.
@@ -71,9 +73,39 @@ export class BuildScene extends Phaser.Scene {
     }
 
     const shopperColor = toPhaserColor(tokens.color.product.green.base);
-    for (const marker of buildShopperDrawPlan(this.#bridge.shoppersSnapshot(), this.#origin)) {
+    const shopperMarkers = buildShopperDrawPlan(this.#bridge.shoppersSnapshot(), this.#origin);
+    for (const marker of shopperMarkers) {
       g.fillStyle(shopperColor, 1);
       g.fillCircle(marker.x, marker.y, 6);
+    }
+
+    // Shelf fullness (visibility tell — world mark only, no bubble): a thin colored bar
+    // under each stocked shelf's fixture rect, proportional to capacity.
+    for (const shelf of this.#bridge.shelfFullness()) {
+      const rect = plan.fixtures.find((f) => f.instanceId === shelf.instanceId);
+      if (!rect) continue;
+      const barColor = shelf.fraction < 0.25 ? 0xef4444 : shelf.fraction < 0.6 ? 0xf59e0b : 0x22c55e;
+      g.fillStyle(barColor, 1);
+      g.fillRect(rect.x, rect.y + rect.height - 3, rect.width * shelf.fraction, 3);
+    }
+
+    // Tell bubbles: rate-limited, one per shopper, highest magnitude wins.
+    // buildTellDrawPlan does its own worldToScreen — feed it world positions, not the
+    // already-projected shopperMarkers screen coordinates.
+    const shopperWorldPositionsById = new Map(
+      this.#bridge.shoppersSnapshot().map((s) => [s.id, { x: s.x, y: s.y }]),
+    );
+    const tellMarkers = buildTellDrawPlan(
+      this.#bridge.pendingTells(),
+      DEFAULT_GENTLE_SURFACE_CONTENT,
+      shopperWorldPositionsById,
+      this.#origin,
+      8, // regular-breakpoint cap; compact wiring is phase 2.3's Preact-layer concern
+    );
+    const bubbleColor = toPhaserColor(tokens.color.product.violet.base);
+    for (const marker of tellMarkers) {
+      g.fillStyle(bubbleColor, 1);
+      g.fillCircle(marker.x, marker.y - 14, 4); // small token above the shopper marker
     }
   }
 }

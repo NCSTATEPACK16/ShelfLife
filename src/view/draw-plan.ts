@@ -3,6 +3,7 @@ import { colorForFixture, selectionColor } from './fixture-colors.js';
 import { TILE_HEIGHT, TILE_WIDTH, worldToScreen } from './iso.js';
 
 export interface DrawRect {
+  readonly instanceId: number;
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -43,6 +44,7 @@ export function buildDrawPlan(
     const screen = worldToScreen(placement.x, placement.y, origin);
     const selected = placement.instanceId === selectedInstanceId;
     return {
+      instanceId: placement.instanceId,
       x: screen.x - (TILE_WIDTH / 2) * footprintH,
       y: screen.y,
       width: (footprintW + footprintH) * (TILE_WIDTH / 2),
