@@ -1,18 +1,26 @@
 import type { AdvisorLine, ManageTab } from './advisors.js';
+import type { Breakpoint } from '../platform/layout/index.js';
 
 export interface AdvisorFeedProps {
   readonly lines: readonly AdvisorLine[];
+  readonly breakpoint: Breakpoint;
   readonly onShowMe: (target: { tab: ManageTab; rowId?: string }) => void;
   readonly onDismiss: (index: number) => void;
 }
 
 const MAX_VISIBLE = 3;
 
-/** Stacked advisor queue, most recent first, capped at MAX_VISIBLE — anchored below the HUD top bar. */
+/**
+ * Stacked advisor queue, most recent first, capped at MAX_VISIBLE — anchored below the HUD
+ * top bar. Compact has no docked side panel to avoid (build/manage panels are bottom-anchored
+ * there), so it spans full width; regular reserves both the build-mode right panel (16rem) and
+ * the manage-mode left rail (5rem) so a fired advisor line never covers either.
+ */
 export function AdvisorFeed(props: AdvisorFeedProps): preact.JSX.Element {
   const visible = props.lines.slice(-MAX_VISIBLE);
-  const style = `position:fixed;top:calc(var(--inset-top,0) + 48px);left:var(--space-3);
-    right:var(--space-3);z-index:9;display:flex;flex-direction:column;gap:var(--space-2)`;
+  const horizontalInset = props.breakpoint === 'compact' ? 'left:var(--space-3);right:var(--space-3)' : 'left:6rem;right:17rem';
+  const style = `position:fixed;top:calc(var(--inset-top,0) + 48px);${horizontalInset};
+    z-index:9;display:flex;flex-direction:column;gap:var(--space-2)`;
 
   return (
     <div style={style} aria-live="polite">

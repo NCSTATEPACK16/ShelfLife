@@ -48,6 +48,12 @@ export async function mountCampaign(
   const levelDef = DEFAULT_LEVEL_CONTENT.get(LEVEL_ID)!;
   const origin = { x: canvas.clientWidth / 2, y: 80 };
 
+  // A fixed debug-only destination so the flow-field overlay always has something to show
+  // (same purpose as build-mode.ts's identical setup — carried over, not reinvented).
+  const DEBUG_DESTINATION_ID = 'debug-exit';
+  const dimensions = bridge.snapshot().dimensions;
+  bridge.registerDestination(DEBUG_DESTINATION_ID, [{ x: dimensions.width - 1, y: dimensions.height - 1 }]);
+
   const scene = new BuildScene(bridge, origin);
   new Phaser.Game({
     type: Phaser.CANVAS,
@@ -68,6 +74,7 @@ export async function mountCampaign(
   const tellCounts = new Map<string, number>();
   let chapterModalKind: ChapterModalKind = null;
   let chapterModalCopy: ChapterAdvisorLine | null = null;
+  let pathingDebugOn = false;
 
   const hudRoot = document.createElement('div');
   uiRoot.appendChild(hudRoot);
@@ -86,8 +93,34 @@ export async function mountCampaign(
     return levelDef.chapters[bridge.state.chapterIndex]!;
   }
 
+  /**
+   * `panelRoot` holds either BuildModePanel (build mode) or the active manage-mode panel —
+   * neither positions its own container (that's this function's job, matching the old
+   * build-mode.ts's positionPanelRoot). Manage mode additionally has to clear the HUD/advisor
+   * space above it and the ManageTabBar below it, which build mode doesn't need to (build
+   * mode's tab bar is hidden).
+   */
+  function positionPanelRoot(breakpoint: Breakpoint): void {
+    if (mode === 'build') {
+      panelRoot.style.cssText =
+        breakpoint === 'compact'
+          ? `position:fixed;left:0;right:0;bottom:0;background:var(--surface-raised);
+             box-shadow:var(--shadow-panel);padding:var(--space-2)`
+          : `position:fixed;top:56px;right:0;bottom:0;width:16rem;background:var(--surface-raised);
+             box-shadow:var(--shadow-panel);padding:var(--space-3);overflow-y:auto`;
+    } else {
+      panelRoot.style.cssText =
+        breakpoint === 'compact'
+          ? `position:fixed;left:0;right:0;top:calc(var(--inset-top,0) + 96px);
+             bottom:calc(var(--home-indicator-guard,34px) + 64px);z-index:1;
+             background:var(--surface-raised);box-shadow:var(--shadow-panel);overflow-y:auto`
+          : `position:fixed;left:5rem;right:0;top:56px;bottom:0;z-index:1;background:var(--surface);overflow-y:auto`;
+    }
+  }
+
   function renderUi(): void {
     const breakpoint: Breakpoint = breakpointFor(globalThis.innerWidth);
+    positionPanelRoot(breakpoint);
 
     render(
       HudTopBar({
@@ -108,6 +141,7 @@ export async function mountCampaign(
     render(
       AdvisorFeed({
         lines: advisorLines,
+        breakpoint,
         onShowMe: (target) => {
           mode = 'manage';
           manageTab = target.tab;
@@ -159,8 +193,12 @@ export async function mountCampaign(
             scene.redraw();
             renderUi();
           },
-          pathingDebugOn: false,
-          onTogglePathingDebug: () => {},
+          pathingDebugOn,
+          onTogglePathingDebug: () => {
+            pathingDebugOn = !pathingDebugOn;
+            scene.setDebugDestination(pathingDebugOn ? DEBUG_DESTINATION_ID : null);
+            renderUi();
+          },
         }),
         panelRoot,
       );

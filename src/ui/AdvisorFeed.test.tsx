@@ -14,7 +14,7 @@ const lines: AdvisorLine[] = [
 describe('AdvisorFeed', () => {
   it('shows at most 3 lines at once, oldest dropped first', () => {
     const root = document.createElement('div');
-    render(<AdvisorFeed lines={lines} onShowMe={() => {}} onDismiss={() => {}} />, root);
+    render(<AdvisorFeed lines={lines} breakpoint="compact" onShowMe={() => {}} onDismiss={() => {}} />, root);
     expect(root.querySelectorAll('[data-testid="advisor-line"]').length).toBe(3);
     expect(root.textContent).not.toContain('Dairy is bleeding.'); // the oldest, dropped
   });
@@ -25,6 +25,7 @@ describe('AdvisorFeed', () => {
     render(
       <AdvisorFeed
         lines={[lines[1]!]}
+        breakpoint="compact"
         onShowMe={(target) => {
           clicked = target;
         }}

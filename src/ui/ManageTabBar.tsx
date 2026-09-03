@@ -21,10 +21,13 @@ export function ManageTabBar(props: ManageTabBarProps): preact.JSX.Element {
   const layout = props.breakpoint === 'compact' ? 'bottom' : 'rail';
   const style =
     layout === 'bottom'
-      ? `position:fixed;left:0;right:0;bottom:var(--home-indicator-guard,34px);
+      ? `position:fixed;left:0;right:0;bottom:var(--home-indicator-guard,34px);z-index:8;
          display:flex;justify-content:space-around;background:var(--surface-raised);
          box-shadow:var(--shadow-panel);padding:var(--space-2)`
-      : `position:fixed;top:0;left:0;bottom:0;width:5rem;display:flex;flex-direction:column;
+      : // top offset clears the fixed HudTopBar (z-index:10), which otherwise paints over the
+        // rail's first tab even though the rail comes later in the DOM — position:fixed
+        // siblings stack by z-index, not document order, once either sets one explicitly.
+        `position:fixed;top:56px;left:0;bottom:0;width:5rem;z-index:8;display:flex;flex-direction:column;
          gap:var(--space-2);background:var(--surface-raised);box-shadow:var(--shadow-raised);
          padding:var(--space-3) var(--space-2)`;
 
