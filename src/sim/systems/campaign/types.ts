@@ -36,7 +36,7 @@ export interface ChapterDef {
   readonly id: string;
   readonly title: string;
   /** Absent for a chapter that grants no new mechanic. */
-  readonly mechanicUnlock?: string;
+  readonly mechanicUnlock?: string | undefined;
   readonly introCopy: AdvisorLine;
   readonly outroCopy: AdvisorLine;
   readonly objective: Objective;

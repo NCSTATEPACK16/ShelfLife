@@ -142,3 +142,34 @@ export type {
 
 export { DEFAULT_ECONOMY_CONFIG, EconomySystem, parseEconomyConfig } from './systems/economy/index.js';
 export type { DailyStatement, EconomyConfig, LedgerCategory, LedgerEntry, Promotion } from './systems/economy/index.js';
+
+export {
+  buildLevelDef,
+  CampaignSystem,
+  ChapterNotAdvanceableError,
+  computeShareTrajectory,
+  computeWinResult,
+  DEFAULT_LEVEL_CONTENT,
+  DEFAULT_LEVEL_IDS,
+  ebitdaStreakBreached,
+  parseLevelContent,
+  STARTING_STORES,
+  TripCounter,
+} from './systems/campaign/index.js';
+export type {
+  AdvisorLine,
+  CampaignEconomyReader,
+  CampaignMarketReader,
+  CampaignState,
+  ChapterDef,
+  ChapterStatus,
+  DailyTripCounts,
+  EbitdaStreakLoseCondition,
+  HouseholdGenerationConfig,
+  LevelContent,
+  LevelDef,
+  LevelStatus,
+  LoseCondition,
+  Objective,
+  ShareThresholdObjective,
+} from './systems/campaign/index.js';
