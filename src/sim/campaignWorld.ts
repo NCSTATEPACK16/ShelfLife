@@ -27,6 +27,14 @@ const CAMPAIGN_GRID_DIMENSIONS = { width: 30, height: 30 };
 export interface CampaignWorldHandle {
   readonly world: World;
   readonly campaign: CampaignSystem;
+  readonly grid: GridSystem;
+  readonly pathing: PathingSystem;
+  readonly inventory: InventorySystem;
+  readonly checkout: CheckoutSystem;
+  readonly economy: EconomySystem;
+  readonly rivals: RivalsSystem;
+  readonly market: MarketSystem;
+  readonly shoppers: ShoppersSystem;
 }
 
 interface GeneratedHousehold {
@@ -80,6 +88,14 @@ function generateHouseholds(
 interface RegisteredCampaign {
   readonly campaign: CampaignSystem;
   readonly households: readonly GeneratedHousehold[];
+  readonly grid: GridSystem;
+  readonly pathing: PathingSystem;
+  readonly inventory: InventorySystem;
+  readonly checkout: CheckoutSystem;
+  readonly economy: EconomySystem;
+  readonly rivals: RivalsSystem;
+  readonly market: MarketSystem;
+  readonly shoppers: ShoppersSystem;
 }
 
 /**
@@ -138,23 +154,23 @@ function registerCampaignSystems(world: World, levelId: string): RegisteredCampa
   world.register(campaign);
 
   const households = generateHouseholds(world.rng.get('campaign'), level.households, rivalRoster);
-  return { campaign, households };
+  return { campaign, households, grid, pathing, inventory, checkout, economy, rivals, market, shoppers };
 }
 
 /** A fresh level start: registers systems, then pushes the level's starting-store fixtures and
  *  its generated households, drawn from `world.rng.get('campaign')`. */
 export function buildCampaignWorld(levelId: string, seed: number): CampaignWorldHandle {
   const world = new World({ seed });
-  const { campaign, households } = registerCampaignSystems(world, levelId);
-  const level = campaign.level;
+  const registered = registerCampaignSystems(world, levelId);
+  const level = registered.campaign.level;
 
   for (const command of level.startingStore) world.commands.push(command);
 
-  for (const h of households) {
+  for (const h of registered.households) {
     world.commands.push({ type: 'addHousehold', householdId: h.householdId, segment: h.segment, position: h.position });
   }
 
-  return { world, campaign };
+  return { world, ...registered };
 }
 
 export interface SaveEnvelope {
@@ -171,11 +187,11 @@ export interface SaveEnvelope {
  * §5.2). Re-pushing them here would double every fixture and household.
  */
 export function loadCampaignWorld(save: SaveEnvelope): CampaignWorldHandle {
-  let campaign!: CampaignSystem;
+  let registered!: RegisteredCampaign;
   const world = replay(save.seed, save.commandLog, save.tick, (w) => {
-    ({ campaign } = registerCampaignSystems(w, save.levelId));
+    registered = registerCampaignSystems(w, save.levelId);
   });
-  return { world, campaign };
+  return { world, ...registered };
 }
 
 const SaveEnvelopeSchema = z.object({

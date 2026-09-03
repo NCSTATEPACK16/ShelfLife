@@ -19,6 +19,18 @@ describe('buildCampaignWorld', () => {
     ]);
   });
 
+  it('returns every registered system, not just world and campaign', () => {
+    const handle = buildCampaignWorld('l1', 1);
+    expect(handle.grid).toBeDefined();
+    expect(handle.pathing).toBeDefined();
+    expect(handle.inventory).toBeDefined();
+    expect(handle.checkout).toBeDefined();
+    expect(handle.economy).toBeDefined();
+    expect(handle.rivals).toBeDefined();
+    expect(handle.market).toBeDefined();
+    expect(handle.shoppers).toBeDefined();
+  });
+
   it('generates the configured household count', () => {
     const { world } = buildCampaignWorld('l1', 1);
     world.step();
