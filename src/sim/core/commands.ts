@@ -38,6 +38,7 @@ export type Command =
   | { readonly type: 'removeFixture'; readonly instanceId: number }
   | { readonly type: 'undoBuild' }
   | { readonly type: 'redoBuild' }
+  | { readonly type: 'advanceChapter' }
   | {
       readonly type: 'registerPathingDestination';
       readonly destinationId: string;
@@ -189,6 +190,7 @@ export function hashCommand(hasher: Hasher, command: Command): void {
     case 'resume':
     case 'undoBuild':
     case 'redoBuild':
+    case 'advanceChapter':
       return;
     default: {
       const exhaustive: never = command;
