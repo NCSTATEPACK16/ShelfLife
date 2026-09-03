@@ -85,6 +85,28 @@ describe('EconomySystem — pricing', () => {
   });
 });
 
+describe('EconomySystem — isPromoted', () => {
+  it('is true while a startPromotion command is active', () => {
+    const { world, economy } = worldWithEconomy();
+    world.commands.push({ type: 'startPromotion', goodId: 'milk', discountFraction: 0.2, durationTicks: 100 });
+    world.step();
+    expect(economy.isPromoted('milk', world.tick)).toBe(true);
+  });
+
+  it('is false once the promotion has expired', () => {
+    const { world, economy } = worldWithEconomy();
+    world.commands.push({ type: 'startPromotion', goodId: 'milk', discountFraction: 0.2, durationTicks: 1 });
+    world.step();
+    world.step();
+    expect(economy.isPromoted('milk', world.tick)).toBe(false);
+  });
+
+  it('is false for a good with no promotion', () => {
+    const { world, economy } = worldWithEconomy();
+    expect(economy.isPromoted('milk', world.tick)).toBe(false);
+  });
+});
+
 describe('EconomySystem — priceLevel', () => {
   it('returns 1 when every good is at reference price', () => {
     const { world, economy } = worldWithEconomy();

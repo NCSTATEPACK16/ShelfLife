@@ -125,6 +125,11 @@ export class EconomySystem implements System {
     return this.priceOf(goodId, tick) <= cost * this.#config.lossLeaderMarginThreshold;
   }
 
+  isPromoted(goodId: string, tick: number): boolean {
+    const promo = this.#promotions.get(goodId);
+    return promo !== undefined && tick < promo.endsAtTick;
+  }
+
   /** Called directly by ShoppersSystem at the moment a sale completes. */
   recordSale(revenue: number, cogs: number, tick: number): void {
     this.#ledger.push({ tick, category: 'revenue', amount: revenue });
