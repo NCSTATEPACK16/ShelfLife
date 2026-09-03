@@ -444,6 +444,132 @@ describe('live queuePenalty tells', () => {
   });
 });
 
+describe('staff interaction and cleanliness satisfaction terms', () => {
+  function buildTripWorld(opts: { staffMorale?: number; selfCheckoutOnly?: boolean; seed?: number }): {
+    world: World;
+    shoppers: ShoppersSystem;
+    checkout: CheckoutSystem;
+  } {
+    const world = new World({ seed: opts.seed ?? 42 });
+    const grid = new BuildGrid({ width: 12, height: 12 }, DEFAULT_CATALOG);
+    const pathing = new PathingSystem(grid);
+    world.register(pathing);
+    const inventory = new InventorySystem(POLICIES);
+    world.register(inventory);
+    const checkout = new CheckoutSystem(grid, pathing);
+    world.register(checkout);
+    const economy = new EconomySystem(checkout, inventory, CATALOG);
+    world.register(economy);
+    const market = new MarketSystem(null, CATALOG);
+    world.register(market);
+    const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, CATALOG);
+    world.register(shoppers);
+
+    grid.place('shelf_basic', 6, 6, 0);
+    const shelfId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    if (opts.selfCheckoutOnly) {
+      grid.place('self_checkout', 10, 10, 0);
+    } else {
+      grid.place('register', 10, 10, 0);
+      const registerId = grid.placements()[1]!.instanceId;
+      world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: opts.staffMorale ?? 0.9 });
+      world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId: registerId });
+    }
+    world.step();
+    world.run(5 * 1440);
+    expect(shoppers.household(1).list).toEqual(['milk']);
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+    return { world, shoppers, checkout };
+  }
+
+  function runFullTripSatisfaction(opts: { staffMorale: number }): number {
+    const { world, shoppers } = buildTripWorld({ staffMorale: opts.staffMorale });
+    let satisfaction: number | undefined;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      const trip = world.events.drain().find((e) => e.type === 'shopperTripCompleted');
+      if (trip?.type === 'shopperTripCompleted') satisfaction = trip.satisfaction;
+    }
+    if (satisfaction === undefined) throw new Error('trip never completed');
+    return satisfaction;
+  }
+
+  it('fires staffInteractionGood when morale is above threshold', () => {
+    const { world, shoppers } = buildTripWorld({ staffMorale: 0.9 });
+    let sawGood = false;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term === 'staffInteractionGood')) {
+        sawGood = true;
+      }
+    }
+    expect(sawGood).toBe(true);
+  });
+
+  it('fires staffInteractionAbsent for self-checkout', () => {
+    const { world, shoppers } = buildTripWorld({ selfCheckoutOnly: true });
+    let sawAbsent = false;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term === 'staffInteractionAbsent')) {
+        sawAbsent = true;
+      }
+    }
+    expect(sawAbsent).toBe(true);
+  });
+
+  it('a good staff interaction scores higher satisfaction than an absent one, all else equal', () => {
+    const highMorale = runFullTripSatisfaction({ staffMorale: 0.9 });
+    const lowMorale = runFullTripSatisfaction({ staffMorale: 0.1 });
+    expect(highMorale).toBeGreaterThan(lowMorale);
+  });
+
+  it('fires cleanlinessLow once cleanliness has decayed below threshold with no staff tidying', () => {
+    // No staff assigned at all — cleanliness only decays, never recovers, and the
+    // household needs several days of pantry depletion anyway, giving decay time to work.
+    const world = new World({ seed: 1 });
+    const grid = new BuildGrid({ width: 12, height: 12 }, DEFAULT_CATALOG);
+    const pathing = new PathingSystem(grid);
+    world.register(pathing);
+    const inventory = new InventorySystem(POLICIES);
+    world.register(inventory);
+    const checkout = new CheckoutSystem(grid, pathing);
+    world.register(checkout);
+    const economy = new EconomySystem(checkout, inventory, CATALOG);
+    world.register(economy);
+    const market = new MarketSystem(null, CATALOG);
+    world.register(market);
+    const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, CATALOG);
+    world.register(shoppers);
+
+    grid.place('shelf_basic', 6, 6, 0);
+    const shelfId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    grid.place('self_checkout', 10, 10, 0);
+    world.step();
+    // Run well past 5 days of depletion, driving cleanliness deep into decay with no
+    // staff ever assigned to restore it (cleanlinessDecayPerTick accumulates unopposed).
+    world.run(8 * 1440);
+    expect(checkout.cleanliness()).toBeLessThan(0.6);
+    expect(shoppers.household(1).list).toEqual(['milk']);
+
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+    let sawCleanlinessLow = false;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term === 'cleanlinessLow')) {
+        sawCleanlinessLow = true;
+      }
+    }
+    expect(sawCleanlinessLow).toBe(true);
+  });
+});
+
 describe('ShoppersSystem — a full trip (PLAN.md §16 phase 1.6 gate)', () => {
   it('a shopper walks in, fills a correct list, pays, leaves', () => {
     const { world, grid, shoppers } = worldWithShoppers(42);

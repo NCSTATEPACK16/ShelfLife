@@ -298,7 +298,17 @@ export class ShoppersSystem implements System {
         return { ...shopper, state: 'leaving', balked: true };
       }
       this.#checkout.reserveLane(laneId);
-      return { ...shopper, checkoutLaneId: laneId, usedSelfCheckout: this.#checkout.isSelfCheckout(laneId) };
+      const usedSelfCheckout = this.#checkout.isSelfCheckout(laneId);
+      const morale = this.#checkout.staffMoraleOnLane(laneId);
+      const staffInteractionGood = morale !== null && morale >= DEFAULT_STAFFING_CONFIG.staffInteractionMoraleThreshold;
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: staffInteractionGood ? 'staffInteractionGood' : 'staffInteractionAbsent',
+        magnitude: 1,
+        worldRef: { instanceId: laneId },
+      });
+      return { ...shopper, checkoutLaneId: laneId, usedSelfCheckout, staffInteractionGood };
     }
 
     const laneId = shopper.checkoutLaneId;
@@ -404,6 +414,17 @@ export class ShoppersSystem implements System {
     const abandonPenalty = moved.abandoned ? DEFAULT_SHOPPERS_CONFIG.abandonExtraPenalty : 0;
     const selfCheckoutPenalty = moved.usedSelfCheckout ? DEFAULT_STAFFING_CONFIG.selfCheckoutServiceScorePenalty : 0;
     const priceSurprise = moved.cart.length > 0 ? moved.priceSurpriseSum / moved.cart.length : 0;
+    const cleanlinessGap = 1 - this.#checkout.cleanliness();
+    if (cleanlinessGap >= thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'cleanlinessLow')) {
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: moved.id,
+        term: 'cleanlinessLow',
+        magnitude: Math.min(1, cleanlinessGap),
+      });
+    }
+    const staffInteractionBonus =
+      moved.staffInteractionGood === true ? DEFAULT_SHOPPERS_CONFIG.staffInteractionWeight : 0;
     const satisfaction = Math.min(
       1,
       Math.max(
@@ -414,7 +435,9 @@ export class ShoppersSystem implements System {
           DEFAULT_SHOPPERS_CONFIG.queuePenaltyWeight * queuePenalty -
           abandonPenalty -
           selfCheckoutPenalty +
-          DEFAULT_ECONOMY_CONFIG.priceSurpriseWeight * priceSurprise,
+          DEFAULT_ECONOMY_CONFIG.priceSurpriseWeight * priceSurprise -
+          DEFAULT_SHOPPERS_CONFIG.cleanlinessWeight * cleanlinessGap +
+          staffInteractionBonus,
       ),
     );
     world.events.emit({
