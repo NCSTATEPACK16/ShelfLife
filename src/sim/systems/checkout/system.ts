@@ -204,6 +204,14 @@ export class CheckoutSystem implements System {
     return this.#cleanliness;
   }
 
+  /** The assigned staff member's morale for a staffed register lane; null otherwise (self-checkout
+   *  or unassigned). Feeds §5.3's staffInteraction tell. */
+  staffMoraleOnLane(laneId: number): number | null {
+    const lane = this.#lanes.get(laneId);
+    if (!lane || lane.isSelfCheckout || lane.staffId === null) return null;
+    return this.#staff.get(lane.staffId)?.morale ?? null;
+  }
+
   /**
    * §5.1's `service(s)` for the player's store: what fraction of lanes are actually open,
    * scaled by how good the people running them are. Zero when nothing is open — that is

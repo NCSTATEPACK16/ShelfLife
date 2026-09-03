@@ -175,6 +175,34 @@ describe('CheckoutSystem — queueing', () => {
   });
 });
 
+describe('staffMoraleOnLane', () => {
+  it("returns the assigned staff member's morale", () => {
+    const { world, grid, checkout } = worldWithCheckout();
+    grid.place('register', 3, 3, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.7 });
+    world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId });
+    world.step();
+    expect(checkout.staffMoraleOnLane(instanceId)).toBeCloseTo(0.7);
+  });
+
+  it('returns null for a self-checkout lane', () => {
+    const { world, grid, checkout } = worldWithCheckout();
+    grid.place('self_checkout', 5, 5, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    world.step();
+    expect(checkout.staffMoraleOnLane(instanceId)).toBeNull();
+  });
+
+  it('returns null for an unassigned register lane', () => {
+    const { world, grid, checkout } = worldWithCheckout();
+    grid.place('register', 3, 3, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    world.step();
+    expect(checkout.staffMoraleOnLane(instanceId)).toBeNull();
+  });
+});
+
 describe('serviceScore', () => {
   it('is 0 when no lane is open', () => {
     const { world, checkout } = worldWithCheckout();
