@@ -327,3 +327,42 @@ assessment and what M2 inherits.
 - `shopper-trip` was re-baselined in its own commit: `position` is new hashed state in
   `ShoppersSystem#hash`. Unlike 2.0a, no neutral value could have avoided this. Tick count
   unchanged; the other nine scenarios were confirmed untouched before re-baselining.
+
+#### Phase 2.2 — Gentle surface · **gate PASS**
+- All 15 declared tells in `content/design/gentle-surface.json5` (10 satisfaction + 5 impulse terms)
+  now fire from a real sim signal and render as a placeholder-art marker in `BuildScene`, closing the
+  gap `docs/handoff.md` had flagged since phase 1.6. One new `SimEvent` variant, `tellFired`
+  (`shopperId`, `term`, `magnitude`, optional `worldRef`) rather than growing the union 15 cases —
+  producers gate on each term's threshold, loaded once from a new `src/sim/content/gentle-surface.ts`
+  loader (same `?raw` + JSON5 + Zod pattern every `content/balance/*` loader uses).
+- Seven terms had no live sim signal at all before this phase and needed real (minimal) mechanics,
+  reusing existing infrastructure rather than inventing new systems: `cleanlinessLow` and
+  `staffInteractionGood`/`Absent` finally implement §5.3's long-absent `w6`/`w5` satisfaction terms
+  (`CheckoutSystem.cleanliness()` and `StaffMember.morale` already existed, just unconsumed);
+  `visibility` is a world-mark-only shelf-fullness bar (`InventorySystem.capacityOf` × `stockOf`, no
+  event); `promoLift`/`adjacencyBonus`/`needState` are impulse-hit tags picked with precedence
+  `adjacencyBonus > promoLift > needState > impulsePurchase` (a new `category` field on
+  `content/goods/catalog.json` plus an authored combo table in `content/balance/market.json5`;
+  `needState` reuses the existing `family` segment as a documented proxy — no "kids in trip" schema
+  exists). `queuePenaltyRising`/`Balk` moved from a trip-end-only computation to a live per-tick check
+  while queued.
+- A pure `src/view/tell-draw-plan.ts` (same convention as `shopper-draw-plan.ts`) enforces
+  `docs/design/gentle-surface.md` §3's "silence is a feature": one bubble per shopper (highest
+  magnitude wins), then a hard cap on simultaneous markers. `BuildModeBridge` gained
+  `pendingTells()`/`shelfFullness()`, the first consumers of `world.events` for anything beyond
+  internal sim wiring.
+- **A real, previously-invisible bug**, found building the phase's own gate-proof test (an adverse
+  store exercising all 15 terms at once — `src/bridge/gentle-surface-gate.test.ts`): `ShoppersSystem`
+  computed queue-penalty magnitude against the hardcoded `DEFAULT_STAFFING_CONFIG.balkToleranceTicks`
+  instead of the actual `CheckoutSystem` instance's configured value. Invisible until now because
+  every prior test either used the default config or happened to pass the same value as the default.
+  Fixed with a new `CheckoutSystem#balkToleranceTicks()` accessor; no golden-hash impact beyond what
+  cleanliness/staffInteraction already caused, since default-config scenarios compute the identical
+  value before and after. Same "run it for real" pattern as every prior phase's gate-proof test.
+- Golden re-baseline, its own commit: `shopper-trip`, `catchment-week`, `rival-reaction`, and
+  `campaign-l1` moved (all exercise an active staffed checkout); the other nine scenarios were
+  confirmed byte-identical first via a before/after diff, not assumed.
+- An explicit, documented scope cut: richer per-term world marks (a spoiled-shelf tint, a persistent
+  abandoned-cart object, a spill decal, a promo sign) are deferred — every `tellFired` event already
+  carries `worldRef` when relevant, so a future pass can add them without touching the sim again. Not
+  blocking this phase's gate, which only needs every term to fire and be visible in some form.
