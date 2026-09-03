@@ -117,6 +117,10 @@ export class CheckoutSystem implements System {
     }
   }
 
+  staffIds(): readonly number[] {
+    return [...this.#staff.keys()].sort((a, b) => a - b);
+  }
+
   staff(id: number): StaffMember {
     const staff = this.#staff.get(id);
     if (!staff) throw new Error(`Unknown staff id: ${id}`);

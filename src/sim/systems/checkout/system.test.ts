@@ -53,6 +53,14 @@ describe('CheckoutSystem — lanes', () => {
     expect(checkout.staff(1).skill).toBeCloseTo(1);
   });
 
+  it('staffIds lists every hired staff member, ascending', () => {
+    const { world, checkout } = worldWithCheckout();
+    world.commands.push({ type: 'hireStaff', staffId: 5, skill: 0.8, morale: 0.9 });
+    world.commands.push({ type: 'hireStaff', staffId: 2, skill: 0.6, morale: 0.7 });
+    world.step();
+    expect(checkout.staffIds()).toEqual([2, 5]);
+  });
+
   it('does not claim kernel or grid command types', () => {
     const { checkout, world } = worldWithCheckout();
     expect(checkout.applyCommand(world, { type: 'noop' })).toBe(false);
