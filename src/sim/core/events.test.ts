@@ -41,4 +41,18 @@ describe('EventBus', () => {
     bus.emit({ type: 'dayStarted', day: 1 });
     expect(bus.pendingCount).toBe(2);
   });
+
+  it('accepts campaign events', () => {
+    const bus = new EventBus();
+    bus.emit({ type: 'chapterStarted', levelId: 'l1', chapterIndex: 1 });
+    bus.emit({ type: 'chapterComplete', levelId: 'l1', chapterIndex: 0 });
+    bus.emit({ type: 'levelWon', levelId: 'l1' });
+    bus.emit({ type: 'levelLost', levelId: 'l1' });
+    expect(bus.drain().map((e) => e.type)).toEqual([
+      'chapterStarted',
+      'chapterComplete',
+      'levelWon',
+      'levelLost',
+    ]);
+  });
 });

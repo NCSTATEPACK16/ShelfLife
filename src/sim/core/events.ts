@@ -61,7 +61,19 @@ export type SimEvent =
       /** 1..n — rivals in roster order; never 0, that is `shopperTripCompleted`'s job. */
       readonly storeIndex: number;
       readonly satisfaction: number;
-    };
+    }
+  | {
+      readonly type: 'chapterStarted';
+      readonly levelId: string;
+      readonly chapterIndex: number;
+    }
+  | {
+      readonly type: 'chapterComplete';
+      readonly levelId: string;
+      readonly chapterIndex: number;
+    }
+  | { readonly type: 'levelWon'; readonly levelId: string }
+  | { readonly type: 'levelLost'; readonly levelId: string };
 
 export type SimEventType = SimEvent['type'];
 
