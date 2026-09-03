@@ -331,7 +331,7 @@ export class ShoppersSystem implements System {
     if (outcome === 'waiting' || outcome === 'beingServed') {
       if (!shopper.queuePenaltyRisingFired && shopper.checkoutJoinedAtTick !== null) {
         const liveWaitTicks = world.tick - shopper.checkoutJoinedAtTick;
-        const liveMagnitude = Math.min(1, (liveWaitTicks / DEFAULT_STAFFING_CONFIG.balkToleranceTicks) ** 1.6);
+        const liveMagnitude = Math.min(1, (liveWaitTicks / this.#checkout.balkToleranceTicks()) ** 1.6);
         if (liveMagnitude >= thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'queuePenaltyRising')) {
           world.events.emit({
             type: 'tellFired',
@@ -412,7 +412,7 @@ export class ShoppersSystem implements System {
     // more than proportionally. Saturates at 1 for both balked and abandoned (both waited
     // at least balkToleranceTicks); abandonExtraPenalty is what keeps abandonment scoring
     // strictly worse, matching §5.6's "large satisfaction hit" language for cart loss.
-    const queuePenalty = Math.min(1, (moved.checkoutWaitTicks / DEFAULT_STAFFING_CONFIG.balkToleranceTicks) ** 1.6);
+    const queuePenalty = Math.min(1, (moved.checkoutWaitTicks / this.#checkout.balkToleranceTicks()) ** 1.6);
     const abandonPenalty = moved.abandoned ? DEFAULT_SHOPPERS_CONFIG.abandonExtraPenalty : 0;
     const selfCheckoutPenalty = moved.usedSelfCheckout ? DEFAULT_STAFFING_CONFIG.selfCheckoutServiceScorePenalty : 0;
     const priceSurprise = moved.cart.length > 0 ? moved.priceSurpriseSum / moved.cart.length : 0;

@@ -212,6 +212,12 @@ export class CheckoutSystem implements System {
     return this.#staff.get(lane.staffId)?.morale ?? null;
   }
 
+  /** This store's actual configured balk tolerance — ShoppersSystem needs it to scale
+   *  queuePenalty against the real threshold, not an assumed default. */
+  balkToleranceTicks(): number {
+    return this.#config.balkToleranceTicks;
+  }
+
   /**
    * §5.1's `service(s)` for the player's store: what fraction of lanes are actually open,
    * scaled by how good the people running them are. Zero when nothing is open — that is
