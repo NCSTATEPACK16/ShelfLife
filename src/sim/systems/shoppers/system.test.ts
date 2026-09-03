@@ -215,6 +215,162 @@ describe('ShoppersSystem — commands and wiring', () => {
   });
 });
 
+describe('tellFired for stepShopping terms', () => {
+  it('fires fillRateMiss when a stocked shelf has run out', () => {
+    const world = new World({ seed: 1 });
+    const grid = new BuildGrid({ width: 12, height: 12 }, DEFAULT_CATALOG);
+    const pathing = new PathingSystem(grid);
+    world.register(pathing);
+    // Seeded at 1 unit, drained to empty below, never reorders — the shelf destination
+    // exists (stockFixture registers it) but consume() then always returns 'outOfStock'.
+    const emptyPolicies: readonly SupplyPolicy[] = [
+      { goodId: 'milk', reorderPoint: 0, orderUpToLevel: 1, leadTimeTicks: 1_000_000, supplierReliability: 1, spoilageTauDays: 100 },
+    ];
+    const inventory = new InventorySystem(emptyPolicies);
+    world.register(inventory);
+    const checkout = new CheckoutSystem(grid, pathing);
+    world.register(checkout);
+    const economy = new EconomySystem(checkout, inventory, CATALOG);
+    world.register(economy);
+    const market = new MarketSystem(null, CATALOG);
+    world.register(market);
+    const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, CATALOG);
+    world.register(shoppers);
+
+    grid.place('shelf_basic', 6, 6, 0);
+    const shelfId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    world.step();
+    expect(inventory.consume('milk', world.tick)).toBe('sold'); // drains the single seeded unit
+    world.run(5 * 1440); // milk crosses its reorderThreshold, entering the list
+    expect(shoppers.household(1).list).toEqual(['milk']);
+
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+
+    let sawFillRateMiss = false;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term === 'fillRateMiss')) {
+        sawFillRateMiss = true;
+      }
+    }
+    expect(sawFillRateMiss).toBe(true);
+  });
+
+  it('fires spoiledEncounters when a good comes back spoiled', () => {
+    const world = new World({ seed: 1 });
+    const grid = new BuildGrid({ width: 12, height: 12 }, DEFAULT_CATALOG);
+    const pathing = new PathingSystem(grid);
+    world.register(pathing);
+    const fastSpoilPolicies: readonly SupplyPolicy[] = [
+      { goodId: 'milk', reorderPoint: 0, orderUpToLevel: 5, leadTimeTicks: 1_000_000, supplierReliability: 1, spoilageTauDays: 0.0001 },
+    ];
+    const inventory = new InventorySystem(fastSpoilPolicies);
+    world.register(inventory);
+    const checkout = new CheckoutSystem(grid, pathing);
+    world.register(checkout);
+    const economy = new EconomySystem(checkout, inventory, CATALOG);
+    world.register(economy);
+    const market = new MarketSystem(null, CATALOG);
+    world.register(market);
+    const shoppers = new ShoppersSystem(market, grid, pathing, inventory, checkout, economy, CATALOG);
+    world.register(shoppers);
+
+    grid.place('shelf_basic', 6, 6, 0);
+    const shelfId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    world.step();
+    world.run(5 * 1440); // milk crosses its 0.3 reorder threshold, entering the list
+    expect(shoppers.household(1).list).toEqual(['milk']);
+
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+
+    let sawSpoiled = false;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term === 'spoiledEncounters')) {
+        sawSpoiled = true;
+      }
+    }
+    expect(sawSpoiled).toBe(true);
+  });
+
+  it('fires priceSurpriseNegative when paying well above reference', () => {
+    const { world, grid, shoppers } = worldWithShoppers(42);
+    grid.place('shelf_basic', 6, 6, 0);
+    const shelfId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    world.commands.push({ type: 'setPrice', goodId: 'milk', price: 10 }); // reference is 3
+    world.step();
+    world.run(5 * 1440);
+    expect(shoppers.household(1).list).toEqual(['milk']);
+
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+
+    let sawNegative = false;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term === 'priceSurpriseNegative')) {
+        sawNegative = true;
+      }
+    }
+    expect(sawNegative).toBe(true);
+  });
+
+  it('fires priceSurprisePositive on a steep discount', () => {
+    const { world, grid, shoppers } = worldWithShoppers(42);
+    grid.place('shelf_basic', 6, 6, 0);
+    const shelfId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    world.commands.push({ type: 'setPrice', goodId: 'milk', price: 0.5 }); // reference is 3
+    world.step();
+    world.run(5 * 1440);
+    expect(shoppers.household(1).list).toEqual(['milk']);
+
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+
+    let sawPositive = false;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term === 'priceSurprisePositive')) {
+        sawPositive = true;
+      }
+    }
+    expect(sawPositive).toBe(true);
+  });
+
+  it('stays silent on priceSurprise within threshold (price at reference)', () => {
+    const { world, grid, shoppers } = worldWithShoppers(42);
+    grid.place('shelf_basic', 6, 6, 0);
+    const shelfId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'stockFixture', instanceId: shelfId, goodId: 'milk' });
+    world.commands.push({ type: 'addHousehold', householdId: 1, segment: 'family', position: { x: 0, y: 0 } });
+    world.step();
+    world.run(5 * 1440);
+    expect(shoppers.household(1).list).toEqual(['milk']);
+
+    world.commands.push({ type: 'spawnShopper', shopperId: 100, householdId: 1 });
+    world.step();
+
+    let sawPriceSurpriseTell = false;
+    for (let i = 0; i < 2000 && shoppers.activeShopperIds().includes(100); i++) {
+      world.step();
+      if (world.events.drain().some((e) => e.type === 'tellFired' && e.term.startsWith('priceSurprise'))) {
+        sawPriceSurpriseTell = true;
+      }
+    }
+    expect(sawPriceSurpriseTell).toBe(false);
+  });
+});
+
 describe('ShoppersSystem — a full trip (PLAN.md §16 phase 1.6 gate)', () => {
   it('a shopper walks in, fills a correct list, pays, leaves', () => {
     const { world, grid, shoppers } = worldWithShoppers(42);

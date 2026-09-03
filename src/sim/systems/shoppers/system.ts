@@ -18,6 +18,7 @@ import type { PathingSystem } from '../pathing/system.js';
 import type { Vec2 } from '../pathing/types.js';
 import { DEFAULT_SHOPPERS_CONFIG } from './config.js';
 import type { Shopper, ShopperState } from './types.js';
+import { DEFAULT_GENTLE_SURFACE_CONTENT, thresholdFor } from '../../content/gentle-surface.js';
 
 const EXIT_DESTINATION_ID = 'exit';
 const ENTRANCE_POSITION: Vec2 = { x: 0.5, y: 0.5 };
@@ -231,15 +232,30 @@ export class ShoppersSystem implements System {
     const result = this.#inventory.consume(goodId, world.tick);
     const remainingList = moved.remainingList.slice(1);
     const state: ShopperState = remainingList.length === 0 ? 'checkingOut' : 'shopping';
+    const shelfInstanceId = [...this.#stocking.entries()].find(([, g]) => g === goodId)?.[0];
 
     if (result === 'spoiled') {
       // §5.3's spoiledEncounters: the shopper recoils and puts it back — no sale, no
       // impulse roll, and this list item stays unfulfilled (a fillRate miss too).
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'spoiledEncounters',
+        magnitude: 1,
+        ...(shelfInstanceId !== undefined ? { worldRef: { instanceId: shelfInstanceId } } : {}),
+      });
       return { ...moved, remainingList, spoiledEncounters: moved.spoiledEncounters + 1, state };
     }
     if (result === 'outOfStock') {
       // Nothing on the shelf — move on, unfulfilled. This is §5.3's single most
       // important tell (fillRateMiss), already carried by fillRate itself.
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'fillRateMiss',
+        magnitude: 1,
+        ...(shelfInstanceId !== undefined ? { worldRef: { instanceId: shelfInstanceId } } : {}),
+      });
       return { ...moved, remainingList, state };
     }
 
@@ -250,6 +266,21 @@ export class ShoppersSystem implements System {
     // phase plan's scope cuts), the sim just carries the number into satisfaction.
     const reference = this.#economy.referencePriceOf(goodId);
     const priceSurprise = reference > 0 ? (reference - paid) / reference : 0;
+    if (priceSurprise <= -thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'priceSurpriseNegative')) {
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'priceSurpriseNegative',
+        magnitude: Math.min(1, -priceSurprise),
+      });
+    } else if (priceSurprise >= thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'priceSurprisePositive')) {
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'priceSurprisePositive',
+        magnitude: Math.min(1, priceSurprise),
+      });
+    }
     const cart = [...moved.cart, goodId];
     const cartTotal = moved.cartTotal + paid;
     const priceSurpriseSum = moved.priceSurpriseSum + priceSurprise;
