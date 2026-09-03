@@ -1,4 +1,5 @@
 import {
+  buildCampaignWorld,
   CheckoutSystem,
   EconomySystem,
   GridSystem,
@@ -345,6 +346,17 @@ export const SCENARIOS: readonly Scenario[] = [
       world.commands.push({ type: 'setPrice', goodId: 'milk', price: 2.99 });
       world.commands.push({ type: 'startPromotion', goodId: 'bread', discountFraction: 0.25, durationTicks: 500 });
       world.commands.push({ type: 'setMarketingSpend', dailyAmount: 15 });
+      return world;
+    },
+  },
+  {
+    name: 'campaign-l1',
+    seed: 20260902,
+    ticks: 1440 * 8, // enough sim-days for chapterStatus to potentially flip, so the hash
+                      // sequence actually exercises CampaignSystem's state transitions.
+    sampleEvery: 200,
+    build() {
+      const { world } = buildCampaignWorld('l1', this.seed);
       return world;
     },
   },
