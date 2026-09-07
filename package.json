@@ -2,7 +2,7 @@
   "name": "shelf-life",
   "version": "0.1.0",
   "private": true,
-  "description": "An isometric supermarket tycoon. Web first, iOS via Capacitor.",
+  "description": "A 16-bit supermarket tycoon. Web first, iOS via Capacitor.",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -29,7 +29,12 @@
     "check:budget": "node tools/check-budget.mjs",
     "harness:build": "vite build --config vite.harness.config.ts",
     "harness": "npm run harness:build --silent && node dist/harness/cli.js",
-    "balance:gate": "npm run harness:build --silent && node dist/harness/gate.js"
+    "balance:gate": "npm run harness:build --silent && node dist/harness/gate.js",
+    "art:gen": "python3 tools/art/build.py --stage generate",
+    "art:pack": "node tools/art/pack.mjs",
+    "art:validate": "node tools/validate/assets.mjs",
+    "art:build": "npm run art:gen && npm run art:pack && npm run art:validate",
+    "gen:placeholders": "python3 tools/art/build.py --stage placeholders"
   },
   "dependencies": {
     "@preact/signals": "2.4.0",
@@ -48,6 +53,7 @@
     "@types/node": "26.1.2",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.0",
+    "free-tex-packer-core": "0.3.9",
     "jsdom": "30.0.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.65.0",

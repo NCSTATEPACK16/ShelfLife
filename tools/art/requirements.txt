@@ -1,0 +1,3 @@
+# Art pipeline (ADR 0006). Local-only — Netlify runs `vite build` and nothing else.
+#   python3 -m pip install -r tools/art/requirements.txt
+Pillow>=10.0

@@ -4,9 +4,14 @@ coverage/
 .vite/
 *.tsbuildinfo
 
-# generated art
+# Generated art (ADR 0006). Frames and placeholders are intermediates, regenerable from
+# text sources by `npm run art:build`, so they stay out of the history.
+assets/src/
 assets/placeholder/
-assets/atlases/
+
+# assets/atlases/ is deliberately NOT ignored. Netlify runs `vite build` and nothing else
+# — no Python, no Pillow, no Blender — so the packed atlases are a committed build input.
+# They are small (16-bit art), which is also why this project needs no Git LFS.
 
 # native
 ios/App/Pods/
@@ -29,3 +34,11 @@ docs/handoff.md
 test-results/
 playwright-report/
 .claude/settings.local.json
+
+# Python bytecode from the art pipeline
+__pycache__/
+*.pyc
+
+# Scratch screenshots from the surface track
+/art-direction-candidates.png
+/s1-renderer-*.png

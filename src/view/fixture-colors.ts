@@ -22,3 +22,19 @@ export function colorForFixture(fixtureId: string): number {
 export function selectionColor(): number {
   return SELECTION_COLOR;
 }
+
+// The two world marks docs/design/gentle-surface.md §1 asks for. Both come from the
+// semantic ramp rather than the accent: `spoiled` exists in the token file precisely so
+// nothing has to reach for a brown that means "off" and pick its own.
+const SPOILED_TINT = toPhaserColor(tokens.color.semantic.spoiled);
+const PRICE_MARK_TINT = toPhaserColor(tokens.color.semantic.critical);
+
+/** Brown, for the shelf a shopper just found something rotten on. */
+export function spoiledTint(): number {
+  return SPOILED_TINT;
+}
+
+/** The brief highlight on the item a shopper put back because it cost too much. */
+export function priceMarkTint(): number {
+  return PRICE_MARK_TINT;
+}

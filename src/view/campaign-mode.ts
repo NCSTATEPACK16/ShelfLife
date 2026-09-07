@@ -16,7 +16,8 @@ import { StaffPanel } from '../ui/StaffPanel.js';
 import { InventoryPanel } from '../ui/InventoryPanel.js';
 import { RivalsPanel } from '../ui/RivalsPanel.js';
 import { createAdvisorCooldownState, deriveAdvisorLines, type AdvisorLine, type ManageTab } from '../ui/advisors.js';
-import { screenToWorld, worldToScreen } from './iso.js';
+import { fitZoom, screenToWorld, TILE_SIZE, worldToScreen } from './projection.js';
+import type { BuildScene } from './BuildScene.js';
 import { DEFAULT_GOODS_CATALOG, DEFAULT_LEVEL_CONTENT, TICK_MS } from '../sim/index.js';
 import type { AdvisorLine as ChapterAdvisorLine, LedgerCategory, Rotation } from '../sim/index.js';
 
@@ -29,15 +30,21 @@ const DEFAULT_PROMOTION_DURATION_TICKS = 1440;
  * overlay in `uiRoot`, driven by one merged `CampaignBridge` (phase 2.3 — see
  * docs/superpowers/specs/2026-09-03-ui-buildout-design.md).
  *
- * Returns `null` (mounts nothing) if `canvas` can't produce a rendering context, same guard
- * `mountBuildMode` always had.
+ * Returns `null` (mounts nothing) if `canvas` can't produce a rendering context — a hostile
+ * embedding, or a headless test environment, degrades instead of crashing.
  */
 export async function mountCampaign(
   canvas: HTMLCanvasElement,
   uiRoot: HTMLElement,
-): Promise<{ bridge: CampaignBridge } | null> {
-  const ctx = canvas.getContext('2d') ?? canvas.getContext('webgl');
-  if (!ctx) return null;
+): Promise<{ bridge: CampaignBridge; scene: BuildScene } | null> {
+  // Probe on a THROWAWAY canvas, never the real one: a canvas can only ever hand out one
+  // kind of context, so calling `getContext('webgl2')` on the real canvas would make
+  // Phaser's later `getContext('webgl')` on that same element return null forever (ADR
+  // 0005's fix for the boot failure that caused).
+  const probe = document.createElement('canvas');
+  const hasWebgl = Boolean(probe.getContext('webgl2') ?? probe.getContext('webgl'));
+  const has2d = Boolean(document.createElement('canvas').getContext('2d'));
+  if (!hasWebgl && !has2d) return null;
 
   const [{ default: Phaser }, { BuildScene }] = await Promise.all([
     import('phaser'),
@@ -46,23 +53,44 @@ export async function mountCampaign(
 
   const bridge = CampaignBridge.start(LEVEL_ID, Date.now());
   const levelDef = DEFAULT_LEVEL_CONTENT.get(LEVEL_ID)!;
-  const origin = { x: canvas.clientWidth / 2, y: 80 };
-
-  // A fixed debug-only destination so the flow-field overlay always has something to show
-  // (same purpose as build-mode.ts's identical setup — carried over, not reinvented).
-  const DEBUG_DESTINATION_ID = 'debug-exit';
   const dimensions = bridge.snapshot().dimensions;
+
+  // Integer zoom only (ADR 0005): a fractional scale makes every sprite shimmer as the
+  // camera moves, and no filtering setting hides it.
+  const zoom = fitZoom(canvas.clientWidth, dimensions.width);
+  const storePixelWidth = dimensions.width * TILE_SIZE;
+  const origin = {
+    x: Math.round(Math.max(0, (canvas.clientWidth / zoom - storePixelWidth) / 2)),
+    y: 16,
+  };
+
+  // A fixed debug-only destination so the flow-field overlay always has something to show.
+  const DEBUG_DESTINATION_ID = 'debug-exit';
   bridge.registerDestination(DEBUG_DESTINATION_ID, [{ x: dimensions.width - 1, y: dimensions.height - 1 }]);
 
   const scene = new BuildScene(bridge, origin);
   new Phaser.Game({
-    type: Phaser.CANVAS,
+    // Phaser requires an explicit (non-AUTO) renderType when adopting a caller-provided
+    // canvas rather than creating its own, so the probe above decides it rather than
+    // Phaser re-detecting and disagreeing.
+    type: hasWebgl ? Phaser.WEBGL : Phaser.CANVAS,
     canvas,
     width: canvas.clientWidth,
     height: canvas.clientHeight,
     transparent: true,
+    // Sets antialias off and roundPixels on — the two settings pixel art cannot do
+    // without (ADR 0005).
+    pixelArt: true,
+    zoom,
     scene,
   });
+
+  // The camera may not exceed the store's own footprint plus the top margin — panning
+  // into empty space is disorienting and makes the store feel lost rather than large.
+  const cameraBounds = {
+    width: origin.x * 2 + dimensions.width * TILE_SIZE,
+    height: origin.y * 2 + dimensions.height * TILE_SIZE,
+  };
 
   let armedFixtureId: string | null = null;
   let selectedInstanceId: number | null = null;
@@ -204,9 +232,18 @@ export async function mountCampaign(
       );
 
       const selected = bridge.snapshot().placements.find((p) => p.instanceId === selectedInstanceId);
+      // The action bar is DOM, so it needs CSS pixels: the scene's coordinates are scaled
+      // by the camera zoom before they mean anything to an absolutely-positioned element.
+      const selectedScreen = selected
+        ? (() => {
+            const point = worldToScreen(selected.x, selected.y, origin);
+            const camera = scene.scroll();
+            return { x: (point.x - camera.x) * zoom, y: (point.y - camera.y) * zoom };
+          })()
+        : null;
       render(
         SelectionActionBar({
-          screenPosition: selected ? worldToScreen(selected.x, selected.y, origin) : null,
+          screenPosition: selectedScreen,
           onRotate: () => {
             if (selected) bridge.rotate(selected.instanceId, nextRotation(selected.rotation));
             scene.redraw();
@@ -329,9 +366,23 @@ export async function mountCampaign(
   }
 
   const input = new PointerSource(canvas, {
-    toWorld: (screen) => screenToWorld(screen.x, screen.y, origin),
+    // Pointer coordinates arrive in CSS pixels. Undo the camera zoom and add back the
+    // camera scroll before asking the projection which tile was hit — miss either and
+    // taps land somewhere other than where the player pointed.
+    toWorld: (screen) => {
+      const camera = scene.scroll();
+      return screenToWorld(screen.x / zoom + camera.x, screen.y / zoom + camera.y, origin);
+    },
   });
   input.subscribe((intent) => {
+    // A store wider than the viewport needs the camera to move. Panning rides the
+    // existing drag intent rather than adding a listener, which is what keeps the
+    // platform boundary (ADR 0002) intact.
+    if (intent.kind === 'dragMove') {
+      scene.panBy(intent.delta.x, intent.delta.y, cameraBounds);
+      return;
+    }
+
     if (mode !== 'build' || intent.kind !== 'tap') return;
     const tileX = Math.floor(intent.world.x);
     const tileY = Math.floor(intent.world.y);
@@ -399,7 +450,7 @@ export async function mountCampaign(
 
   await getProfile(); // establishes the profile store before first render, matching CampaignBridge's own dependency
   renderUi();
-  return { bridge };
+  return { bridge, scene };
 }
 
 function nextRotation(current: Rotation): Rotation {

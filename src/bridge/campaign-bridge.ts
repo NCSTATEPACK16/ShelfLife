@@ -15,6 +15,7 @@ import {
   type GridSystem,
   type InventorySystem,
   type LedgerEntry,
+  type MarketSystem,
   type PathingSystem,
   type Placement,
   type Position,
@@ -27,12 +28,42 @@ import {
   type StaffMember,
   type World,
 } from '../sim/index.js';
-import type { TellOccurrence } from '../view/tell-draw-plan.js';
+import type { TellTerm } from '../sim/content/gentle-surface.js';
 
 export interface CampaignSnapshot {
   readonly dimensions: GridDimensions;
   readonly catalog: readonly FixtureDef[];
   readonly placements: readonly Placement[];
+}
+
+export interface TellOccurrence {
+  readonly shopperId: number;
+  readonly term: TellTerm;
+  readonly magnitude: number;
+  readonly worldRef?: { readonly instanceId: number };
+}
+
+/**
+ * One shopper as the renderer sees them: where they are, what they are doing, and the
+ * running counters `src/view/gentle-surface-draw-plan.ts` reads for segment palette-swaps
+ * and reaction-pose selection. Deliberately a flat structural type rather than a re-export
+ * of the sim's `Shopper` — the view gets exactly the fields it needs and cannot reach the
+ * rest (no `remainingList` contents, no `checkoutLaneId`).
+ */
+export interface ShopperSnapshot {
+  readonly id: number;
+  readonly x: number;
+  readonly y: number;
+  readonly state: ShopperState;
+  readonly segment: Segment;
+  readonly listRemaining: number;
+  readonly cartSize: number;
+  readonly spoiledEncounters: number;
+  readonly priceSurpriseSum: number;
+  readonly impulseHits: number;
+  readonly balked: boolean;
+  readonly abandoned: boolean;
+  readonly checkoutJoinedAtTick: number | null;
 }
 
 export interface RivalIntelEntry {
@@ -75,6 +106,7 @@ export class CampaignBridge {
   readonly #checkout: CheckoutSystem;
   readonly #economy: EconomySystem;
   readonly #rivals: RivalsSystem;
+  readonly #market: MarketSystem;
   readonly #shoppers: ShoppersSystem;
   #tellBuffer: TellOccurrence[] = [];
 
@@ -87,6 +119,7 @@ export class CampaignBridge {
     checkout: CheckoutSystem,
     economy: EconomySystem,
     rivals: RivalsSystem,
+    market: MarketSystem,
     shoppers: ShoppersSystem,
   ) {
     this.#world = world;
@@ -97,6 +130,7 @@ export class CampaignBridge {
     this.#checkout = checkout;
     this.#economy = economy;
     this.#rivals = rivals;
+    this.#market = market;
     this.#shoppers = shoppers;
   }
 
@@ -106,7 +140,7 @@ export class CampaignBridge {
     }
     const h = buildCampaignWorld(levelId, seed);
     return new CampaignBridge(
-      h.world, h.campaign, h.grid, h.pathing, h.inventory, h.checkout, h.economy, h.rivals, h.shoppers,
+      h.world, h.campaign, h.grid, h.pathing, h.inventory, h.checkout, h.economy, h.rivals, h.market, h.shoppers,
     );
   }
 
@@ -117,7 +151,7 @@ export class CampaignBridge {
       throw new Error(`Not entitled to resume level "${state.levelId}" at chapter ${state.chapterIndex}`);
     }
     return new CampaignBridge(
-      h.world, h.campaign, h.grid, h.pathing, h.inventory, h.checkout, h.economy, h.rivals, h.shoppers,
+      h.world, h.campaign, h.grid, h.pathing, h.inventory, h.checkout, h.economy, h.rivals, h.market, h.shoppers,
     );
   }
 
@@ -204,12 +238,39 @@ export class CampaignBridge {
     this.#step({ type: 'spawnShopper', shopperId, householdId });
   }
 
-  /** Every active shopper's position and FSM state, for rendering only. */
-  shoppersSnapshot(): readonly { id: number; x: number; y: number; state: ShopperState }[] {
+  /**
+   * Every active shopper's position, FSM state, household segment, and the counters the
+   * gentle-surface renderer reads for segment palette-swaps and reaction poses — for
+   * rendering only.
+   */
+  shoppersSnapshot(): readonly ShopperSnapshot[] {
     return this.#shoppers.activeShopperIds().map((id) => {
       const shopper = this.#shoppers.shopper(id);
-      return { id: shopper.id, x: shopper.position.x, y: shopper.position.y, state: shopper.state };
+      return {
+        id: shopper.id,
+        x: shopper.position.x,
+        y: shopper.position.y,
+        state: shopper.state,
+        segment: this.#market.household(shopper.householdId).segment,
+        listRemaining: shopper.remainingList.length,
+        cartSize: shopper.cart.length,
+        spoiledEncounters: shopper.spoiledEncounters,
+        priceSurpriseSum: shopper.priceSurpriseSum,
+        impulseHits: shopper.impulseHits,
+        balked: shopper.balked,
+        abandoned: shopper.abandoned,
+        checkoutJoinedAtTick: shopper.checkoutJoinedAtTick,
+      };
     });
+  }
+
+  /**
+   * The most recently completed tick. The view needs it to age its own timers — how long
+   * a bubble or reaction pose has been up — against sim time rather than wall-clock
+   * frames, which would drift the moment the tab is backgrounded.
+   */
+  currentTick(): number {
+    return this.#world.tick;
   }
 
   /** Every tellFired event since the last read, accumulated by `#handleEvents` (see its
@@ -385,7 +446,12 @@ export class CampaignBridge {
       if (event.type === 'levelWon') {
         await markLevelComplete(event.levelId);
       } else if (event.type === 'tellFired') {
-        this.#tellBuffer.push({ shopperId: event.shopperId, term: event.term, magnitude: event.magnitude });
+        this.#tellBuffer.push({
+          shopperId: event.shopperId,
+          term: event.term,
+          magnitude: event.magnitude,
+          ...(event.worldRef !== undefined ? { worldRef: event.worldRef } : {}),
+        });
       }
     }
   }
