@@ -546,3 +546,34 @@ boundary violation to fix, never a re-baseline.*
 - **The abandoned cart fades on a timer.** Its tell says it "persists until staff clears it", and
   there is no staff-clearing mechanic. The marker is view-local with a fixed lifetime — the same
   category of documented simplification as 1.7's per-good inventory tracking.
+
+### Milestone 2 — Depth and Surface merged
+
+#### Track A/B reconciliation · **gate PASS**
+- Merged `milestone/m2-surface` (S0–S3, the 16-bit sprite renderer) into `milestone/m2-depth`
+  (Phase 2.3's UI build-out). The two tracks had each built a complete, independent
+  implementation of "which gentle-surface tell fires this tick" — Track A in the sim, emitting a
+  `tellFired` event; Track B re-deriving the same decision in the view layer by diffing shopper
+  counters. Resolved in the sim's favor, per this repo's sim-boundary rule and ADR 0007:
+  `gentle-surface-draw-plan.ts` now consumes `CampaignBridge.pendingTells()` instead of
+  re-computing firing decisions, keeping Track B's richer rendering (poses, particles, world
+  marks, segment palette-swaps) on top of Track A's single source of truth for *when* a tell
+  fires. As a side effect, all 15 declared terms are now live through the merged view — Track B's
+  own S3 notes had flagged 8 of them as "drawn but wired to nothing" from the view's perspective.
+- The shelf-fullness accessor both tracks had flagged as the single highest-value next step
+  (`CampaignBridge.shelfFullness()`/`stockedGoodAt()`) already existed on Track A independently of
+  what Track B expected; `BuildScene` now reads it directly every redraw, so a shelf visibly runs
+  from full to empty during real play.
+- `npm run verify` green (690 tests), `npm run test:e2e` green at both viewports.
+
+#### Goods catalog expansion · **gate PASS**
+- Grew `content/goods/catalog.json` from 4 to 36 SKUs (produce, meat, frozen, beverages, pantry,
+  household added; more dairy/bakery/snacks variety) with matching `SupplyPolicy` entries
+  (category-appropriate spoilage/lead-time tuning) and two new adjacency combos in
+  `market.json5` (`produce`+`dairy`, `snacks`+`beverages`). Generic product names, not invented
+  brands, consistent with the original 4-good bootstrap set. Not the full ~120-SKU Milestone 5
+  target (§5.6) — a mid-milestone bump so the store stops showing the same 4 items on every shelf.
+- All 13 golden scenarios re-baselined in a dedicated commit, expected: every scenario spawns
+  households whose shopping lists now draw from 36 goods instead of 4.
+- `npm run balance:gate` still fails at all 3 levels, unchanged from before this work —
+  pre-tuning, expected, not a new regression.
