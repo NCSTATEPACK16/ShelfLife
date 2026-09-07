@@ -28,7 +28,7 @@ interface ShelfLifeHandle {
     spawnShopper(shopperId: number, householdId: number): void;
     snapshot(): { placements: { instanceId: number }[] };
     shoppersSnapshot(): unknown[];
-    tick(): void;
+    tick(): Promise<void>;
   };
   scene: {
     redraw(): void;
