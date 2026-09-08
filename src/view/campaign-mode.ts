@@ -57,7 +57,15 @@ export async function mountCampaign(
 
   // Integer zoom only (ADR 0005): a fractional scale makes every sprite shimmer as the
   // camera moves, and no filtering setting hides it.
-  const zoom = fitZoom(canvas.clientWidth, dimensions.width);
+  //
+  // Fitting the *whole* store width (30 tiles) into the viewport floors to 1x zoom on
+  // any realistic desktop canvas, leaving sprites at native size with a huge empty
+  // margin. Fitting a smaller reference window instead — and letting the existing
+  // pan/scroll (`cameraBounds` below, built from the real `dimensions.width`) handle
+  // the rest — reaches 2x on desktop while still degrading to 1x on a phone screen,
+  // where 16 tiles genuinely can't fit at 2x and stay legible.
+  const ZOOM_REFERENCE_TILES = 16;
+  const zoom = fitZoom(canvas.clientWidth, Math.min(dimensions.width, ZOOM_REFERENCE_TILES));
   const storePixelWidth = dimensions.width * TILE_SIZE;
   const origin = {
     x: Math.round(Math.max(0, (canvas.clientWidth / zoom - storePixelWidth) / 2)),
