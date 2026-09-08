@@ -207,6 +207,7 @@ export class BuildScene extends Phaser.Scene {
 
     if (sprite.tint === null) image.clearTint();
     else image.setTint(sprite.tint);
+    image.setAlpha(sprite.alpha ?? 1);
   }
 
   #drawDebugOverlay(): void {

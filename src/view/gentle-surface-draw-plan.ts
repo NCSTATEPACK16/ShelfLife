@@ -24,6 +24,8 @@ import { depthFor, worldToScreen, type ScreenPoint } from './projection.js';
 
 const TuningSchema = z.object({
   bubbleDurationTicks: z.number().int().positive(),
+  fadeInTicks: z.number().int().positive(),
+  fadeOutTicks: z.number().int().positive(),
   bubbleCapRegular: z.number().int().positive(),
   bubbleCapCompact: z.number().int().positive(),
   animationPoseTicks: z.number().int().positive(),
@@ -105,10 +107,32 @@ function rank(term: TellTerm): number {
   return PRIORITY.get(term) ?? 0;
 }
 
+export function easeOutQuad(t: number): number {
+  return 1 - (1 - t) ** 2;
+}
+
+export function easeInQuad(t: number): number {
+  return t * t;
+}
+
+/** Opacity for a bubble at the current tick: eased in, held at 1, eased out. */
+function bubbleAlpha(tick: number, bubble: ActiveBubble): number {
+  const elapsed = tick - bubble.startedAtTick;
+  if (elapsed < TUNING.fadeInTicks) {
+    return easeOutQuad(elapsed / TUNING.fadeInTicks);
+  }
+  const remaining = bubble.expiresAtTick - tick;
+  if (remaining < TUNING.fadeOutTicks) {
+    return easeInQuad(Math.max(0, remaining) / TUNING.fadeOutTicks);
+  }
+  return 1;
+}
+
 // ------------------------------------------------------------------------------- state
 
 interface ActiveBubble {
   readonly term: TellTerm;
+  readonly startedAtTick: number;
   readonly expiresAtTick: number;
 }
 
@@ -263,7 +287,11 @@ function admit(
   const holdsASlot = existing !== undefined;
   const outranksExisting = existing === undefined || rank(term) > rank(existing.term);
   if (tell.bubble !== null && outranksExisting && (holdsASlot || state.bubbles.size < cap)) {
-    state.bubbles.set(shopper.id, { term, expiresAtTick: input.tick + TUNING.bubbleDurationTicks });
+    state.bubbles.set(shopper.id, {
+      term,
+      startedAtTick: input.tick,
+      expiresAtTick: input.tick + TUNING.bubbleDurationTicks,
+    });
   }
 
   // The body beat, the world mark, and the particles are not rate-limited. They are
@@ -391,6 +419,7 @@ function render(input: GentleSurfaceInput, state: GentleSurfaceState): GentleSur
     // would read as a bug, not as a memory.
     if (shopper === undefined) continue;
 
+    const alpha = bubbleAlpha(input.tick, bubble);
     const screen = worldToScreen(shopper.x, shopper.y, input.origin);
     // The shopper sprite is bottom-anchored, so its head is one sprite-height up.
     const tailY = screen.y - shopperAsset.size[1] - BUBBLE_GAP;
@@ -406,6 +435,7 @@ function render(input: GentleSurfaceInput, state: GentleSurfaceState): GentleSur
       originY: frameAsset.anchor[1],
       flipX: false,
       tint: null,
+      alpha,
     });
 
     const iconId = `bubble_${tellFor(bubble.term).bubble!}`;
@@ -421,6 +451,7 @@ function render(input: GentleSurfaceInput, state: GentleSurfaceState): GentleSur
       originY: iconAsset.anchor[1],
       flipX: false,
       tint: null,
+      alpha,
     });
   }
 

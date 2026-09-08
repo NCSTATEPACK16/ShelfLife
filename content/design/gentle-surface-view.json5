@@ -13,6 +13,12 @@
   // busy aisle does not accumulate a wall of bubbles.
   bubbleDurationTicks: 12,
 
+  // How long a bubble takes to fade in/out, in ticks at the sim's 10 Hz. Short: a bubble
+  // should feel immediate, not draw out — the exit is allowed to be a touch slower than
+  // the entry.
+  fadeInTicks: 2,
+  fadeOutTicks: 3,
+
   // docs/design/gentle-surface.md §3 rule 3, "roughly 8 at regular, 4 at compact". On a
   // phone this cap is the difference between a legible store and a sticker sheet.
   bubbleCapRegular: 8,

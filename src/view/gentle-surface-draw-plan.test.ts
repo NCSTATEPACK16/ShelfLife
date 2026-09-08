@@ -4,6 +4,8 @@ import { DEFAULT_CATALOG } from '../sim/index.js';
 import type { TellTerm } from '../sim/content/gentle-surface.js';
 import {
   createGentleSurfaceState,
+  easeInQuad,
+  easeOutQuad,
   gentleSurfaceDrawPlan,
   tellFor,
   TUNING,
@@ -83,6 +85,47 @@ function bubbleTerms(plan: ReturnType<typeof gentleSurfaceDrawPlan>): string[] {
 }
 
 const iconFor = (term: TellTerm): string => `bubble_${tellFor(term).bubble}`;
+
+describe('easing', () => {
+  it('easeOutQuad starts at 0, ends at 1, is not linear', () => {
+    expect(easeOutQuad(0)).toBe(0);
+    expect(easeOutQuad(1)).toBe(1);
+    expect(easeOutQuad(0.5)).toBeCloseTo(0.75);
+  });
+
+  it('easeInQuad starts at 0, ends at 1, is not linear', () => {
+    expect(easeInQuad(0)).toBe(0);
+    expect(easeInQuad(1)).toBe(1);
+    expect(easeInQuad(0.5)).toBeCloseTo(0.25);
+  });
+});
+
+describe('bubble fade', () => {
+  it('ramps in over fadeInTicks then holds fully opaque', () => {
+    const state = createGentleSurfaceState();
+    gentleSurfaceDrawPlan(input({ tick: 1 }), state);
+    const justAdmitted = gentleSurfaceDrawPlan(
+      input({ tick: 2, tells: [tell({ term: 'spoiledEncounters' })] }),
+      state,
+    );
+    const [frame] = justAdmitted.bubbles;
+    expect(frame!.alpha).toBe(0); // elapsed=0 ticks into a fadeInTicks-tick ramp
+
+    const midLife = gentleSurfaceDrawPlan(input({ tick: 2 + TUNING.fadeInTicks }), state);
+    expect(midLife.bubbles[0]!.alpha).toBe(1); // fully faded in, held before its exit ramp
+  });
+
+  it('ramps out over fadeOutTicks before expiry', () => {
+    const state = createGentleSurfaceState();
+    gentleSurfaceDrawPlan(input({ tick: 1 }), state);
+    gentleSurfaceDrawPlan(input({ tick: 2, tells: [tell({ term: 'spoiledEncounters' })] }), state);
+    const nearExpiry = gentleSurfaceDrawPlan(
+      input({ tick: 2 + TUNING.bubbleDurationTicks - 1 }),
+      state,
+    );
+    expect(nearExpiry.bubbles[0]!.alpha).toBeLessThan(1);
+  });
+});
 
 describe('rendering a tell', () => {
   it('draws the declared bubble and reaction pose for a spoiled pickup', () => {

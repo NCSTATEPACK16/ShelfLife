@@ -22,6 +22,11 @@ export interface SpritePlan {
   readonly flipX: boolean;
   /** Tint as 0xRRGGBB, or null for no tint. Selection and spoilage use this. */
   readonly tint: number | null;
+  /**
+   * 0-1 opacity. Omitted means fully opaque — every producer except the gentle-surface
+   * bubbles leaves this unset, so nothing else changes appearance.
+   */
+  readonly alpha?: number;
 }
 
 export interface DrawPlan {
