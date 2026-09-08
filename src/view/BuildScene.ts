@@ -18,6 +18,7 @@ import {
 } from './gentle-surface-draw-plan.js';
 import { buildFlowFieldDrawPlan } from './pathing-debug-plan.js';
 import { buildShopperDrawPlan, ShopperAnimator } from './shopper-draw-plan.js';
+import { getAudioPlayer, type AudioPlayer } from '../platform/audio/index.js';
 
 /**
  * Renders the store. Reads the bridge's snapshot; never mutates it.
@@ -35,6 +36,7 @@ export class BuildScene extends Phaser.Scene {
   readonly #bridge: CampaignBridge;
   readonly #origin: { x: number; y: number };
   readonly #animator = new ShopperAnimator();
+  readonly #audioPlayer: AudioPlayer;
   // The one piece of cross-tick state the gentle surface needs: which bubbles, marks and
   // poses are up, and last tick's shopper counters to diff against. All view-local —
   // nothing here reaches the world hash, and losing it costs at most a frame of bubbles.
@@ -47,10 +49,11 @@ export class BuildScene extends Phaser.Scene {
   #lastGentleSurface: GentleSurfacePlan | null = null;
   #ready = false;
 
-  constructor(bridge: CampaignBridge, origin: { x: number; y: number }) {
+  constructor(bridge: CampaignBridge, origin: { x: number; y: number }, audioPlayer?: AudioPlayer) {
     super({ key: 'build', active: true });
     this.#bridge = bridge;
     this.#origin = origin;
+    this.#audioPlayer = audioPlayer ?? getAudioPlayer();
   }
 
   preload(): void {
@@ -156,6 +159,7 @@ export class BuildScene extends Phaser.Scene {
       this.#gentleSurface,
     );
     this.#lastGentleSurface = gentle;
+    for (const term of gentle.firedThisTick) this.#audioPlayer.playTell(term);
 
     // Shelf fullness (visibility tell — world mark only, no bubble): stock is tracked per
     // good, and the shelf -> good assignment lives in `ShoppersSystem`'s own bookkeeping;
