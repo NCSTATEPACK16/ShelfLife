@@ -27,6 +27,7 @@ export interface TellDef {
   readonly particle: string | null;
   readonly worldMark: boolean;
   readonly threshold: number;
+  readonly sound: string | null;
 }
 
 const TellDefSchema = z.object({
@@ -36,6 +37,7 @@ const TellDefSchema = z.object({
   particle: z.string().min(1).nullable(),
   worldMark: z.boolean(),
   threshold: z.number().min(0),
+  sound: z.string().min(1).nullable(),
 });
 
 const GentleSurfaceSchema = z.object({

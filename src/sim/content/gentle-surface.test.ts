@@ -28,11 +28,28 @@ describe('parseGentleSurfaceContent', () => {
     ).toThrow(/Missing gentle-surface tell/);
   });
 
+  it('declares sound cues on the curated terms and null everywhere else', () => {
+    expect(DEFAULT_GENTLE_SURFACE_CONTENT.get('impulsePurchase')?.sound).toBe('chime_positive');
+    expect(DEFAULT_GENTLE_SURFACE_CONTENT.get('spoiledEncounters')?.sound).toBe('buzz_negative');
+    expect(DEFAULT_GENTLE_SURFACE_CONTENT.get('queuePenaltyBalk')?.sound).toBe('descend_sad');
+    expect(DEFAULT_GENTLE_SURFACE_CONTENT.get('discovery')?.sound).toBe('sparkle_up');
+    expect(DEFAULT_GENTLE_SURFACE_CONTENT.get('fillRateMiss')?.sound).toBeNull();
+    expect(DEFAULT_GENTLE_SURFACE_CONTENT.get('visibility')?.sound).toBeNull();
+  });
+
   it('throws on an unknown term id', () => {
     expect(() =>
       parseGentleSurfaceContent({
         satisfaction: [
-          { term: 'bogus', bubble: 'x', animation: null, particle: null, worldMark: false, threshold: 0 },
+          {
+            term: 'bogus',
+            bubble: 'x',
+            animation: null,
+            particle: null,
+            worldMark: false,
+            threshold: 0,
+            sound: null,
+          },
         ],
         impulse: [],
       }),
