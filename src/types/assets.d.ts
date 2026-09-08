@@ -9,6 +9,11 @@ declare module '*.png' {
   export default url;
 }
 
+declare module '*.wav' {
+  const url: string;
+  export default url;
+}
+
 /**
  * Just the two `import.meta.env` fields the app actually reads.
  *
