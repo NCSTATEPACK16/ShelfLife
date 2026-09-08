@@ -34,7 +34,8 @@
     "art:pack": "node tools/art/pack.mjs",
     "art:validate": "node tools/validate/assets.mjs",
     "art:build": "npm run art:gen && npm run art:pack && npm run art:validate",
-    "gen:placeholders": "python3 tools/art/build.py --stage placeholders"
+    "gen:placeholders": "python3 tools/art/build.py --stage placeholders",
+    "audio:gen": "python3 tools/audio/synth.py"
   },
   "dependencies": {
     "@preact/signals": "2.4.0",
