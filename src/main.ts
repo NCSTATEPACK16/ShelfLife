@@ -1,4 +1,5 @@
 import './ui/styles/base.css';
+import './ui/styles/fonts.css';
 import { breakpointFor, readSafeAreaInsets } from './platform/index.js';
 import { mountCampaign } from './view/campaign-mode.js';
 
