@@ -129,13 +129,12 @@ export async function mountCampaign(
    * mode's tab bar is hidden).
    */
   function positionPanelRoot(breakpoint: Breakpoint): void {
+    panelRoot.className = mode === 'build' ? 'chrome-panel' : '';
     if (mode === 'build') {
       panelRoot.style.cssText =
         breakpoint === 'compact'
-          ? `position:fixed;left:0;right:0;bottom:0;background:var(--surface-raised);
-             box-shadow:var(--shadow-panel);padding:var(--space-2)`
-          : `position:fixed;top:56px;right:0;bottom:0;width:16rem;background:var(--surface-raised);
-             box-shadow:var(--shadow-panel);padding:var(--space-3);overflow-y:auto`;
+          ? `position:fixed;left:0;right:0;bottom:0;padding:var(--space-2)`
+          : `position:fixed;top:56px;right:0;bottom:0;width:16rem;padding:var(--space-3);overflow-y:auto`;
     } else {
       panelRoot.style.cssText =
         breakpoint === 'compact'
