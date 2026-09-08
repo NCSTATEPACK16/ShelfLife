@@ -209,6 +209,7 @@ export interface GentleSurfaceState {
   marks: ActiveMark[];
   swarms: ActiveSwarm[];
   carts: ActiveCart[];
+  firedThisTick: TellTerm[];
 }
 
 export function createGentleSurfaceState(): GentleSurfaceState {
@@ -219,6 +220,7 @@ export function createGentleSurfaceState(): GentleSurfaceState {
     marks: [],
     swarms: [],
     carts: [],
+    firedThisTick: [],
   };
 }
 
@@ -230,6 +232,13 @@ export interface GentleSurfacePlan {
   readonly particles: readonly SpritePlan[];
   readonly cartMarkers: readonly SpritePlan[];
   readonly animationOverrides: ReadonlyMap<number, PosedShopper>;
+  /**
+   * Terms newly admitted to a bubble this tick (i.e. that survived the rate cap). Drained
+   * on read: a second call at the same tick returns an empty array. `BuildScene` uses this
+   * to trigger audio exactly once per admitted tell, never replaying it on a mid-tick
+   * redraw and never sounding for a tell the cap silenced.
+   */
+  readonly firedThisTick: readonly TellTerm[];
 }
 
 export interface GentleSurfaceInput {
@@ -252,6 +261,7 @@ export function gentleSurfaceDrawPlan(
   // re-renders what is already active instead of re-admitting the same tells twice.
   if (input.tick !== state.lastTick) {
     expire(state, input.tick);
+    state.firedThisTick = [];
     detect(input, state);
     state.lastTick = input.tick;
   }
@@ -321,6 +331,7 @@ function admit(
       startedAtTick: input.tick,
       expiresAtTick: input.tick + TUNING.bubbleDurationTicks,
     });
+    state.firedThisTick.push(term);
   }
 
   // The body beat, the world mark, and the particles are not rate-limited. They are
@@ -547,5 +558,8 @@ function render(input: GentleSurfaceInput, state: GentleSurfaceState): GentleSur
     });
   }
 
-  return { bubbles, worldMarks, particles, cartMarkers, animationOverrides };
+  const firedThisTick = state.firedThisTick;
+  state.firedThisTick = [];
+
+  return { bubbles, worldMarks, particles, cartMarkers, animationOverrides, firedThisTick };
 }

@@ -165,6 +165,38 @@ describe('world-mark fade', () => {
   });
 });
 
+describe('firedThisTick', () => {
+  it('reports a newly admitted term exactly once', () => {
+    const state = createGentleSurfaceState();
+    gentleSurfaceDrawPlan(input({ tick: 1 }), state);
+    const plan1 = gentleSurfaceDrawPlan(
+      input({ tick: 2, tells: [tell({ term: 'spoiledEncounters' })] }),
+      state,
+    );
+    expect(plan1.firedThisTick).toEqual(['spoiledEncounters']);
+
+    // Same tick again (a redraw with no new tick behind it) must not replay it.
+    const plan2 = gentleSurfaceDrawPlan(
+      input({ tick: 2, tells: [tell({ term: 'spoiledEncounters' })] }),
+      state,
+    );
+    expect(plan2.firedThisTick).toEqual([]);
+  });
+
+  it('stays empty for a term the rate cap drops', () => {
+    const state = createGentleSurfaceState();
+    gentleSurfaceDrawPlan(input({ tick: 1, breakpoint: 'compact' }), state);
+    // Cap is 4 on compact; 5 different shoppers all trip a low-priority term at once.
+    const shoppers = [1, 2, 3, 4, 5].map((id) => shopper({ id }));
+    const tells = shoppers.map((s) => tell({ shopperId: s.id, term: 'priceSurprisePositive' }));
+    const plan = gentleSurfaceDrawPlan(
+      input({ tick: 2, tells, shoppers, breakpoint: 'compact' }),
+      state,
+    );
+    expect(plan.firedThisTick.length).toBe(TUNING.bubbleCapCompact);
+  });
+});
+
 describe('rendering a tell', () => {
   it('draws the declared bubble and reaction pose for a spoiled pickup', () => {
     const { plan } = step([tell({ term: 'spoiledEncounters', worldRef: { instanceId: SHELF.instanceId } })]);
