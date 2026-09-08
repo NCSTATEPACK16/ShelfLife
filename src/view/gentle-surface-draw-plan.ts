@@ -31,6 +31,8 @@ const TuningSchema = z.object({
   animationPoseTicks: z.number().int().positive(),
   abandonedCartLifetimeTicks: z.number().int().positive(),
   worldMarkTicks: z.number().int().positive(),
+  worldMarkFadeInTicks: z.number().int().positive(),
+  worldMarkFadeOutTicks: z.number().int().positive(),
   particleTicks: z.number().int().positive(),
   worldMarkRadiusTiles: z.number().positive(),
   priority: z.array(z.string().min(1)).min(1),
@@ -128,6 +130,32 @@ function bubbleAlpha(tick: number, bubble: ActiveBubble): number {
   return 1;
 }
 
+/**
+ * Lerp each RGB channel of `tint` toward white (0xffffff, i.e. no tint) as `mix` falls
+ * from 1 (full colour) to 0 (neutral). A world mark has no separate marker sprite — it IS
+ * the fixture's own sprite, recoloured in place — so fading it means blending the tint
+ * itself rather than an alpha.
+ */
+export function blendTint(tint: number, mix: number): number {
+  const r = (tint >> 16) & 0xff;
+  const g = (tint >> 8) & 0xff;
+  const b = tint & 0xff;
+  const lerp = (channel: number): number => Math.round(channel + (255 - channel) * (1 - mix));
+  return (lerp(r) << 16) | (lerp(g) << 8) | lerp(b);
+}
+
+function markMix(tick: number, mark: ActiveMark): number {
+  const elapsed = tick - mark.startedAtTick;
+  if (elapsed < TUNING.worldMarkFadeInTicks) {
+    return easeOutQuad(elapsed / TUNING.worldMarkFadeInTicks);
+  }
+  const remaining = mark.expiresAtTick - tick;
+  if (remaining < TUNING.worldMarkFadeOutTicks) {
+    return easeInQuad(Math.max(0, remaining) / TUNING.worldMarkFadeOutTicks);
+  }
+  return 1;
+}
+
 // ------------------------------------------------------------------------------- state
 
 interface ActiveBubble {
@@ -145,6 +173,7 @@ interface ActivePose {
 interface ActiveMark {
   readonly instanceId: number;
   readonly tint: number;
+  readonly startedAtTick: number;
   readonly expiresAtTick: number;
 }
 
@@ -325,6 +354,7 @@ function admit(
     state.marks.push({
       instanceId: target.instanceId,
       tint: tint(),
+      startedAtTick: input.tick,
       expiresAtTick: input.tick + TUNING.worldMarkTicks,
     });
   }
@@ -462,7 +492,10 @@ function render(input: GentleSurfaceInput, state: GentleSurfaceState): GentleSur
     const placement = placementsById.get(mark.instanceId);
     if (placement === undefined) continue; // bulldozed mid-flash
     worldMarks.push(
-      fixtureSpritePlan(placement, catalogById, input.origin, { tint: mark.tint, subOrder: 1 }),
+      fixtureSpritePlan(placement, catalogById, input.origin, {
+        tint: blendTint(mark.tint, markMix(input.tick, mark)),
+        subOrder: 1,
+      }),
     );
   }
 

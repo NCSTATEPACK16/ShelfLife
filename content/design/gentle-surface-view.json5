@@ -37,6 +37,12 @@
   // How long the world mark (a tint flash on the nearest fixture) and the fly particles
   // stay up. Shorter than the bubble on purpose: the mark is a flash, not a state.
   worldMarkTicks: 8,
+
+  // How long a world mark's tint takes to blend in/out toward its full colour. Short —
+  // the mark is already a flash, not a state; it shouldn't fade slower than it lives.
+  worldMarkFadeInTicks: 2,
+  worldMarkFadeOutTicks: 2,
+
   particleTicks: 20,
 
   // How far from a shopper a placed fixture may be and still be the one they reacted to,

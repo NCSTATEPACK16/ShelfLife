@@ -3,6 +3,7 @@ import type { CampaignSnapshot, ShopperSnapshot, TellOccurrence } from '../bridg
 import { DEFAULT_CATALOG } from '../sim/index.js';
 import type { TellTerm } from '../sim/content/gentle-surface.js';
 import {
+  blendTint,
   createGentleSurfaceState,
   easeInQuad,
   easeOutQuad,
@@ -124,6 +125,43 @@ describe('bubble fade', () => {
       state,
     );
     expect(nearExpiry.bubbles[0]!.alpha).toBeLessThan(1);
+  });
+});
+
+describe('blendTint', () => {
+  it('returns the original colour at mix=1', () => {
+    expect(blendTint(0x102030, 1)).toBe(0x102030);
+  });
+
+  it('returns white (no tint) at mix=0', () => {
+    expect(blendTint(0x102030, 0)).toBe(0xffffff);
+  });
+
+  it('blends partway at mix=0.5', () => {
+    // Each channel halfway between its value and 255.
+    expect(blendTint(0x000000, 0.5)).toBe(0x808080);
+  });
+});
+
+describe('world-mark fade', () => {
+  it('mark tint is closer to white right after admit than mid-life', () => {
+    const state = createGentleSurfaceState();
+    gentleSurfaceDrawPlan(input({ tick: 1 }), state);
+    const justAdmitted = gentleSurfaceDrawPlan(
+      input({
+        tick: 2,
+        tells: [tell({ term: 'spoiledEncounters', worldRef: { instanceId: SHELF.instanceId } })],
+      }),
+      state,
+    );
+    const midLife = gentleSurfaceDrawPlan(
+      input({ tick: 2 + TUNING.worldMarkFadeInTicks }),
+      state,
+    );
+    const justAdmittedMark = justAdmitted.worldMarks.find((m) => m.tint !== null)!;
+    const midLifeMark = midLife.worldMarks.find((m) => m.tint !== null)!;
+    // Closer to white (0xffffff) means a larger numeric value for a dark source tint.
+    expect(justAdmittedMark.tint!).toBeGreaterThan(midLifeMark.tint!);
   });
 });
 
