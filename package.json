@@ -40,6 +40,7 @@
   "dependencies": {
     "@preact/signals": "2.4.0",
     "bitecs": "0.4.0",
+    "howler": "2.2.4",
     "idb-keyval": "6.3.0",
     "json5": "^2.2.3",
     "mitt": "3.0.1",
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.62.1",
+    "@types/howler": "2.2.13",
     "@types/node": "26.1.2",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.0",
