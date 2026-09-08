@@ -1,21 +1,33 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Orthogonal 3/4 projection (ADR 0004): screen = origin + tile * TILE_SIZE, integer zoom
- * only. Both this suite's viewports (1440x900, 390x844) resolve to zoom 1 for campaign's
- * 30x30 store grid, so screen math skips the zoom/camera-scroll terms `mountCampaign`
- * otherwise applies.
+ * Orthogonal 3/4 projection (ADR 0004): screen = (origin + tile * TILE_SIZE) * zoom,
+ * integer zoom only. `mountCampaign` fits a 16-tile reference window (not the whole
+ * 30-tile store) into the viewport, so desktop's 1440px viewport now resolves to zoom 2
+ * while mobile's 390px viewport still resolves to zoom 1 — this has to mirror that
+ * exactly (`fitZoom`/`ZOOM_REFERENCE_TILES` in src/view/campaign-mode.ts and
+ * src/view/projection.ts) or clicks land on the wrong tile.
  */
 function screenForOn(page: Page): (x: number, y: number) => { x: number; y: number } {
   const TILE_SIZE = 32;
   const STORE_TILES = 30;
+  const ZOOM_REFERENCE_TILES = 16;
+  const ZOOM_STEPS = [1, 2, 3, 4];
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('no viewport size');
+
+  const referenceTiles = Math.min(STORE_TILES, ZOOM_REFERENCE_TILES);
+  const ideal = viewport.width / (referenceTiles * TILE_SIZE);
+  const zoom = ZOOM_STEPS.filter((step) => step <= ideal).at(-1) ?? ZOOM_STEPS[0]!;
+
   const origin = {
-    x: Math.round(Math.max(0, (viewport.width - STORE_TILES * TILE_SIZE) / 2)),
+    x: Math.round(Math.max(0, (viewport.width / zoom - STORE_TILES * TILE_SIZE) / 2)),
     y: 16,
   };
-  return (x, y) => ({ x: origin.x + x * TILE_SIZE, y: origin.y + y * TILE_SIZE });
+  return (x, y) => ({
+    x: (origin.x + x * TILE_SIZE) * zoom,
+    y: (origin.y + y * TILE_SIZE) * zoom,
+  });
 }
 
 test.describe('campaign play — build then manage', () => {
