@@ -59,6 +59,20 @@
   --font-signage: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
   --font-body: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
   --font-register: ui-monospace, sfmono-regular, 'SF Mono', menlo, consolas, monospace;
+  --font-pixel: 'PixelFont', var(--font-signage);
+
+  /* ── Chrome — 16-bit console bevel, built from the fixture ramp above ──── */
+  --chrome-outline: var(--fixture-800);
+  --chrome-bevel-light: var(--fixture-50);
+  --chrome-bevel-dark: var(--fixture-300);
+  --chrome-face-rest: var(--fixture-50);
+  --chrome-face-pressed: var(--fixture-200);
+  --chrome-face-disabled: var(--fixture-100);
+
+  /* ── Icon sizing — aligned to the 32px world tile size ──────────────────── */
+  --icon-size-sm: 24px;
+  --icon-size-md: 32px;
+  --icon-size-lg: 40px;
 
   /* ── Space (4px base) ──────────────────────────────────────────────────── */
   --space-1: 4px;
@@ -152,6 +166,53 @@ button,
   min-height: var(--hit-target-min);
   min-width: var(--hit-target-min);
   font-family: inherit;
+}
+
+/* ── 16-bit console chrome (docs/art-direction/gemini-concept-prompts.md,
+   Prompts 6-7): a 1px dark outline plus a 2-value bevel. ─────────────────── */
+.chrome-panel {
+  background: var(--chrome-face-rest);
+  border: 1px solid var(--chrome-outline);
+  box-shadow:
+    inset 1px 1px 0 var(--chrome-bevel-light),
+    inset -1px -1px 0 var(--chrome-bevel-dark);
+}
+
+.chrome-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  background: var(--chrome-face-rest);
+  border: 1px solid var(--chrome-outline);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    inset 1px 1px 0 var(--chrome-bevel-light),
+    inset -1px -1px 0 var(--chrome-bevel-dark);
+  font-family: var(--font-pixel);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.chrome-button:active,
+.chrome-button[aria-pressed='true'] {
+  background: var(--chrome-face-pressed);
+  box-shadow:
+    inset -1px -1px 0 var(--chrome-bevel-light),
+    inset 1px 1px 0 var(--chrome-bevel-dark);
+}
+
+.chrome-button:disabled {
+  background: var(--chrome-face-disabled);
+  color: var(--ink-faint);
+  box-shadow: inset 1px 1px 0 var(--chrome-bevel-light);
+  cursor: not-allowed;
+}
+
+.chrome-icon {
+  display: block;
+  image-rendering: pixelated;
+  flex: none;
 }
 
 :focus-visible {
