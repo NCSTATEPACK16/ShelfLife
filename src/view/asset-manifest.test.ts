@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { ASSETS, TILE_SIZE, assetById, enumerateFrameKeys, frameKey, parseManifest } from './asset-manifest.js';
+
+const PYTHON_INDEX_PATH = fileURLToPath(new URL('../../assets/src/index.json', import.meta.url));
 
 describe('asset manifest', () => {
   it('loads and validates the real manifest', () => {
@@ -90,8 +93,13 @@ describe('frame-key parity with the Python pipeline', () => {
   // a time when it draws. If they ever disagree, the renderer asks the atlas for frames
   // that were never packed — and the failure is a silently invisible sprite. Compare the
   // two enumerations directly against the index the build actually wrote.
-  it('produces exactly the frame set the build generated', () => {
-    const index = JSON.parse(readFileSync(new URL('../../assets/src/index.json', import.meta.url), 'utf8')) as {
+  //
+  // `assets/src/index.json` is a local-only intermediate (.gitignore, ADR 0006): CI has no
+  // Python/Pillow and never runs `npm run art:gen`, so this check only has something to
+  // compare against on a machine where a developer ran the art pipeline. Skip rather than
+  // fail on a missing file — that is an absent build artifact, not a parity bug.
+  it.skipIf(!existsSync(PYTHON_INDEX_PATH))('produces exactly the frame set the build generated', () => {
+    const index = JSON.parse(readFileSync(PYTHON_INDEX_PATH, 'utf8')) as {
       tileSize: number;
       frames: { key: string }[];
     };
