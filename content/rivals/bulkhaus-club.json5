@@ -1,0 +1,40 @@
+// Rival 3 — BulkHaus Club (PLAN.md §3, L3 boss). Logged in docs/legal/parody-review.md row
+// 3; the four-part name test passed there before this file was written.
+//
+// A satire of a *category* (the warehouse membership club), never of any specific chain.
+// No real name, logo, slogan, or trade-dress colour pairing appears here or anywhere else.
+//
+// quality/service/ambiance authored mid-to-low — a no-frills warehouse floor, not a
+// pleasant one. assortmentBreadth is high (huge pack sizes, broad-but-shallow SKU range).
+// An explicit low loyaltyDecay baseline models membership lock-in directly; the
+// 'membershipLockIn' signature further lowers effective decay and bumps assortment for
+// bulk/family households (the sample-corridor discovery pull).
+{
+  id: 'bulkhaus-club',
+  name: 'BulkHaus Club',
+  archetype: 'Warehouse membership club',
+  communityLove: 48,
+  position: { x: 6, y: 6 },
+  identity: 'warehouse-club',
+  quality: 0.4,
+  service: 0.3,
+  ambiance: 0.25,
+  // Cheap per-unit once you're in the door — the membership fee is the real price, which
+  // this sim doesn't model directly; priceIndex captures the basket-cost discount alone.
+  priceIndex: 0.75,
+  assortmentBreadth: 0.7,
+  // Explicit override: membership lock-in means slower decay than the market default even
+  // before the signature's weekly-tick multiplier applies.
+  loyaltyDecay: 0.6,
+  // Rival Dynamics (M2 2.0 sub-project A). High assortment/quality investment, low
+  // marketing (word of mouth does the work for a club). signature 'membershipLockIn' does
+  // the mechanical work.
+  personality: {
+    priceAggression: 0.2,
+    qualityInvestment: 0.4,
+    marketingSpend: 0.15,
+    expansionRate: 0.15,
+    reactivity: 0.3,
+    signature: 'membershipLockIn',
+  },
+}

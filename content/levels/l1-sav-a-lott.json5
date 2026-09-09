@@ -1,0 +1,40 @@
+// Level 1 — Sav-A-Lott (PLAN.md §3). Chapter count, thresholds, and household mix are a
+// documented FIRST PASS, not derived from any balance run — npm run balance:gate currently
+// reports do-nothing winning 100% of the time at this level, so any threshold picked now is
+// provisional by construction. Real tuning is phase 5.4 (PLAN.md §16), same as
+// content/balance/*.json5.
+{
+  id: 'l1',
+  rivalId: 'sav-a-lott',
+  name: 'Level 1: Sav-A-Lott',
+  chapters: [
+    {
+      id: 'ch1',
+      title: 'Open Your Doors',
+      mechanicUnlock: 'pricing',
+      introCopy: { advisor: 'diane', line: "Sav-A-Lott's barely hanging on. Get the doors open and start pricing smart." },
+      outroCopy: { advisor: 'diane', line: "You're on the board. Keep pushing." },
+      objective: { type: 'shareThreshold', trailingWindowDays: 7, threshold: 0.15 },
+    },
+    {
+      id: 'ch2',
+      title: 'Find Your Footing',
+      introCopy: { advisor: 'diane', line: 'Steady growth. Watch your margins as you scale.' },
+      outroCopy: { advisor: 'diane', line: 'Solid week. They know your name now.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 7, threshold: 0.25 },
+    },
+    {
+      id: 'ch3',
+      title: 'Take The Lead',
+      introCopy: { advisor: 'diane', line: 'Time to close it out. Sav-A-Lott has nothing left to counter with.' },
+      outroCopy: { advisor: 'diane', line: 'Sav-A-Lott is done. On to the next one.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 7, threshold: 0.35 },
+    },
+  ],
+  loseCondition: { type: 'ebitdaStreak', maxNegativeDays: 14 },
+  households: {
+    householdCount: 24,
+    segmentMix: { priceHunter: 1, convenience: 1, family: 1, foodie: 1, bulk: 1, senior: 1, student: 1 },
+    catchmentMarginCells: 4,
+  },
+}

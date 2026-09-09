@@ -34,6 +34,16 @@ describe('InventorySystem', () => {
     expect(inventory.stockOf('milk')).toBe(5);
   });
 
+  it("capacityOf returns the good's orderUpToLevel from its supply policy", () => {
+    const { inventory } = worldWithInventory([RELIABLE_POLICY]);
+    expect(inventory.capacityOf('milk')).toBe(5);
+  });
+
+  it('capacityOf returns 0 for a good with no policy', () => {
+    const { inventory } = worldWithInventory([RELIABLE_POLICY]);
+    expect(inventory.capacityOf('nonexistent-good')).toBe(0);
+  });
+
   it('consume() sells one unit at a time, FIFO, when freshness is above the markdown threshold', () => {
     const { world, inventory } = worldWithInventory([RELIABLE_POLICY]);
     world.step();
@@ -118,7 +128,7 @@ describe('InventorySystem', () => {
   it('drainSpoilageValue accumulates cost for every spoiled unit and resets on read', () => {
     const spoilsFast: SupplyPolicy = { ...RELIABLE_POLICY, spoilageTauDays: 0.001 };
     const catalog = [
-      { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.5, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
+      { id: 'milk', name: 'Milk', unitPrice: 3, cost: 1.5, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05, category: 'dairy' },
     ];
     const { world, inventory } = worldWithInventory([spoilsFast], 1, catalog);
     world.step();

@@ -1,0 +1,1009 @@
+<title>Shelf Life Planogram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700&family=Public+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap">
+<style>
+  /* Palette is content/design/tokens.json verbatim. The page is built from the
+     same ramp it asks Gemini to respect. */
+  :root{
+    --ground:#E8E6E1; --surface:#F4F3F0; --raised:#FFFFFF; --paper:#FCFBF8;
+    --ink:#1A1917; --ink-2:#615E56; --ink-3:#8A867C;
+    --line:#D6D3CB; --line-2:#B4B0A6;
+    --accent:#E23D2E; --accent-soft:#F8E1DE; --on-accent:#FFFFFF;
+    --good:#1F7A4D; --good-soft:#DEEBE4;
+    --warn:#D9931B; --warn-soft:#F8EBD4;
+    --info:#2C6BA8; --violet:#6B4A9E;
+    --shadow:3px 3px 0 rgba(20,19,17,.08); --btn-shadow:2px 2px 0 rgba(20,19,17,.22);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#141311; --surface:#1E1D1A; --raised:#2A2926; --paper:#191816;
+      --ink:#F0EEE9; --ink-2:#A8A49A; --ink-3:#78746B;
+      --line:#33312C; --line-2:#4A473F;
+      --accent:#F05243; --accent-soft:#3B201C; --on-accent:#141311;
+      --good:#2FA268; --good-soft:#16291F;
+      --warn:#F0AE38; --warn-soft:#33260F;
+      --info:#3E87CC; --violet:#8763C2;
+      --shadow:3px 3px 0 rgba(0,0,0,.34); --btn-shadow:2px 2px 0 rgba(0,0,0,.62);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#141311; --surface:#1E1D1A; --raised:#2A2926; --paper:#191816;
+    --ink:#F0EEE9; --ink-2:#A8A49A; --ink-3:#78746B;
+    --line:#33312C; --line-2:#4A473F;
+    --accent:#F05243; --accent-soft:#3B201C; --on-accent:#141311;
+    --good:#2FA268; --good-soft:#16291F;
+    --warn:#F0AE38; --warn-soft:#33260F;
+    --info:#3E87CC; --violet:#8763C2;
+    --shadow:3px 3px 0 rgba(0,0,0,.34); --btn-shadow:2px 2px 0 rgba(0,0,0,.62);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:"Public Sans","Helvetica Neue",Arial,sans-serif;
+    font-size:16px; line-height:1.58; -webkit-font-smoothing:antialiased;
+    overflow-x:clip;
+  }
+  .wrap{max-width:1020px;margin:0 auto;padding:0 24px}
+  @media(max-width:640px){.wrap{padding:0 15px}}
+
+  h1,h2,h3,.sig{font-family:"Archivo Black",Impact,"Helvetica Neue",sans-serif;font-weight:400}
+
+  /* ---------- masthead ---------- */
+  .mast{
+    padding:52px 0 0;position:relative;
+  }
+  .mast::before{
+    content:"";position:absolute;inset:-8px -40px 0 -40px;z-index:-1;pointer-events:none;
+    background-image:
+      linear-gradient(to right,var(--line) 1px,transparent 1px),
+      linear-gradient(to bottom,var(--line) 1px,transparent 1px);
+    background-size:32px 32px;
+    -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.5),transparent 62%);
+    mask-image:linear-gradient(to bottom,rgba(0,0,0,.5),transparent 62%);
+  }
+  @media(max-width:1120px){.mast::before{inset:-8px 0 0 0}}
+  .kicker{
+    font-family:Silkscreen,"JetBrains Mono",ui-monospace,monospace;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:500;color:var(--accent);margin:0 0 16px;
+  }
+  h1{
+    font-size:clamp(42px,9vw,78px);line-height:.88;letter-spacing:-.025em;
+    text-transform:uppercase;margin:0 0 20px;text-wrap:balance;
+  }
+  h1{text-shadow:4px 4px 0 var(--line)}
+  h1 span{display:block;color:var(--accent);text-shadow:4px 4px 0 var(--line)}
+  @media(max-width:560px){h1,h1 span{text-shadow:3px 3px 0 var(--line)}}
+  .standfirst{font-size:18.5px;line-height:1.5;color:var(--ink-2);max-width:60ch;margin:0 0 30px}
+  .standfirst b{color:var(--ink);font-weight:600}
+
+  /* ---------- palette strip ---------- */
+  .pal{border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:16px 0 18px;margin-bottom:38px}
+  .pal-row{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .pal-row + .pal-row{margin-top:14px}
+  .pal-lbl{
+    font-family:Silkscreen,"JetBrains Mono",ui-monospace,monospace;font-size:10px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+    width:96px;flex:none;padding-top:5px;
+  }
+  @media(max-width:560px){.pal-lbl{width:100%;padding-top:0}}
+  .chips{display:flex;gap:4px;flex-wrap:wrap}
+  .sw{width:52px}
+  .sw i{
+    display:block;width:32px;height:32px;
+    border:1px solid var(--ink);box-shadow:2px 2px 0 rgba(20,19,17,.22);
+  }
+  .sw b{
+    display:block;font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:8.5px;font-weight:400;color:var(--ink-3);margin-top:5px;letter-spacing:.01em;
+  }
+  .sw em{display:block;font-style:normal;font-size:9px;color:var(--ink-2);font-weight:600;margin-top:2px}
+  .pal-note{
+    display:block;font-family:"Public Sans",sans-serif;font-size:10.5px;font-weight:400;
+    letter-spacing:0;text-transform:none;color:var(--ink-3);margin-top:4px;line-height:1.35;
+  }
+
+  /* ---------- section heads ---------- */
+  .head{
+    display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid var(--ink);padding-bottom:7px;margin:54px 0 0;
+  }
+  .head h2{font-size:21px;text-transform:uppercase;letter-spacing:.005em;margin:0}
+  .head .n{
+    font-family:Silkscreen,"JetBrains Mono",ui-monospace,monospace;font-size:10px;font-weight:400;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+    margin-left:auto;font-variant-numeric:tabular-nums;
+  }
+  .note{color:var(--ink-2);font-size:15px;margin:14px 0 24px;max-width:66ch}
+  .note b{color:var(--ink);font-weight:600}
+
+  code.inl{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.85em;
+    background:var(--raised);border:1px solid var(--line);padding:0 4px;color:var(--ink-2);
+  }
+
+  /* ---------- callout ---------- */
+  .callout{
+    background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+    padding:22px 24px;box-shadow:var(--shadow);margin-bottom:8px;
+  }
+  @media(max-width:560px){.callout{padding:18px 16px}}
+  .callout h3{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;font-weight:700;
+    letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin:0 0 12px;
+  }
+  .callout p{margin:0 0 11px;font-size:15.5px;color:var(--ink-2);max-width:68ch}
+  .callout p:last-child{margin-bottom:0}
+  .callout b{color:var(--ink);font-weight:600}
+
+  /* ---------- run order ---------- */
+  ol.flow{list-style:none;padding:0;margin:24px 0 0;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+  ol.flow li{background:var(--surface);padding:14px 18px;display:grid;grid-template-columns:26px 1fr;gap:14px;align-items:start}
+  @media(max-width:560px){ol.flow li{padding:13px 14px;gap:11px;grid-template-columns:22px 1fr}}
+  ol.flow .k{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;font-weight:700;
+    color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.5;
+  }
+  ol.flow .t{font-size:15px;color:var(--ink-2)}
+  ol.flow .t b{color:var(--ink);font-weight:600}
+
+  /* ---------- shared blocks ---------- */
+  .ctx{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);margin-top:26px}
+  .ctx-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .ctx-head h3{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;font-weight:700;
+    letter-spacing:.13em;text-transform:uppercase;margin:0;
+  }
+  .ctx-head .why{font-size:13.5px;color:var(--ink-3);flex:1;min-width:170px}
+
+  /* ---------- prompt cards ---------- */
+  .cards{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin-top:4px}
+  .card{
+    background:var(--surface);border:1px solid var(--line);
+    border-left:4px solid var(--rail,var(--accent));box-shadow:var(--shadow);min-width:0;
+  }
+  .card-head{display:grid;grid-template-columns:58px minmax(0,1fr);gap:16px;padding:19px 20px 15px;border-bottom:1px solid var(--line)}
+  .card-head > div{min-width:0}
+  @media(max-width:560px){.card-head{grid-template-columns:40px minmax(0,1fr);gap:11px;padding:16px 14px 13px}}
+  .idx{
+    font-family:"Archivo Black",Impact,sans-serif;font-size:40px;line-height:.82;
+    color:var(--rail,var(--accent));letter-spacing:-.04em;font-variant-numeric:tabular-nums;padding-top:3px;
+  }
+  @media(max-width:560px){.idx{font-size:28px}}
+  .card h3{font-size:22px;line-height:1.06;text-transform:uppercase;margin:0 0 9px;letter-spacing:-.005em;text-wrap:balance}
+  @media(max-width:560px){.card h3{font-size:18px}}
+  .meta{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 11px}
+  .chip{
+    font-family:Silkscreen,"JetBrains Mono",ui-monospace,monospace;font-size:9px;letter-spacing:.06em;
+    text-transform:uppercase;font-weight:500;padding:3px 7px;border:1px solid var(--line-2);color:var(--ink-3);
+  }
+  .chip.now{background:var(--accent-soft);color:var(--accent);border-color:transparent;font-weight:700}
+  .chip.ok{background:var(--good-soft);color:var(--good);border-color:transparent;font-weight:700}
+  .chip.care{background:var(--warn-soft);color:var(--warn);border-color:transparent;font-weight:700}
+  .locks{font-size:15px;color:var(--ink-2);margin:0;max-width:66ch;overflow-wrap:break-word}
+  .locks b{color:var(--ink);font-weight:600}
+  .attach{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;color:var(--ink-3);
+    margin:12px 0 0;padding-top:11px;border-top:1px dashed var(--line-2);overflow-wrap:anywhere;
+  }
+  .attach b{color:var(--ink-2);font-weight:500}
+  .sends{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--ink-3);
+    margin:7px 0 0;letter-spacing:.02em;
+  }
+  .sends b{color:var(--ink-2);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:9.5px}
+  .sends .sz{color:var(--accent);font-weight:500}
+  .block-head{grid-template-columns:minmax(0,1fr)!important}
+
+  /* ---------- the tape (prompt text) ---------- */
+  .tape{position:relative;background:var(--paper);border-top:1px solid var(--line);padding:17px 20px 0;overflow:hidden}
+  @media(max-width:560px){.tape{padding:15px 14px 0}}
+  .tape.clipped{max-height:300px}
+  .tape.clipped::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:76px;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(0,0,0,0),var(--paper) 82%);
+  }
+  .tape-inner{padding-bottom:18px}
+  .lbl{
+    display:block;font-family:Silkscreen,"JetBrains Mono",ui-monospace,monospace;font-size:9.5px;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 7px;
+  }
+  .lbl.sub{color:var(--ink-3)}
+  .tape p+.lbl{margin-top:19px;padding-top:14px;border-top:1px dashed var(--line-2)}
+  .tape p{
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px;line-height:1.62;
+    margin:0;white-space:pre-wrap;color:var(--ink);max-width:88ch;overflow-wrap:break-word;
+  }
+  @media(max-width:560px){.tape p{font-size:11.5px;line-height:1.6}}
+
+  .card-foot{
+    display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+    padding:12px 20px;border-top:1px solid var(--line);background:var(--surface);
+  }
+  @media(max-width:560px){.card-foot{padding:11px 14px}}
+  .foot-note{font-size:13px;color:var(--ink-3);flex:1;min-width:150px}
+
+  /* ---------- buttons ---------- */
+  button{font-family:inherit}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;min-height:34px;
+    background:var(--accent);color:var(--on-accent);border:1px solid transparent;
+    font-family:Silkscreen,"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:8px 14px;cursor:pointer;border-radius:0;box-shadow:var(--btn-shadow);
+    transition:filter .14s ease, transform .06s ease;
+  }
+  .btn:hover{filter:brightness(1.07)}
+  .btn:active{transform:translate(2px,2px);box-shadow:0 0 0 rgba(0,0,0,0)}
+  .btn.ghost{background:transparent;color:var(--ink-2);border-color:var(--line-2);box-shadow:var(--btn-shadow)}
+  .btn.ghost:hover{color:var(--ink);border-color:var(--ink-3);filter:none}
+  .btn.done{background:var(--good);color:#fff;border-color:transparent}
+  :root[data-theme="dark"] .btn.done{color:#0C1A13}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.done{color:#0C1A13}}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .bar{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    margin:22px 0 8px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  }
+  .switch{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--ink-2);cursor:pointer;user-select:none}
+  .switch input{accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
+  .switch .hint{color:var(--ink-3)}
+  .bar .spacer{flex:1}
+
+  footer{border-top:2px solid var(--ink);margin-top:58px;padding:22px 0 64px;font-size:14px;color:var(--ink-3)}
+  footer p{max-width:70ch;margin:0 0 10px}
+  footer b{color:var(--ink-2);font-weight:600}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <p class="kicker">Art direction &middot; Gemini prompt set</p>
+    <h1>Shelf Life<span>Planogram</span></h1>
+    <p class="standfirst">Ten prompts that hand the art direction and the UI/UX to Gemini and get it back as concept art <b>plus a machine-readable spec</b>. Ordered against the surface roadmap, so each one targets the next thing Track B actually builds. Every card copies the full prompt with the shared blocks it needs already inside it.</p>
+  </header>
+
+  <div class="pal" id="pal"></div>
+
+  <div class="callout">
+    <h3>Read this before generating anything</h3>
+    <p>The palette above is not a suggestion. It is <code class="inl">content/design/tokens.json</code>, the single source of colour truth for the store world, the UI, and the landing page — and <code class="inl">tools/check-tokens.mjs</code> fails CI on a hardcoded hex. So the prompts never ask for a palette. They ask for <b>proposed changes to named tokens</b>, and a long list of proposals means the brief was ignored.</p>
+    <p>The projection is <b>orthogonal 3/4 top-down on a 32px grid</b>, per ADR 0004 — not the isometric spec still sitting in <code class="inl">PLAN.md</code> §9.1, which that ADR supersedes. Image models default to isometric diamonds for anything that looks like a management game, so every prompt says so twice.</p>
+    <p>And the art is <b>text</b>. Sprites are palette-index character grids in <code class="inl">tools/art/sprites/*.py</code> compiled to PNG by <code class="inl">npm run art:build</code> (ADR 0006). Gemini's pictures are concept and spec, never shippable frames — which is exactly why every prompt ends in a HANDOFF block you can paste back to Claude Code.</p>
+  </div>
+
+  <div class="head"><h2>How to run the set</h2></div>
+  <ol class="flow">
+    <li><span class="k">1</span><span class="t"><b>One fresh chat per prompt.</b> Mixing the HUD prompt and the rival-logo prompt in one thread produces mush.</span></li>
+    <li><span class="k">2</span><span class="t"><b>Run 01 first and keep the winner.</b> It is a form-language board, not a scene, and everything downstream inherits its material ramps, light direction, and detail budget.</span></li>
+    <li><span class="k">3</span><span class="t"><b>Then 02, and keep that too.</b> It turns known US grocery-format archetypes — no photos needed — into the fixture vocabulary, stated explicitly in a 16-bit SNES style. From 03 on, attach both as references — 01 carries the objects, 02 carries the world.</span></li>
+    <li><span class="k">4</span><span class="t"><b>Attach the folder named on each card.</b> Photos in <code class="inl">docs/art-direction/reference/</code>. Every prompt already contains an <code class="inl">IF I ATTACHED IMAGES</code> clause telling the model what to take from them and what to ignore.</span></li>
+    <li><span class="k">5</span><span class="t"><b>Expect garbled lettering.</b> Judge UI output on layout, weight, and placement only. The real text lives in HTML, and the real sprite text is a bitmap font.</span></li>
+    <li><span class="k">6</span><span class="t"><b>Iterate on the HANDOFF, not the picture.</b> If the art is 80% right, the fix is usually one value in the spec. Say <code class="inl">keep everything, move the speed control to the left edge</code> rather than re-rolling a composition you liked.</span></li>
+  </ol>
+
+  <div class="head"><h2>The shared blocks</h2><span class="n">6 blocks</span></div>
+  <p class="note">Every prompt is assembled from a few of these plus its own text. <b>A card only carries the blocks it needs</b> — the cast sheet never sends the KPI benchmark rule, and the advisor panel never sends the fixture rotation budget. The copy button does the assembly, so these are here to read and tune once.</p>
+  <div class="cards" id="blocks"></div>
+
+  <div class="bar">
+    <label class="switch"><input type="checkbox" id="withCtx" checked> Include the shared blocks <span class="hint">— turn off once they are already in the chat</span></label>
+    <span class="spacer"></span>
+    <button class="btn ghost" type="button" id="copyAll">Copy all ten</button>
+  </div>
+
+  <div class="head"><h2>Foundation</h2><span class="n" id="c-found"></span></div>
+  <p class="note">Run these two first and keep both results. Everything after them is a variation on what they establish — <b>01 defines the objects, 02 defines the world they sit in</b>.</p>
+  <div class="cards" id="sec-found"></div>
+
+  <div class="head"><h2>The world</h2><span class="n" id="c-world"></span></div>
+  <p class="note">The store, the tells, and the cast. This is the art that carries the simulation: <b>shoppers are the telemetry channel</b>, so their legibility is a mechanic, not a finish.</p>
+  <div class="cards" id="sec-world"></div>
+
+  <div class="head"><h2>The interface</h2><span class="n" id="c-ui"></span></div>
+  <p class="note">All three are designed at 390&times;844 first and expanded to desktop second. A panel that only works at regular width fails review, so a prompt that returns only a desktop layout has failed too.</p>
+  <div class="cards" id="sec-ui"></div>
+
+  <div class="head"><h2>Identity &amp; framing</h2><span class="n" id="c-id"></span></div>
+  <p class="note">The twelve rival chains and the art around the game. <b>Prompt 09 carries the trademark guardrails</b> — its output goes into <code class="inl">docs/legal/parody-review.md</code> before any of it is implemented.</p>
+  <div class="cards" id="sec-id"></div>
+
+  <footer>
+    <p><b>What comes back:</b> images for you, and a fenced HANDOFF block for me. The HANDOFF is JSON on purpose — token deltas land in <code class="inl">content/design/tokens.json</code>, asset entries in <code class="inl">content/asset-manifest.json</code>, palette maps in the manifest's palettes block, and sprite designs become character grids in <code class="inl">tools/art/sprites/</code>. Never hand-edit a PNG.</p>
+    <p><b>Two things that are not optional:</b> a rival gets logged in the parody review before it is implemented, and a third-party asset gets recorded in <code class="inl">ATTRIBUTION.md</code> when it is added. And if an art change moves a golden hash, that is a boundary violation to fix — never a re-baseline.</p>
+    <p>These prompts are downstream of <code class="inl">PLAN.md</code>, <code class="inl">CLAUDE.md</code>, ADRs 0004&ndash;0007, and <code class="inl">docs/design/gentle-surface.md</code>. If they disagree, those win.</p>
+  </footer>
+</div>
+
+<script>
+const B = {
+
+game: `SHELF LIFE — a 2D supermarket tycoon game. You run one grocery store against ten fictional rival chains, ranked by how much their community LOVES them, not by how big they are. Money can beat scale; money cannot beat a chain where the cashier knows your kid's name. Underneath is a real retail simulation: a store-choice logit model, per-trip shopper satisfaction, spoilage, queueing, and loyalty that compounds slowly.
+
+THE PILLAR — "deep sim, gentle surface". The math is brutal; the interface never makes the player read it. The player learns the model by WATCHING SHOPPERS, never by reading a formula. Every quantity the simulation computes has a visual tell. Depth is always exactly one click away. A store where nothing is wrong must look CALM — calm is the reward.`,
+
+idiom: `VISUAL IDIOM (locked — do not propose alternatives)
+16-bit SNES-era console-management idiom. Warm, crisp, hand-placed. Not retro-for-its-own-sake, not modern flat-vector.
+Every sprite carries a 1px outline in the darkest ink. That shared outline is what welds separately-authored art into one world.
+Authored at 1x, displayed only at integer zoom (1x/2x/3x/4x), nearest-neighbour.
+Legibility reference only — not palette, not projection: RollerCoaster Tycoon 2. Silhouette-first clarity, every state readable without a tooltip.`,
+
+grid: `PROJECTION (locked)
+ORTHOGONAL 3/4 TOP-DOWN on a 32x32 axis-aligned grid. NOT isometric. NOT diamond tiles. Axis-aligned, straight on, slightly above eye level.
+Tall fixtures extend upward on a 32x48 or 32x64 canvas, anchored at bottom-centre of the footprint tile. Depth is y-sort.
+Maximum 2 rotations per rotatable fixture (facing the aisle, facing away); symmetric props get 1. A hard art-budget constraint, not a preference.`,
+
+palette: `LOCKED PALETTE — the only colours in the game. Do not invent hues.
+Warm-grey ramp, used for ALL structure: fixtures, floor, walls, and UI chrome.
+  #F4F3F0  #E8E6E1  #D6D3CB  #B4B0A6  #8A867C  #615E56  #403E38  #2A2926  #1E1D1A  #141311
+Product family, used ONLY for goods, data, and state — never for chrome.
+  red #E23D2E (markdowns, primary accent) | green #1F7A4D (fresh, positive) | amber #D9931B (spoilage warning) | blue #2C6BA8 (dairy/frozen, informational) | violet #6B4A9E (rival identity, loyalty) | brown #7A5C2E (spoiled)
+THE CENTRAL RULE: desaturated warm-grey fixtures, fully saturated products. That is what makes a shelf read as FULL or EMPTY at a glance from zoomed out — which on a 6-inch screen is not a nice-to-have, it is the whole design.
+If a surface genuinely needs a value the ramp lacks, say so explicitly as a proposed addition with a hex and a reason. Do not slip in a new hue.`,
+
+platform: `PLATFORM RULES (a design that breaks these is unusable)
+PHONE-FIRST. Design the compact layout (390x844) FIRST, then expand to regular (>=768px). A desktop-first answer will be rejected.
+Two breakpoints and only two: compact <768px, regular >=768px.
+44px minimum hit target for every interactive element, at BOTH sizes.
+Nothing interactive in the bottom 34px — the iOS home-indicator swipe wins that fight. Respect safe-area insets.
+Hover is NEVER load-bearing. Tooltips are tap-to-open popovers.
+Compact: panels are bottom sheets, not floating windows; the HUD is one top bar plus one bottom action bar; multi-column dashboards become tabbed single columns; the fixture palette is a horizontally scrolling tray.
+The world animates; the UI mostly doesn't. Durations 80/140/220/380ms.
+UI chrome uses only the warm-grey ramp. Saturated colour in the UI means data or state, never decoration, and never overload the red accent to mean "good".
+Light theme: ground #E8E6E1, surface #F4F3F0, ink #1A1917, muted #615E56, line #D6D3CB, accent #E23D2E.
+Dark theme:  ground #141311, surface #1E1D1A, ink #F0EEE9, muted #A8A49A, line #33312C, accent #F05243.
+Type: signage is heavy and tight; body is a neutral sans; every NUMBER is monospace, because prices and receipts are monospaced in the real world. Radii are restrained — fixtures are metal shelving, not pills.
+EVERY KPI renders against a rival benchmark or a 7-day trailing average. A bare number is a bug.`,
+
+legal: `LEGAL GUARDRAILS (hard fail if broken)
+All chains, brands, and products in this game are FICTIONAL PARODIES. Never reproduce, evoke, or adapt a real retailer's name, logo, wordmark, slogan, mascot, or a colour pairing that functions as trade dress — not even as a placeholder, not even distorted. Satirize business STRATEGY (pallet pricing, membership lock-in, cult products), which is not ownable. Never depict a chain doing something defamatory. No real product brands on shelves — the SKU brands are invented too, and it is funnier that way.`
+
+};
+
+/* Which blocks each prompt actually needs. This is the whole point: the cast sheet
+   does not need the KPI benchmark rule, and the advisor panel does not need the
+   fixture rotation budget. */
+const NEEDS = {
+  "01": ["game","idiom","grid","palette"],
+  "02": ["game","idiom","grid","palette","legal"],
+  "03": ["game","idiom","grid","palette"],
+  "04": ["game","idiom","grid","palette"],
+  "05": ["game","idiom","grid","palette"],
+  "06": ["game","idiom","palette","platform"],
+  "07": ["game","idiom","grid","palette","platform"],
+  "08": ["game","idiom","palette","platform"],
+  "09": ["game","idiom","grid","palette","legal"],
+  "10": ["game","idiom","grid","palette","platform","legal"]
+};
+
+const BLOCK_META = [
+  {id:"game",     label:"Game",      why:"What Shelf Life is, and the one pillar every visual decision answers to.", uses:"all ten"},
+  {id:"idiom",    label:"Idiom",     why:"The 16-bit look, the shared outline, integer zoom, and the legibility reference.", uses:"all ten"},
+  {id:"grid",     label:"Projection",why:"Orthogonal 3/4 on 32px, y-sort, anchors, and the 2-rotation budget. Image models default to isometric, so this is stated twice.", uses:"01–05, 07, 09, 10"},
+  {id:"palette",  label:"Palette",   why:"The locked ramp and the desaturated-fixtures rule. Also the instruction to propose additions rather than invent hues.", uses:"all ten"},
+  {id:"platform", label:"Platform",  why:"Phone-first, 44px targets, safe areas, no load-bearing hover, and the benchmark rule.", uses:"06, 07, 08, 10"},
+  {id:"legal",    label:"Legal",     why:"Parody guardrails. Only on the prompts that can actually trip them.", uses:"02, 09, 10"}
+];
+
+const PAL = [
+  {label:"Fixture ramp", note:"structure, fixtures, all UI chrome",
+   sw:[["#F4F3F0","50"],["#E8E6E1","100"],["#D6D3CB","200"],["#B4B0A6","300"],["#8A867C","400"],["#615E56","500"],["#403E38","600"],["#2A2926","700"],["#1E1D1A","800"],["#141311","900"]]},
+  {label:"Product", note:"goods, data, state — never chrome",
+   sw:[["#E23D2E","red"],["#1F7A4D","green"],["#D9931B","amber"],["#2C6BA8","blue"],["#6B4A9E","violet"],["#7A5C2E","spoiled"]]}
+];
+
+const P = [
+
+/* ================= FOUNDATION ================= */
+{
+sec:"found", n:"01", title:"Art Direction Board", rail:"var(--accent)",
+chips:[["Run first","now"],["Foundation",""]],
+locks:"The visual thesis, in one image. Material ramps, light direction, silhouette test, and the detail budget per 32px. <b>This is the reference image for the other nine</b>, and its written half is the top of <code class=\"inl\">docs/art-bible.md</code>.",
+attach:"<b>Attach</b> reference/01-style-bible/ — 16-bit games whose look you want, plus any mood images.",
+brief:`You are the art director for Shelf Life. Before anything is drawn, I need the visual thesis written down and shown. Produce an ART DIRECTION BOARD as a single wide image, plus the written answers below.`,
+deliver:`ONE landscape image, laid out as a designer's board with labelled zones:
+
+1. PALETTE — the locked ramps drawn as chips with hex labels, arranged to show the central rule: desaturated warm-grey structure against fully saturated goods. Put one "shelf full" and one "shelf empty" pair beside the chips to prove the rule reads.
+2. MATERIAL STUDY — how these colours become surfaces in 16-bit pixel art: painted metal shelving, vinyl floor tile, laminate counter, cardboard, glass cooler door, produce. Show the 3-4 value ramp for each material and where the outline sits.
+3. LIGHT — one fixed light direction with a soft baked contact shadow. Pick the direction and show a fixture lit by it in both of its 2 rotations.
+4. SILHOUETTE TEST — six store objects as pure black silhouettes at 32px. If a player could not name all six, the shapes are wrong: redraw them before showing me.
+5. CALM VS ALARM — the same aisle drawn twice, healthy and failing. Prove that "calm is the reward" is visible.
+6. THE ONE-INCH TEST — a 3x3cm crop of a busy scene at final phone scale, to prove it reads on a 6-inch screen.`,
+rules:`- Use ONLY the locked palette. If a material genuinely needs a value the ramp lacks, call it out as a proposed token addition with a hex and a reason. Do not sneak in a new hue.
+- Orthogonal 3/4 top-down, 32px grid, 1px dark outline, authored at 1x.
+- No text inside sprites. No logos anywhere.
+- No isometric diamonds. If you catch yourself drawing a diamond floor tile, stop and redo it.
+
+IF I ATTACHED IMAGES: take composition, value structure, outline weight, and density of detail per 32px. Do NOT adopt their palettes, their projection, or any of their IP.`,
+ask:`Be opinionated. Pick one answer, do not give me options.
+- In one sentence, what does this game look like? Write it as a thesis I can put at the top of the art bible.
+- Three visual things this game does that similar games do not.
+- The three most likely ways this art direction fails, and the rule that prevents each.
+- Detail budget: how many distinct pixel clusters belong in one 32x32 floor tile, one shelf face, one 16x24 shopper? Give numbers.`,
+handoff:`{
+  "thesis": "...",
+  "lightDirection": "upper-left | upper-right | ...",
+  "outline": { "color": "grey-900", "weight": 1, "exceptions": [] },
+  "materialRamps": { "shelfMetal": ["#...","#...","#..."], "floorVinyl": ["#..."], "cooler": ["#..."] },
+  "proposedTokenAdditions": [ { "path": "color.fixture.150", "hex": "#...", "why": "..." } ],
+  "detailBudget": { "floorTile": 0, "shelfFace": 0, "shopper": 0 },
+  "rejectedIdeas": ["..."]
+}`,
+foot:"A long proposedTokenAdditions list means the palette was ignored. Push back and re-run."
+},
+
+{
+sec:"found", n:"02", title:"Archetype to Store Vocabulary", rail:"var(--accent)",
+chips:[["Foundation",""],["No photos needed","now"],["SNES style stated","style"],["Legal care","care"]],
+locks:"The one that turns <b>well-known US grocery-format archetypes</b> — not your own photos — into game assets: fixture taxonomy, tile footprints, palette mapping, and manifest entries. No reference image carries the pixel-art style here, so the prompt states it in words instead.",
+attach:"<b>Attach (optional)</b> reference/01-style-bible/ — any 16-bit games whose look you want echoed. No store photos required for this one; Gemini reasons from general knowledge of US grocery formats instead.",
+brief:`No photographs attached. Instead, reason from general public knowledge of common US grocery-store FORMATS — the category-level archetypes below, not any single real chain's name, logo, or trade dress. Convert them into the fixture vocabulary of Shelf Life, rendered in a 16-bit SNES-era pixel-art style: orthogonal 3/4 top-down projection, 32px grid, 1px dark outline, 3-4 shade value ramps per material, dithering instead of gradients — the console-management/sim idiom of the SNES era (the FEEL of games like Harvest Moon, SimCity SNES, or Actraiser's town view, without borrowing any of their actual assets, palettes, or sprites). State this style explicitly in every image you generate, since there is no photo or screenshot here to carry it for you.
+
+STEP 0 — PICK A SCOPE. Either (a) ONE generic supermarket vocabulary that covers a typical mid-size US grocery store, or (b) a vocabulary pass per store-format tier, one run each for: a dying deep-discount grocer, a 24-hour convenience-format grocer, a warehouse membership club, a hard-discounter with heavy private label, a premium/organic "whole paycheck" market, and a highway-megastore-with-attached-attractions. Tell me which scope you're running before Step 1, and if (b), which tier this run covers.`,
+deliver:`STEP 1 — TAXONOMY. From the chosen archetype(s), list every distinct fixture type a store of that format would plausibly have. For each: what it is, its real-world footprint in metres, its footprint in 32px game tiles (1 tile is roughly 1 metre of aisle), its render height (32 / 48 / 64px canvas), how many rotations it needs (1 if symmetric, 2 maximum), and its visual states (full / half / empty / idle / busy / clean / dirty).
+
+STEP 2 — WHAT THE GAME ALREADY HAS. Reconcile your taxonomy against this manifest and tell me what is MISSING, what is REDUNDANT, and what I have declared but do not need:
+  floor_tile 32x32 | floor_entrance 32x32 | wall_back 32x48 | wall_side 32x48
+  shelf_basic 32x48 [full,half,empty] | shelf_endcap 32x40 [full,half,empty]
+  register 64x40 [idle,busy] | self_checkout 64x40 [idle,busy]
+  cart_corral 32x32 [full,empty] | cart_abandoned 16x16 | spill_decal 32x16
+Rank what is missing by how much it changes WHAT THE PLAYER CAN DO, not by how it looks. A produce table that enables a fresh-department strategy beats a decorative plant. If this run is a specific tier, flag anything that's THAT FORMAT'S signature fixture (e.g. the sample corridor of a warehouse club, the single always-open register of a dying discounter).
+
+STEP 3 — PALETTE MAPPING. Map each fixture's typical real-world colours onto the locked palette. The mapping is not literal: real fixtures are beige and chrome, the game's are a warm-grey ramp. Say which grey step each surface lands on and why, and where you deliberately drop saturation, so products stay the only saturated thing in frame.
+
+STEP 4 — DRAW IT. A sprite sheet: every fixture from Step 2 at 4x on a neutral background, grouped by department, labelled, in all its states and rotations, in the stated SNES pixel-art style. Draw them as they would look in-engine, not as illustration.
+
+STEP 5 — THE DENSITY LESSON. What makes a shelf read as FULL versus EMPTY at a distance, at this pixel density? Give the pixel-level technique for the three states at 32x48, and draw the three side by side, large.`,
+rules:`- Category-level only: describe "a dying deep-discounter" or "a warehouse club," never a specific real chain's name, logo, wordmark, slogan, or color pairing — per CLAUDE.md's parody rules. If you find yourself about to name a real retailer, stop and generalize the sentence instead.
+- All signage you draw is blank or uses invented words. No brand names on packaging.
+- Locked palette only. Orthogonal 3/4, never isometric.
+- Every image must look unmistakably 16-bit SNES-era pixel art — flat color fields, hard-edged dithering for shading, no soft gradients, no anti-aliasing, no photo-real lighting. If an image drifts toward "flat vector" or "modern clipart," redo it before showing me.`,
+ask:"",
+handoff:`[ { "id": "produce_table", "size": [64,40], "anchor": [0.5,0.92], "atlas": "world",
+    "footprint": [2,1], "rotations": 1, "states": ["full","half","empty"],
+    "palette": { "body": "grey-300", "top": "grey-200", "shadow": "grey-500" },
+    "archetype": "generic | dying-discounter | convenience | warehouse-club | hard-discounter | premium-organic | highway-megastore",
+    "why": "one sentence on the strategy this fixture unlocks" } ]`,
+foot:"Ready to paste into content/asset-manifest.json. Run it once generic, or once per archetype tier if you want per-rival texture later. Rank by mechanic, not by looks."
+},
+
+/* ================= THE WORLD ================= */
+{
+sec:"world", n:"03", title:"The Store Scene", rail:"var(--good)",
+chips:[["Money shot",""],["Legibility gate","now"]],
+locks:"The flagship frame, and the legibility test everything else has to survive. <b>Version B is the one that matters</b> — if the store does not read at 390&times;844, the art direction is wrong regardless of how the desktop version looks.",
+attach:"<b>Attach</b> reference/03-store-scene/ — overhead store shots, floor plans, planograms. Plus your winners from 01 and 02.",
+brief:`Draw the flagship concept scene for Shelf Life: a working supermarket floor, mid-morning rush, in the locked style.`,
+deliver:`THE SCENE MUST CONTAIN, and must stay readable with all of it present:
+- An entrance with a cart corral and a natural flow into the store
+- At least three aisles of shelving with department identity carried by PRODUCT colour, never by fixture colour: produce, dairy/frozen, dry goods
+- Two endcaps, one of them a promo endcap with a physical sign
+- A checkout bank: two staffed registers, one self-checkout, one lane with a queue of four
+- 12-18 shoppers at 16x24px mid-behaviour: walking, pausing at a facing, one detouring toward a shelf, one putting an item back, one with an abandoned cart
+- One staff member restocking
+- Exactly these problems and no more: one empty facing, one spoiled item, one spill, one long queue
+- FOUR thought bubbles maximum in frame. Four. The rate limit is a design rule, not a budget.
+
+THREE VERSIONS OF THE SAME SCENE:
+A) 1x zoom, the whole store, as it appears on a 1440x900 desktop viewport.
+B) 2x zoom, a quarter of the store, as it appears on a 390x844 phone in portrait. This is the one that matters.
+C) The same phone crop with every tell removed and every shelf full — the calm store. Place B and C side by side in the final image so the difference reads instantly.`,
+rules:`- Orthogonal 3/4 top-down on a 32px grid. Nothing occludes an aisle — a shopper must never be hidden behind a fixture, because shoppers ARE the telemetry channel.
+- Y-sort depth. Tall fixtures extend upward from their footprint tile.
+- Desaturated warm-grey fixtures, fully saturated goods. The eye should land on products and people, never on shelving.
+- One fixed light direction, baked contact shadows, no dynamic shadows.
+- No text anywhere except invented signage shapes that are illegible at 1x.
+
+IF I ATTACHED IMAGES: take aisle spacing, sightline length, department adjacency, and queue geometry. Ignore their brand fixtures entirely.`,
+ask:`Critique your own scene, and be harsh.
+- Name the three things a player's eye lands on first, in order. If a shelf is in that list, the colour rule is broken — say so and give the fix.
+- At phone scale, which of the four problems is hardest to notice? What WORLD-level change, not a bigger bubble, would fix it?
+- Where does the composition get noisy, and what would you cut?`,
+handoff:`{
+  "readingOrder": ["...","...","..."],
+  "weakestTell": { "tell": "...", "fixWithoutBubbles": "..." },
+  "aisleSpacingTiles": 0,
+  "departmentAdjacency": [["produce","dairy"]],
+  "cutList": ["..."],
+  "phoneScaleVerdict": "passes | fails, because ..."
+}`,
+foot:"If the self-critique says everything is fine, ask again with \"be harsher\"."
+},
+
+{
+sec:"world", n:"04", title:"Gentle Surface Tell Sheet", rail:"var(--good)",
+chips:[["S3 — up next","now"],["Declared in CI",""]],
+locks:"The game's telemetry channel: <b>12 bubbles, 13 animations, 6 world marks</b> — all declared and CI-validated in <code class=\"inl\">content/design/gentle-surface.json5</code> since phase 1.1, and none of them ever drawn. This is the most important art in the game.",
+attach:"<b>Attach</b> reference/04-gentle-surface/ — emote sheets and reaction icons from sim games. Plus 01 and 02.",
+brief:`Design the complete visual-tell system for Shelf Life. Every term in the satisfaction and impulse formulas has a declared tell: a thought bubble, a body animation, a world mark, or a combination. A term without a tell fails content validation in CI. Below is the declared set. Draw all of it.`,
+deliver:`BUBBLES — each 12x12px inside a 20x20px frame, drawn to read at 1x on a phone:
+  listStrike (shopping list, red strike) ... an item on the list was out of stock
+  clock .................................. the queue is getting long
+  clockRedX .............................. balked: abandoning the cart and leaving
+  priceTagRaisedEyebrow .................. price higher than expected
+  priceTagStar ........................... price is a pleasant surprise
+  greenStinkCloud ........................ encountered a spoiled item
+  frown .................................. the store is dirty
+  heart .................................. a staff member helped them
+  questionMark ........................... nobody helped them; they are lost
+  sparkle ................................ discovery: they found something they like
+  exclamation (white) .................... impulse purchase fired
+  exclamationGold ........................ rare adjacency-combo impulse. Must feel special.
+  plus particle_flies 8x8, world FX near spoiled goods
+
+SHOPPER ANIMATIONS — 16x24px, states idle / walk / pause / recoil / hop, plus:
+  stops at an empty facing, looks down at the list, shrugs, moves on   <- the single most
+     important animation in the game; it is how a player learns to reorder
+  picks an item up, turns it over, PUTS IT BACK                        <- the beat that sells
+     price sensitivity. Get this one right.
+  grabs a second one (positive price surprise)
+  foot tap -> arms crossed -> head shake (queue frustration, three escalating stages)
+  abandons the cart in the aisle and walks out
+  recoils from a spoiled item and steps back
+  steps around a spill, wrinkles nose
+  nods at a staff member who points the way
+  detours off their path toward a shelf — should be the most delightful animation in the game
+  stands still, looks left, looks right, wanders (nobody helped them)
+  child points at a shelf; the parent's impulse fires for the child's target
+
+WORLD MARKS — the fixture changes, not the shopper:
+  empty facing (a visible gap), spoiled item (brown tint #7A5C2E plus flies), spill decal with
+  a slight sheen, abandoned cart persisting in the aisle as an obstacle until staff clear it,
+  a well-faced shelf reading as visibly full, a promo shelf with a physical sign
+
+DRAW:
+A) The full bubble sheet at 1x and 8x, on both a light floor and a dark floor.
+B) Animation keyframes: 3-5 key poses in a row per behaviour, with frame counts and timing, at 16x24 and 4x. Test each by drawing it as a pure black silhouette and confirming the pose still reads.
+C) Every world mark in its clean and marked state, side by side.
+D) A RATE-LIMIT STUDY. One bubble per shopper at a time, and the HIGHEST-MAGNITUDE term wins — so a shopper who waited too long AND saw a spoiled item shows the QUEUE bubble. Cap is 8 bubbles on desktop, 4 on a phone; beyond the cap, world marks carry the signal. Draw a busy phone-scale scene at the cap, and the same scene with the cap removed, to prove why the cap exists.
+E) A SILENCE STUDY. Mild dissatisfaction is SILENT — the shopper simply comes back less often, and the player feels that in trip frequency, not in bubbles. Show a store with a real problem that deliberately fires no tells, and tell me how the player is meant to notice.`,
+rules:`- Locked palette. A bubble uses saturated colour because it is STATE; its frame is warm grey.
+- No text inside any bubble, in any language. Symbols only.
+- Readable at 1x on a 6-inch screen. If it is not, redesign the symbol — do not enlarge it.
+- The bubble must not occlude the shopper's own body. Specify the anchor offset.`,
+ask:"",
+handoff:`{
+  "bubbles": [ { "id": "bubble_clock", "size": [12,12], "frame": [20,20], "anchorOffset": [0,-26],
+                 "palette": { "fill": "amber-base", "frame": "grey-100", "outline": "grey-900" },
+                 "symbolDescription": "...", "readsAt1x": true } ],
+  "animations": [ { "id": "shrug_at_empty_facing", "frames": 5, "msPerFrame": 0, "loop": false,
+                    "poses": ["...","..."], "silhouettePasses": true } ],
+  "worldMarks": [ { "id": "spoiled", "appliesTo": "shelf_basic", "treatment": "...",
+                    "particle": "particle_flies" } ],
+  "rateLimit": { "compact": 4, "regular": 8, "tieBreak": "highest magnitude wins" }
+}`,
+foot:"The shrug at an empty facing must be unmistakable in silhouette. Everything else is negotiable."
+},
+
+{
+sec:"world", n:"05", title:"Shopper &amp; Staff Cast", rail:"var(--good)",
+chips:[["S3","now"],["7 palettes, 1 body",""]],
+locks:"Seven household segments from one 16x24 base sprite. <b>The palette-swap multiplier is the single largest cost saving in the project</b> — seven distinct shoppers for roughly the price of one character.",
+attach:"<b>Attach</b> reference/05-cast-sheet/ — small-format character sheets, crowd photos for silhouette variety. Plus 01 and 02.",
+brief:`Design the character cast for Shelf Life at 16x24px, built for palette swapping.`,
+deliver:`THE SEGMENTS. Each is a household type in the store-choice model, with a behavioural signature the art must express:
+  priceHunter ..... weights price 0.9, quality 0.1. Compares tags. Buys the markdown.
+  convenience ..... weights travel cost 0.9. In and out. Small basket, high frequency.
+  family .......... the neutral segment. Balanced weights, biggest basket, often has a child.
+  foodie .......... weights quality 0.9, assortment 0.7, price 0.1. Browses. Detours. The
+                    discovery-sparkle segment.
+  bulk ............ consumption multiplier 1.6. Enormous basket, infrequent trips.
+  senior .......... nostalgia-loyal, price-insensitive, values service. Slower walk speed.
+  student ......... price-sensitive, small basket, odd hours.
+Plus STAFF: cashier, stocker, and one manager, states idle / walk, and a slumped idle for low morale — unhappy staff must be visible on the floor without opening a panel.
+
+THE TECHNIQUE. One 16x24 base body drawn once, plus a small number of accessory overlays, recoloured per segment by remapping palette NAMES (not hex codes) at build time. Tell me exactly:
+- What is shared across all seven: the base body, its proportions, the walk cycle.
+- What differs per segment: which palette entries are remapped, and which accessory or silhouette modifier is added. At most two accessories per segment.
+- How to keep seven segments distinguishable at 1x on a phone WITHOUT relying on colour alone, since a colourblind player and a zoomed-out player both lose colour first. Silhouette and motion are the honest channels.
+
+DRAW:
+A) The base body: front, back, side, at 1x and 8x, with the walk-cycle keyframes.
+B) All seven segments in a row at 1x and 8x, each with its palette listed BY NAME (skin / hair / shirt / trousers / accessory) mapped to entries in the locked palette.
+C) The same row as pure black silhouettes. If two are indistinguishable, fix them before showing me and say what you changed.
+D) Carry states, since basket size is a segment signature: bulk pushes a loaded flatbed, convenience carries an armful, family pushes a full cart with a child.
+E) Staff, including the low-morale slumped idle beside the normal idle.
+F) A crowd test: 18 mixed shoppers at phone scale on a store floor, proving the cast reads as a varied crowd and not one repeated sprite.`,
+rules:`- 16x24px, locked palette, 1px dark outline, orthogonal 3/4 to match the world.
+- Skin and hair come from the amber and grey ramps so shoppers sit in the same world as the shelves rather than looking pasted on. Propose the skin range; keep it varied and warm.
+- No faces beyond 2-3 pixels of feature. Expression is carried by the BUBBLE and the POSE.
+- No brands, no slogans, no readable text on clothing.`,
+ask:"",
+handoff:`{
+  "base": { "size": [16,24], "walkFrames": 0, "directions": ["front","back","side"] },
+  "segments": [ { "id": "foodie",
+                  "paletteMap": { "shirt": "green-base", "trousers": "grey-600", "hair": "hair",
+                                  "skin": "skin", "accessory": "violet-light" },
+                  "accessories": ["tote"], "silhouetteModifier": "...", "carryState": "basket",
+                  "walkSpeedRelative": 1.0 } ],
+  "staff": [ { "id": "cashier", "states": ["idle","walk","slumped_idle"], "paletteMap": {} } ],
+  "silhouetteCollisions": []
+}`,
+foot:"silhouetteCollisions must come back empty. The paletteMaps paste into the manifest's palettes block."
+},
+
+/* ================= THE INTERFACE ================= */
+{
+sec:"ui", n:"06", title:"The Responsive HUD", rail:"var(--info)",
+chips:[["S4",""],["Compact first","now"]],
+locks:"One HUD, two breakpoints, designed compact-first. This is the prompt that decides what the game <b>feels like to hold</b> — and the one most likely to come back desktop-first, which is a rejection.",
+attach:"<b>Attach</b> reference/06-hud-responsive/ — mobile game HUDs you like, plus screenshots of the current build at 390&times;844 and 1440&times;900.",
+brief:`Design the in-game HUD for Shelf Life at both breakpoints. Design the PHONE FIRST and derive the desktop from it, not the other way around. I will reject a desktop-first answer.`,
+deliver:`WHAT THE HUD MUST EXPOSE, ranked by how often a player needs it:
+1. Time and speed control — sim day, clock, pause / 1x / 2x / 3x. The most-touched control.
+2. Cash on hand, and today's net delta.
+3. The active chapter objective, with progress. A chapter is 10-15 minutes of real play.
+4. An advisor alert channel: 0-3 pending one-sentence alerts, each with a "Show me" action.
+5. Entry to Build, Pricing, Ordering, Staff, Reports.
+6. The rival you are currently facing, and your share against theirs.
+7. Live problem state: spoilage, out-of-stocks, queue length, spills.
+
+DELIVER AS ANNOTATED LAYOUT IMAGES:
+A) Compact, 390x844 portrait, THREE states: clean play with no panel; an advisor alert present; a bottom sheet open at its default detent over a live store.
+B) Regular, 1440x900, the same three states, showing how each compact element EXPANDS rather than being replaced. Where a compact bottom sheet becomes a docked panel, show both and draw the correspondence.
+C) A component inventory: top bar, action bar, stat tile with benchmark slot, advisor card, bottom sheet with detents, popover, speed control, alert pill, tab bar. Each at rest / pressed / disabled / alert, with the 44px hit target outlined in a contrasting colour so I can verify it by eye.
+D) A one-thumb reachability map of the compact layout: mark what a right-handed thumb reaches without shifting grip, and justify every control outside it.`,
+rules:`- Compact is 390x844: one top bar plus one bottom action bar, panels are BOTTOM SHEETS.
+- Nothing interactive in the bottom 34px. Nothing under the notch. Canvas full-bleed beneath both; controls not.
+- 44px minimum hit target at BOTH sizes, including the top bar.
+- The store stays visible. On a phone, chrome may cover at most about 30% of the screen with a sheet at its default detent. State the percentage you used.
+- Hover is never load-bearing. Every tooltip is a tap-to-open popover.
+- Numbers are monospace. Every KPI shows a benchmark or a 7-day trailing comparison beside it — a bare number is a bug.
+- UI chrome uses ONLY the warm-grey ramp. Saturated colour in the UI means data or state, never decoration. Never overload the red accent to mean "good".
+- The UI barely animates; the world does.
+- Draw the UI in the 16-bit console idiom: 9-slice panels with a 1px dark outline and a 2-value bevel, bitmap-styled type, restrained radii. It must look like it belongs on the same screen as the store, not like a web app floating above it.
+
+IF I ATTACHED IMAGES: take information density, control grouping, and sheet behaviour. Ignore their colour and their brand.`,
+ask:`- What did you cut from the phone layout, and where did it go instead?
+- Which single control is most likely to be mis-tapped, and what did you do about it?
+- If a player opens the game for the first time on a phone, what do they touch first, and how does the layout make that obvious without a tutorial overlay?`,
+handoff:`{
+  "compact": { "topBarHeight": 0, "actionBarHeight": 0, "sheetDetents": ["...","..."],
+               "worldVisiblePctWithSheetOpen": 0, "safeAreaHandling": "..." },
+  "regular": { "panelWidths": {}, "dockedVsFloating": "..." },
+  "components": [ { "name": "statTile", "compact": [0,0], "regular": [0,0],
+                    "tokens": { "bg": "surface", "border": "line", "value": "ink",
+                                "benchmark": "inkMuted" },
+                    "states": ["rest","pressed","disabled","alert"] } ],
+  "hitTargetViolations": [],
+  "firstTouchTarget": "..."
+}`,
+foot:"hitTargetViolations empty, worldVisiblePctWithSheetOpen at 60 or above. Otherwise re-run."
+},
+
+{
+sec:"ui", n:"07", title:"Build &amp; Planogram Mode", rail:"var(--info)",
+chips:[["S4",""],["Core gameplay","now"]],
+locks:"Layout <b>is</b> the strategy — path exposure drives impulse buys — so this is a core gameplay screen, not a settings screen. The before/after milk pair is the single most important image the prompt asks for.",
+attach:"<b>Attach</b> reference/07-build-mode/ — build modes from other management games, plus the current BuildModePanel screenshot.",
+brief:`Design build mode for Shelf Life: where the player places fixtures, and where the floor plan becomes the strategy.
+
+WHAT MAKES THIS DIFFERENT FROM A GENERIC BUILD UI: shopper paths are simulated. Moving the milk changes which shelves people walk past, which changes impulse purchases, which changes revenue. The player must FEEL that. The design rule is that they are never told "path exposure increased 12%" — they should notice that moving the milk made the middle aisles look busier. A congestion heatmap ships as a player-facing layout tool for exactly this reason.`,
+deliver:`DESIGN THESE, PHONE FIRST:
+1. The fixture palette. On compact it is a horizontally scrolling tray; on regular it can be a docked grid. Show category grouping, locked versus unlocked fixtures, cost per fixture, and how a fixture is picked up.
+2. Placement feedback. A ghost fixture snapped to the 32px grid, in a valid state and an invalid state (blocked, too close to a wall, blocks a fire lane). Show the cursor treatment. This must read WITHOUT colour alone.
+3. Drag, rotate (2 rotations only), and delete as touch gestures. Specify every gesture: tap, drag, long-press, pinch. There are no hover states and no right-click.
+4. The selected-fixture action bar: what actions, in what order, at 44px each, and where it sits so it never covers the fixture being edited on a 390px-wide screen.
+5. The congestion heatmap overlay: how a walked path renders over the floor without destroying readability, and how the player toggles it with one tap. Show the store with it on and off.
+6. A BEFORE/AFTER PAIR that teaches the mechanic visually: the same store with the milk at the back versus near the entrance, heatmap showing the difference. This pair is the most important image in this prompt.
+7. The commit model: does the player pay per placement, or stage a plan and commit? Pick one, argue it in three sentences, and design the affordance.`,
+rules:`- 32px grid, orthogonal 3/4, locked palette, 16-bit UI chrome that matches the world.
+- 44px targets. Nothing in the bottom 34px. The tray must not cover the tile being placed.
+- Two rotations per fixture, maximum.
+- The world stays visible while building. Building is done LOOKING AT THE STORE.
+
+IF I ATTACHED IMAGES: take tray ergonomics and placement-feedback conventions from them.`,
+ask:"",
+handoff:`{
+  "gestures": { "tap": "...", "drag": "...", "longpress": "...", "pinch": "...", "twoFingerDrag": "..." },
+  "placementStates": [ { "state": "valid", "cursorTreatment": "...", "nonColorCue": "..." } ],
+  "trayCompact": { "height": 0, "itemSize": 0, "scroll": "horizontal" },
+  "heatmap": { "colorRamp": ["..."], "opacity": 0.0, "toggle": "..." },
+  "commitModel": "immediate | staged",
+  "actionBar": { "actions": ["..."], "placementRule": "..." }
+}`,
+foot:"No gesture may require hover or a second pointer button. Check the table before implementing."
+},
+
+{
+sec:"ui", n:"08", title:"Advisors &amp; the KPI System", rail:"var(--info)",
+chips:[["S4 / M3",""],["Load-bearing","now"]],
+locks:"The bridge between deep sim and gentle surface. Get it wrong and the game is <b>either a spreadsheet or a mystery</b>. The stat tile it produces must be impossible to render without a benchmark.",
+attach:"<b>Attach</b> reference/08-advisors-kpi/ — dashboards, stat tiles, sparkline treatments, portrait-driven dialogue UIs.",
+brief:`Design the advisor system and the KPI/drilldown system for Shelf Life.
+
+THE ADVISORS translate the simulation into ONE SENTENCE, one suggested action, and a "Show me" button that opens the relevant drilldown. Depth is always exactly one click away — never zero, never five. The canonical example:
+
+  Diane (Accountant): "Dairy is bleeding. You're marking down 40% of the milk before it sells."
+  [Show me] [Order less milk]`,
+deliver:`THREE ADVISORS — a store manager, an accountant, and a rival scout. For each:
+- A 16-bit portrait (bust, roughly 48x48 and 32x32, locked palette, readable at both sizes) with four expressions: neutral, concerned, pleased, alarmed. Expression is set by the severity of what they are reporting, and it is the fastest read on the screen.
+- A voice: how their sentences differ. The accountant is precise and blunt; the manager is about people and the floor; the scout is about the rival. Write five example lines each, drawn from real mechanics: spoilage, markdown rate, queue balk rate, staff morale, out-of-stocks, loyalty decay, a rival price cut, a rival promotion.
+- Their alert card at 390px wide and at desktop width, at three severities.
+
+RULES FOR THE CARDS: one sentence — if it needs two, the sentence is wrong. Exactly one "Show me" and at most one direct action button, both 44px. Never more than three cards stacked; beyond that they queue. An advisor never appears as a modal that blocks the store.
+
+THE KPI SYSTEM:
+- The stat tile, with a REQUIRED benchmark slot: a rival's number or the store's own 7-day trailing average, always present, always in neutral grey, never in a series colour. Show it better-than-benchmark, worse, and at parity.
+- The drilldown that "Show me" opens: ONE screen deep, showing the inputs to the number the advisor named. Categorical series order is blue #2C6BA8, green #1F7A4D, amber #D9931B, red #E23D2E, violet #6B4A9E, grey #8A867C, so a category keeps one colour everywhere in the game. Benchmark lines are always #8A867C. Grid lines #D6D3CB.
+- The compact form of the drilldown: a multi-column dashboard becomes a tabbed single column. Show it at 390x844.
+- Chart forms. For each KPI, name the form and justify it in one line: daily revenue versus rival; category margin; spoilage rate by department; queue wait distribution; loyalty by household segment; share of catchment over time. Prefer the boring correct form over the impressive one.`,
+rules:`- Draw it all in the 16-bit idiom — bitmap type, 9-slice panels, 1px outlines — but keep the charts legible before they are pretty.
+- Numbers are monospace, tabular, and aligned.
+- A bare number is a bug. If a tile in your design can render without a benchmark, redesign the tile.`,
+ask:"",
+handoff:`{
+  "advisors": [ { "id": "accountant", "name": "Diane", "domain": "...",
+                  "expressions": ["neutral","concerned","pleased","alarmed"],
+                  "portraitSizes": [[48,48],[32,32]], "voiceRule": "...", "exampleLines": ["..."] } ],
+  "statTile": { "compact": [0,0], "regular": [0,0],
+                "slots": ["label","value","benchmark","delta"],
+                "benchmarkStyle": { "color": "#8A867C", "weight": "regular" } },
+  "chartForms": { "revenueVsRival": "line + benchmark line" },
+  "drilldownDepth": 1,
+  "compactPattern": "tabs"
+}`,
+foot:"Advisor lines you would actually ship. If they read like log output, the voice rule is wrong."
+},
+
+/* ================= IDENTITY & FRAMING ================= */
+{
+sec:"id", n:"09", title:"The Rival Brand Kit", rail:"var(--violet)",
+chips:[["Track A",""],["Parody review","care"]],
+locks:"Twelve fictional chains, each satirizing a retail <b>strategy</b>, ranked by Community Love rather than revenue. Strictest legal constraints in the set: its HANDOFF goes into <code class=\"inl\">docs/legal/parody-review.md</code> <b>before</b> anything is implemented.",
+attach:"<b>Attach</b> reference/09-rival-brands/ — logo <i>geometry</i> studies and retro grocery signage. Do <b>not</b> attach photographs of real chain logos.",
+brief:`Design the brand identity kit for the twelve fictional rival chains in Shelf Life.
+
+THE PARODY FRAMEWORK — read before designing anything. Parody works when the target is EVOKED AND COMMENTED ON, not COPIED. The failure mode is not "you made fun of them", it is "a shopper could mistake yours for theirs." Every name below already passes a four-part test: distinct wordmark, distinct trade dress, punchline present, and category-level (it could satirize three real chains, not one). Your job is to give each a visual identity that keeps passing that test.`,
+deliver:`THE ROSTER. Ranked by Community Love (CL), 0-100 — how loyalty-resilient they are.
+  1  Sav-A-Lott        CL 22  dying deep-discounter; exactly one register ever open
+  2  Grocerteria 24    CL 35  24-hour convenience grocer; owns 10pm-6am
+  3  BulkHaus Club     CL 48  warehouse membership club; lock-in and a sample corridor
+  4  Aldente Markt     CL 55  European hard discounter; 2x cashier speed, 90% private label
+  5  Winn-Or-Lose      CL 58  fading regional legacy chain; nostalgia loyalty
+  6  Entire Foods      CL 64  premium organic; loses money on ambiance
+  7  Hy-Glee           CL 71  employee-owned; relentlessly polite staff, service floor of 80
+  8  Wagoner's         CL 80  cathedral-of-groceries destination; pulls shoppers from outside
+                              your catchment
+  9  Moo-cee's         CL 87  highway megastore with a mascot; wins on foot traffic, merch and
+                              legendary restrooms. Barely a grocery store.
+  10 Trailblazer Jim's CL 94  cult small-format grocer; immune to price war, quarterly drops
+  W1 Sprawl-Mart              world-tier hypermarket; a permanent share sink, never beatable
+  W2 PrimeFresh               world-tier delivery platform; undercuts price-sensitive households
+
+FOR EACH CHAIN:
+1. An original 3-colour identity palette. Anchor it in the game's product family (red / green / amber / blue / violet) so the rivals live in one world, but each must be instantly separable from the other eleven AND from any real chain. State the three hexes. Violet #6B4A9E is the default rival colour — give it to at most one of them.
+2. A logo mark as 16-bit pixel art at 32x32 and 64x64, plus a wordmark treatment. It must read at 32x32 on a phone, which means one idea, not three.
+3. A storefront: their building exterior in the game's orthogonal 3/4 idiom, as it appears on the catchment map. Architecture is characterisation — the discounter's box, the club's warehouse, the cult grocer's small warm storefront.
+4. A one-line taunt they say at a chapter boundary, in their voice.
+5. Their interior signature: the ONE thing a player would notice walking in. For Sav-A-Lott it is the single open register with a queue out the door.
+6. A visual escalation note: as CL rises up the ladder, identities should feel more confident and more coherent, so the player can SEE they are climbing.
+
+ALSO: one comparison sheet with all twelve marks at 32x32 in a grid, on light and dark backgrounds, to prove they are separable at the size they actually appear.`,
+rules:`A violation here fails the whole deliverable:
+- Never reproduce, adapt, distort, or "reference" a real retailer's logo, wordmark, typeface, mascot, slogan, or colour pairing that functions as trade dress.
+- Design original logo geometry from scratch. If a mark you draw would be recognised as a real chain's, it is wrong even if the name is different — trade dress travels without the name.
+- Satirize the STRATEGY, never the company's conduct. "They are annoyingly beloved" is safe. Contamination, crime, and labour abuse are not.
+- No real product brands anywhere in any storefront you draw.
+- If I attached any image containing a real logo, ignore it entirely and say so in your answer.`,
+ask:"",
+handoff:`[ { "id": "aldente-markt", "level": 4, "communityLove": 55,
+    "identity": { "primary": "#...", "secondary": "#...", "accent": "#..." },
+    "logoConcept": "one sentence, one idea",
+    "architecture": "...", "interiorSignature": "...", "taunt": "...",
+    "archetypeSatirized": "category-level description, never a company name",
+    "borrowed": "strategy only: ...",
+    "notBorrowed": "name, logo, palette, slogan, trade dress",
+    "nameTest": { "distinctWordmark": true, "distinctTradeDress": true,
+                  "punchlinePresent": true, "categoryLevel": true } } ]`,
+foot:"No archetypeSatirized field may name a real company. Log the HANDOFF before implementing."
+},
+
+{
+sec:"id", n:"10", title:"Title, Chapter Cards &amp; Key Art", rail:"var(--violet)",
+chips:[["S4 shell",""],["M3 website",""]],
+locks:"The hero-art route: generated images quantized to the locked palette, used only for the title screen, portraits, and signage. Also the marketing surface — <b>the first screenshot has to name something only this game has</b>.",
+attach:"<b>Attach</b> reference/10-title-and-key-art/ — title screens, store capsules, App Store shots you admire. Plus 01 and 03.",
+brief:`Design the framing art for Shelf Life: the first thing a player sees, and the images that sell the game.
+
+The hook: every tycoon game makes you fight a bigger competitor. This one makes you fight a BETTER-LIKED one.`,
+deliver:`1. THE TITLE SCREEN. 16-bit, locked palette, carrying warmth and a little menace: your small store, and something beloved across the street. Design at 390x844 PORTRAIT first, then 1440x900. Include the logotype, Continue / New Game / Sandbox / Scenarios / Daily Challenge, and a settings affordance. All targets 44px; nothing in the bottom 34px. Include the required legal line, styled as part of the composition rather than bolted on: "All chains, brands, and products in this game are fictional parodies. Any resemblance to actual retailers is satirical."
+
+2. THE LOGOTYPE. "SHELF LIFE" in the signage voice: heavy, tight, supermarket wayfinding. Deliver a pixel version at three sizes (title, header, 32x32) and describe the construction so it can be rebuilt as a bitmap font or a sprite. The pun should be visible — shelf life is both the product-expiry mechanic and the life you spend in the store — but make the joke BY CONSTRUCTION, not by adding a clock.
+
+3. CHAPTER CARDS. Each boss level is 3-5 chapters of 10-15 real minutes with a hard autosave boundary. Design the intro card (objective, the rival, the stakes) and the outro card (what changed, what you unlocked, one advisor line), both at 390x844 and 1440x900. These are the game's rhythm — a player should be able to put the phone down after one and feel they finished something. Make them feel like a chapter break, not a loading screen.
+
+4. THE BOSS INTRO. The card that introduces a rival at the start of a level: their mark, their Community Love score, their signature mechanic in one player-facing sentence (never a formula), and their taunt. Use Aldente Markt (CL 55, 2x cashier throughput, 90% private label) as the worked example.
+
+5. KEY ART. One landscape marketing image that communicates the hook to someone who has never heard of the game, WITHOUT text. Then the same composition cropped for a 16:9 landing hero, a 1:1 social card, and a phone-screenshot frame. State what each crop loses.
+
+6. THE FIRST SCREENSHOT. If a store page could show exactly one screenshot, what is in it? Draw it. Argue in three sentences why that frame sells THIS game rather than any other supermarket game.`,
+rules:`- Locked palette throughout. Hero art is quantized to this palette at build time, so a design that depends on gradients or on colours outside the ramp will not survive.
+- 16-bit idiom, but hero art may use more detail than a 32px tile. State the pixel density you are working at so it can be quantized consistently.
+- No real brands, no real logos, no text that is not ours.`,
+ask:"",
+handoff:`{
+  "logotype": { "construction": "...", "sizes": [[256,64],[96,24],[32,32]], "palette": ["..."] },
+  "titleScreen": { "compact": { "menuOrder": ["..."], "safeAreaNotes": "..." }, "regular": {} },
+  "chapterCard": { "intro": { "slots": ["..."] }, "outro": { "slots": ["..."] } },
+  "bossIntro": { "slots": ["mark","communityLove","mechanicSentence","taunt"] },
+  "keyArt": { "concept": "...", "crops": { "16:9": "...", "1:1": "...", "phone": "..." } },
+  "firstScreenshot": { "contents": ["..."], "argument": "..." },
+  "heroArtPixelDensity": "1x | 2x | 3x"
+}`,
+foot:"Composition from Gemini, wordmark rebuilt by hand. The model will garble the lettering."
+}
+];
+
+/* ---------- assembly: one copy = the whole prompt ---------- */
+function assemble(p, withShared){
+  const parts = [];
+  if(withShared) NEEDS[p.n].forEach(function(id){ parts.push(B[id]); });
+  parts.push("TASK\n" + p.brief);
+  parts.push("DELIVER\n" + p.deliver);
+  parts.push("RULES\n" + p.rules);
+  if(p.ask) parts.push("ALSO ANSWER IN WRITING\n" + p.ask);
+  parts.push("FINISH WITH a fenced code block labelled HANDOFF containing exactly this JSON, filled in. Give me the images first and the HANDOFF block last.\n\n" + p.handoff);
+  return parts.join("\n\n");
+}
+
+/* ---------- clipboard ---------- */
+function flash(btn, label){
+  if(btn.dataset.busy === "1") return;
+  const old = btn.textContent;
+  btn.dataset.busy = "1";
+  btn.textContent = label;
+  btn.classList.add("done");
+  setTimeout(function(){
+    btn.textContent = old;
+    btn.classList.remove("done");
+    btn.dataset.busy = "0";
+  }, 1600);
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly","");
+  ta.style.cssText = "position:absolute;left:-9999px;top:0";
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand("copy"); done(); }catch(e){ /* clipboard blocked */ }
+  document.body.removeChild(ta);
+}
+function copyText(text, btn, label){
+  const done = function(){ flash(btn, label || "Copied"); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text, done); });
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+/* ---------- render ---------- */
+const esc = function(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+
+/* palette strip */
+const palEl = document.getElementById("pal");
+PAL.forEach(function(row){
+  const r = document.createElement("div");
+  r.className = "pal-row";
+  const chips = row.sw.map(function(s){
+    return '<div class="sw"><i style="background:'+s[0]+'"></i><em>'+s[1]+'</em><b>'+s[0]+'</b></div>';
+  }).join("");
+  r.innerHTML = '<span class="pal-lbl">'+row.label+'<em class="pal-note">'+row.note+'</em></span><div class="chips">'+chips+'</div>';
+  palEl.appendChild(r);
+});
+
+/* shared blocks */
+const blocksEl = document.getElementById("blocks");
+BLOCK_META.forEach(function(m){
+  const tapeId = "tape-b-" + m.id;
+  const el = document.createElement("article");
+  el.className = "card";
+  el.style.setProperty("--rail", "var(--line-2)");
+  el.innerHTML =
+    '<div class="card-head block-head"><div>'
+      + '<h3>' + m.label + '</h3>'
+      + '<div class="meta"><span class="chip">' + B[m.id].length + ' chars</span>'
+      + '<span class="chip">Used by ' + m.uses + '</span></div>'
+      + '<p class="locks">' + m.why + '</p>'
+    + '</div></div>'
+    + '<div class="tape clipped" id="' + tapeId + '"><div class="tape-inner"><p>' + esc(B[m.id]) + '</p></div></div>'
+    + '<div class="card-foot">'
+      + '<span class="foot-note">Edit here and every prompt that uses it moves.</span>'
+      + '<button class="btn ghost" type="button" data-expand="' + tapeId + '">Show full text</button>'
+      + '<button class="btn ghost" type="button">Copy block</button>'
+    + '</div>';
+  el.querySelectorAll(".card-foot button")[1].addEventListener("click", function(e){
+    copyText(B[m.id], e.currentTarget);
+  });
+  wireExpand(el.querySelector("[data-expand]"));
+  blocksEl.appendChild(el);
+});
+
+/* expand / collapse, shared by every card */
+function wireExpand(btn){
+  btn.addEventListener("click", function(){
+    const tape = document.getElementById(btn.dataset.expand);
+    const clipped = tape.classList.toggle("clipped");
+    btn.textContent = clipped ? "Show full text" : "Collapse";
+    btn.setAttribute("aria-expanded", clipped ? "false" : "true");
+    if(clipped) tape.scrollIntoView({block:"nearest"});
+  });
+  btn.setAttribute("aria-expanded","false");
+}
+/* cards */
+function labelOf(id){
+  for(let i=0;i<BLOCK_META.length;i++){ if(BLOCK_META[i].id === id) return BLOCK_META[i].label; }
+  return id;
+}
+function kb(n){ return n < 1000 ? n + " chars" : (n/1000).toFixed(1).replace(/\.0$/,"") + "k chars"; }
+function refreshSizes(){
+  const withShared = document.getElementById("withCtx").checked;
+  document.querySelectorAll("[data-size]").forEach(function(el){
+    const p = P.find(function(x){ return x.n === el.dataset.size; });
+    el.textContent = kb(assemble(p, withShared).length);
+  });
+}
+
+const counts = {found:0, world:0, ui:0, id:0};
+P.forEach(function(p){
+  counts[p.sec]++;
+  const tapeId = "tape-" + p.n;
+  const card = document.createElement("article");
+  card.className = "card";
+  card.style.setProperty("--rail", p.rail);
+
+  const chips = p.chips.map(function(c){
+    return '<span class="chip '+(c[1]||"")+'">'+c[0]+'</span>';
+  }).join("");
+
+  let body = '<span class="lbl">Task</span><p>'+esc(p.brief)+'</p>'
+           + '<span class="lbl">Deliver</span><p>'+esc(p.deliver)+'</p>'
+           + '<span class="lbl">Rules</span><p>'+esc(p.rules)+'</p>';
+  if(p.ask) body += '<span class="lbl">Also answer in writing</span><p>'+esc(p.ask)+'</p>';
+  body += '<span class="lbl sub">Handoff block</span><p>'+esc(p.handoff)+'</p>';
+
+  card.innerHTML =
+    '<div class="card-head"><div class="idx">'+p.n+'</div><div>'
+      + '<h3>'+p.title+'</h3>'
+      + '<div class="meta">'+chips+'</div>'
+      + '<p class="locks">'+p.locks+'</p>'
+      + '<p class="attach">'+p.attach+'</p>'
+      + '<p class="sends"><b>Sends</b> ' + NEEDS[p.n].map(labelOf).join(" &middot; ")
+        + ' &middot; <span class="sz" data-size="'+p.n+'"></span></p>'
+    + '</div></div>'
+    + '<div class="tape clipped" id="'+tapeId+'"><div class="tape-inner">'+body+'</div></div>'
+    + '<div class="card-foot">'
+      + '<span class="foot-note">'+p.foot+'</span>'
+      + '<button class="btn ghost" type="button" data-expand="'+tapeId+'">Show full text</button>'
+      + '<button class="btn" type="button" data-copy="'+p.n+'">Copy prompt</button>'
+    + '</div>';
+
+  card.querySelector("[data-copy]").addEventListener("click", function(e){
+    copyText(assemble(p, document.getElementById("withCtx").checked), e.currentTarget);
+  });
+  wireExpand(card.querySelector("[data-expand]"));
+  document.getElementById("sec-"+p.sec).appendChild(card);
+});
+
+refreshSizes();
+document.getElementById("withCtx").addEventListener("change", refreshSizes);
+
+document.getElementById("c-found").textContent = counts.found + " prompts";
+document.getElementById("c-world").textContent = counts.world + " prompts";
+document.getElementById("c-ui").textContent    = counts.ui    + " prompts";
+document.getElementById("c-id").textContent    = counts.id    + " prompts";
+
+document.getElementById("copyAll").addEventListener("click", function(e){
+  const withCtx = document.getElementById("withCtx").checked;
+  const all = P.map(function(p){
+    return "═════ " + p.n + " — " + p.title.replace(/&amp;/g,"&").toUpperCase() + " ═════\n\n" + assemble(p, withCtx);
+  }).join("\n\n\n");
+  copyText(all, e.currentTarget, "All ten copied");
+});
+</script>

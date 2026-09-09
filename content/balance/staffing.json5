@@ -28,4 +28,8 @@
   // assigned staff member (they tidy between customers, not just scan items).
   cleanlinessDecayPerTick: 0.0002,
   cleanlinessRestorePerStaffPerTick: 0.0005,
+
+  // §5.3's staffInteraction tell threshold — a staffed lane's assigned cashier needs at
+  // least this much morale for the interaction to read as "good" rather than absent.
+  staffInteractionMoraleThreshold: 0.5,
 }

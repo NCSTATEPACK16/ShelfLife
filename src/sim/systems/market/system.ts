@@ -9,18 +9,14 @@ import type { GoodDef } from '../goods/types.js';
 import type { InventorySystem } from '../inventory/system.js';
 import type { LoyaltySystem } from '../loyalty/system.js';
 import type { TripOutcome } from '../loyalty/types.js';
+import type { RivalsView } from '../rivals/types.js';
 import { travelCost } from './catchment.js';
 import { chooseStore, indexToFit, softmax, storeUtility, type StoreTerms } from './choice.js';
-import {
-  DEFAULT_CATCHMENT_CONFIG,
-  DEFAULT_MARKET_CONFIG,
-  DEFAULT_RIVAL_STORES,
-  DEFAULT_SEGMENT_CONFIG,
-} from './config.js';
+import { DEFAULT_CATCHMENT_CONFIG, DEFAULT_MARKET_CONFIG, DEFAULT_SEGMENT_CONFIG } from './config.js';
 import type { CatchmentConfig, MarketConfig, SegmentConfig } from './config.js';
 import { advancePantryDay, deriveShoppingList } from './household.js';
 import { PLAYER_STORE_ID, playerStoreTerms, rivalStoreTerms } from './terms.js';
-import type { Household, Position, RivalStore } from './types.js';
+import type { Household, Position } from './types.js';
 
 /** The live systems a household's store choice reads from. `null` keeps household-only behaviour. */
 export interface MarketDeps {
@@ -46,7 +42,7 @@ export class MarketSystem implements System {
   readonly name = 'market';
   readonly #catalog: readonly GoodDef[];
   readonly #segments: SegmentConfig;
-  readonly #rivals: readonly RivalStore[];
+  readonly #rivalsView: RivalsView | null;
   readonly #catchmentConfig: CatchmentConfig;
   readonly #config: MarketConfig;
   readonly #deps: MarketDeps | null;
@@ -61,14 +57,14 @@ export class MarketSystem implements System {
     deps: MarketDeps | null = null,
     catalog: readonly GoodDef[] = DEFAULT_GOODS_CATALOG,
     segments: SegmentConfig = DEFAULT_SEGMENT_CONFIG,
-    rivals: readonly RivalStore[] = DEFAULT_RIVAL_STORES,
+    rivalsView: RivalsView | null = null,
     catchment: CatchmentConfig = DEFAULT_CATCHMENT_CONFIG,
     config: MarketConfig = DEFAULT_MARKET_CONFIG,
   ) {
     this.#deps = deps;
     this.#catalog = catalog;
     this.#segments = segments;
-    this.#rivals = rivals;
+    this.#rivalsView = rivalsView;
     this.#catchmentConfig = catchment;
     this.#config = config;
   }
@@ -174,7 +170,8 @@ export class MarketSystem implements System {
 
   storeIndexOf(storeId: string): number {
     if (storeId === PLAYER_STORE_ID) return 0;
-    const index = this.#rivals.findIndex((r) => r.id === storeId);
+    const stores = this.#rivalsView?.stores() ?? [];
+    const index = stores.findIndex((r) => r.id === storeId);
     if (index < 0) throw new Error(`Unknown store id: ${storeId}`);
     return index + 1;
   }
@@ -222,14 +219,17 @@ export class MarketSystem implements System {
       travelCost: travelCost(household.position, this.#catchmentConfig.playerStorePosition, this.#catchmentConfig),
       config: this.#config,
     });
-    const rivals = this.#rivals.map((rival, i) =>
-      rivalStoreTerms(rival, {
+    if (!this.#rivalsView) return [player];
+    const rivalsView = this.#rivalsView;
+    const rivals = rivalsView.stores().map((_store, i) => {
+      const rival = rivalsView.effectiveStore(i, household.segment);
+      return rivalStoreTerms(rival, {
         loyalty: deps.loyalty.get(household.id, i + 1),
         brandAffinity: affinity[rival.identity] ?? 0,
         travelCost: travelCost(household.position, rival.position, this.#catchmentConfig),
         config: this.#config,
-      }),
-    );
+      });
+    });
     return [player, ...rivals];
   }
 
@@ -238,7 +238,8 @@ export class MarketSystem implements System {
    * pathing, no queue, no spoilage. A weighted read of the rival's authored terms.
    */
   #resolveRivalTrip(world: World, householdId: number, storeIndex: number): void {
-    const rival = this.#rivals[storeIndex - 1]!;
+    const household = this.household(householdId);
+    const rival = this.#rivalsView!.effectiveStore(storeIndex - 1, household.segment);
     const w = this.#config.rivalSatisfactionWeights;
     const satisfaction = Math.min(
       1,

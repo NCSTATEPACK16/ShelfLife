@@ -84,6 +84,11 @@ describe('hashCommand', () => {
     );
   });
 
+  it('distinguishes advanceChapter from other no-payload commands', () => {
+    expect(hashOf({ type: 'advanceChapter' })).not.toBe(hashOf({ type: 'noop' }));
+    expect(hashOf({ type: 'advanceChapter' })).not.toBe(hashOf({ type: 'pause' }));
+  });
+
   it('throws on an unknown command rather than hashing it as nothing', () => {
     // The `never` exhaustiveness check makes adding a command type without deciding
     // how it hashes a compile error; this covers the runtime half, for a malformed

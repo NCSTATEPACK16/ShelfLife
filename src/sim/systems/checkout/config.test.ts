@@ -12,6 +12,7 @@ const VALID = {
   selfCheckoutSkillEquivalent: 0.5,
   cleanlinessDecayPerTick: 0.0002,
   cleanlinessRestorePerStaffPerTick: 0.0005,
+  staffInteractionMoraleThreshold: 0.5,
 };
 
 describe('parseStaffingConfig', () => {
@@ -25,5 +26,15 @@ describe('parseStaffingConfig', () => {
 
   it('loads content/balance/staffing.json5 into DEFAULT_STAFFING_CONFIG', () => {
     expect(DEFAULT_STAFFING_CONFIG.abandonToleranceTicks).toBeGreaterThan(DEFAULT_STAFFING_CONFIG.balkToleranceTicks);
+  });
+
+  it('loads staffInteractionMoraleThreshold from content', () => {
+    expect(DEFAULT_STAFFING_CONFIG.staffInteractionMoraleThreshold).toBeGreaterThan(0);
+    expect(DEFAULT_STAFFING_CONFIG.staffInteractionMoraleThreshold).toBeLessThanOrEqual(1);
+  });
+
+  it('requires staffInteractionMoraleThreshold', () => {
+    const { staffInteractionMoraleThreshold: _omit, ...rest } = VALID;
+    expect(() => parseStaffingConfig(rest)).toThrow();
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { World } from '../../core/world.js';
 import { DEFAULT_MARKET_CONFIG, DEFAULT_RIVAL_STORES } from '../market/config.js';
+import { staticRivalsView } from '../rivals/system.js';
 import { LoyaltySystem } from './system.js';
 import type { MarketReader, TripOutcome } from './types.js';
 
@@ -18,7 +19,7 @@ class FakeMarket implements MarketReader {
 function setup(ids = [1, 2]): { world: World; market: FakeMarket; loyalty: LoyaltySystem } {
   const world = new World({ seed: 1 });
   const market = new FakeMarket(ids);
-  const loyalty = new LoyaltySystem(market, DEFAULT_RIVAL_STORES);
+  const loyalty = new LoyaltySystem(market, staticRivalsView(DEFAULT_RIVAL_STORES));
   world.register(loyalty);
   return { world, market, loyalty };
 }

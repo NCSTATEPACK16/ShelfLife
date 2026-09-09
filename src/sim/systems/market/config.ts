@@ -4,7 +4,9 @@ import raw from '../../../../content/balance/segments.json5?raw';
 import catchmentRaw from '../../../../content/balance/catchment.json5?raw';
 import marketRaw from '../../../../content/balance/market.json5?raw';
 import savALottRaw from '../../../../content/rivals/sav-a-lott.json5?raw';
-import { SEGMENTS, type RivalStore, type Segment, type SegmentDef } from './types.js';
+import grocerteriaRaw from '../../../../content/rivals/grocerteria-24.json5?raw';
+import bulkhausRaw from '../../../../content/rivals/bulkhaus-club.json5?raw';
+import { RIVAL_SIGNATURES, SEGMENTS, type RivalStore, type Segment, type SegmentDef } from './types.js';
 
 const UtilityWeightsSchema = z.object({
   priceFit: z.number().finite(),
@@ -69,6 +71,16 @@ export const DEFAULT_CATCHMENT_CONFIG: CatchmentConfig = parseCatchmentConfig(
   JSON5.parse(catchmentRaw),
 );
 
+const unit = z.number().min(0).max(1);
+const RivalPersonalitySchema = z.object({
+  priceAggression: unit,
+  qualityInvestment: unit,
+  marketingSpend: unit,
+  expansionRate: unit,
+  reactivity: unit,
+  signature: z.enum(RIVAL_SIGNATURES),
+});
+
 const RivalStoreSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -82,6 +94,7 @@ const RivalStoreSchema = z.object({
   priceIndex: z.number().positive(),
   assortmentBreadth: z.number().min(0).max(1),
   loyaltyDecay: z.number().min(0).max(1).optional(),
+  personality: RivalPersonalitySchema.optional(),
 });
 
 export function parseRivalStore(raw: unknown): RivalStore {
@@ -89,11 +102,13 @@ export function parseRivalStore(raw: unknown): RivalStore {
 }
 
 /**
- * Only Sav-A-Lott (§3's L1 boss) exists. The other nine rivals are added when their level
- * is built (§16 phase 5.1) — stubbing them now would be content that no test can justify.
+ * §16 M2 scope: Sav-A-Lott (L1), Grocerteria 24 (L2), BulkHaus Club (L3) — ascending by
+ * Community Love. Bosses 4–10 are added when their level is built (§16 phase 5.1).
  */
 export const DEFAULT_RIVAL_STORES: readonly RivalStore[] = [
   parseRivalStore(JSON5.parse(savALottRaw)),
+  parseRivalStore(JSON5.parse(grocerteriaRaw)),
+  parseRivalStore(JSON5.parse(bulkhausRaw)),
 ];
 
 const MarketConfigSchema = z
@@ -118,6 +133,7 @@ const MarketConfigSchema = z
       assortment: z.number().min(0),
       price: z.number().min(0),
     }),
+    adjacencyCombos: z.array(z.tuple([z.string().min(1), z.string().min(1)])),
   })
   .refine((c) => c.delightThreshold > c.disgustThreshold, {
     message: 'delightThreshold must exceed disgustThreshold',
@@ -133,3 +149,9 @@ export function parseMarketConfig(raw: unknown): MarketConfig {
 }
 
 export const DEFAULT_MARKET_CONFIG: MarketConfig = parseMarketConfig(JSON5.parse(marketRaw));
+
+export function isAdjacencyCombo(config: MarketConfig, categoryA: string, categoryB: string): boolean {
+  return config.adjacencyCombos.some(
+    ([a, b]) => (a === categoryA && b === categoryB) || (a === categoryB && b === categoryA),
+  );
+}

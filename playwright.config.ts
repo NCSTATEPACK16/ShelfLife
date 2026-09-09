@@ -5,16 +5,27 @@ import { defineConfig, devices } from '@playwright/test';
  * viewport. `webServer` boots the real Vite dev build so the E2E suite exercises actual
  * bundled code, not a mock.
  */
+/**
+ * Vite's default port, overridable.
+ *
+ * `reuseExistingServer` will happily adopt whatever is already listening on the port —
+ * including a completely different project's dev server, which then fails every test with
+ * a missing selector rather than an obvious error. Setting `PLAYWRIGHT_PORT` is the way
+ * out when 5173 is already spoken for.
+ */
+const PORT = process.env.PLAYWRIGHT_PORT ?? '5173';
+const BASE_URL = `http://localhost:${PORT}`;
+
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: BASE_URL,
   },
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: `npm run dev -- --port ${PORT} --strictPort`,
+    url: BASE_URL,
     reuseExistingServer: !process.env.CI,
   },
   projects: [

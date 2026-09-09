@@ -14,6 +14,7 @@ const StaffingConfigSchema = z
     selfCheckoutSkillEquivalent: z.number().min(0).max(1),
     cleanlinessDecayPerTick: z.number().min(0).max(1),
     cleanlinessRestorePerStaffPerTick: z.number().min(0).max(1),
+    staffInteractionMoraleThreshold: z.number().min(0).max(1),
   })
   .refine((c) => c.abandonToleranceTicks > c.balkToleranceTicks, {
     message: 'abandonToleranceTicks must be greater than balkToleranceTicks',

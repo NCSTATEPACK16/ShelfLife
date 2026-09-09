@@ -19,7 +19,7 @@ Reconstructing this at ship time is miserable — see `PLAN.md` §18.3.
 
 | Asset | License | URL |
 |---|---|---|
-| _(none yet — the UI currently uses system font stacks)_ | | |
+| Pixelify Sans (Regular, Bold) — self-hosted at `assets/fonts/pixelify-sans/`, author: The Pixelify Sans Project Authors | SIL Open Font License 1.1 | https://fonts.google.com/specimen/Pixelify+Sans |
 
 ## Runtime dependencies
 

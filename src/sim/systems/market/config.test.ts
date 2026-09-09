@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import JSON5 from 'json5';
+import savALott from '../../../../content/rivals/sav-a-lott.json5?raw';
+import grocerteria from '../../../../content/rivals/grocerteria-24.json5?raw';
+import bulkhaus from '../../../../content/rivals/bulkhaus-club.json5?raw';
 import {
   DEFAULT_MARKET_CONFIG,
   DEFAULT_RIVAL_STORES,
   DEFAULT_SEGMENT_CONFIG,
+  isAdjacencyCombo,
   parseMarketConfig,
+  parseRivalStore,
   parseSegmentConfig,
 } from './config.js';
 import { SEGMENTS } from './types.js';
@@ -97,6 +103,17 @@ describe('market config', () => {
   });
 });
 
+describe('adjacencyCombos', () => {
+  it('recognizes an authored combo in either order', () => {
+    expect(isAdjacencyCombo(DEFAULT_MARKET_CONFIG, 'dairy', 'bakery')).toBe(true);
+    expect(isAdjacencyCombo(DEFAULT_MARKET_CONFIG, 'bakery', 'dairy')).toBe(true);
+  });
+
+  it('rejects an unauthored pair', () => {
+    expect(isAdjacencyCombo(DEFAULT_MARKET_CONFIG, 'dairy', 'snacks')).toBe(false);
+  });
+});
+
 describe('rival store fields', () => {
   it('authors a price index and assortment breadth for Sav-A-Lott', () => {
     const savALott = DEFAULT_RIVAL_STORES[0]!;
@@ -117,5 +134,32 @@ describe('segment brand affinity', () => {
   it('treats an unknown identity as neutral rather than throwing', () => {
     const foodie = DEFAULT_SEGMENT_CONFIG.get('foodie')!;
     expect(foodie.brandAffinity['no-such-identity'] ?? 0).toBe(0);
+  });
+});
+
+describe('rival personality schema', () => {
+  it('parses all three authored rivals with a personality block', () => {
+    for (const raw of [savALott, grocerteria, bulkhaus]) {
+      const rival = parseRivalStore(JSON5.parse(raw));
+      expect(rival.personality).toBeDefined();
+      expect(rival.personality!.reactivity).toBeGreaterThanOrEqual(0);
+      expect(rival.personality!.reactivity).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('rejects an unknown signature id', () => {
+    const bad = {
+      ...JSON5.parse(savALott),
+      personality: { ...JSON5.parse(savALott).personality, signature: 'nope' },
+    };
+    expect(() => parseRivalStore(bad)).toThrow();
+  });
+
+  it('rejects a personality axis outside [0,1]', () => {
+    const bad = {
+      ...JSON5.parse(savALott),
+      personality: { ...JSON5.parse(savALott).personality, priceAggression: 1.5 },
+    };
+    expect(() => parseRivalStore(bad)).toThrow();
   });
 });

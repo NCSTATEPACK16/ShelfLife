@@ -3,7 +3,7 @@ import type { Hasher } from '../../core/hash.js';
 import type { System, World } from '../../core/world.js';
 import { DEFAULT_MARKET_CONFIG } from '../market/config.js';
 import type { MarketConfig } from '../market/config.js';
-import type { RivalStore } from '../market/types.js';
+import type { RivalsView } from '../rivals/types.js';
 import type { MarketReader, TripOutcome } from './types.js';
 
 /**
@@ -24,18 +24,17 @@ export class LoyaltySystem implements System {
   readonly storeCount: number;
   readonly #market: MarketReader;
   readonly #config: MarketConfig;
-  /** Per-store δ, indexed like the store axis. Index 0 (player) always takes the default. */
-  readonly #decay: readonly number[];
+  readonly #rivals: RivalsView;
   #loyalty = new Float32Array(0);
   #meanSatisfaction = new Float32Array(0);
   #daysSinceVisit = new Uint16Array(0);
   #index = new Map<number, number>();
 
-  constructor(market: MarketReader, rivals: readonly RivalStore[], config: MarketConfig = DEFAULT_MARKET_CONFIG) {
+  constructor(market: MarketReader, rivals: RivalsView, config: MarketConfig = DEFAULT_MARKET_CONFIG) {
     this.#market = market;
     this.#config = config;
-    this.storeCount = rivals.length + 1;
-    this.#decay = [config.loyaltyDecayDefault, ...rivals.map((r) => r.loyaltyDecay ?? config.loyaltyDecayDefault)];
+    this.#rivals = rivals;
+    this.storeCount = rivals.count() + 1;
   }
 
   update(world: World): void {
@@ -92,7 +91,8 @@ export class LoyaltySystem implements System {
         const days = Math.min((this.#daysSinceVisit[slot] ?? 0) + 1, 0xffff);
         this.#daysSinceVisit[slot] = days;
         const fraction = Math.min(days, this.#config.decayCapDays) / this.#config.decayCapDays;
-        this.#loyalty[slot] = clamp01((this.#loyalty[slot] ?? 0) - (this.#decay[store] ?? 0) * fraction);
+        const decay = store === 0 ? this.#config.loyaltyDecayDefault : this.#rivals.effectiveDecay(store - 1);
+        this.#loyalty[slot] = clamp01((this.#loyalty[slot] ?? 0) - decay * fraction);
       }
     }
   }

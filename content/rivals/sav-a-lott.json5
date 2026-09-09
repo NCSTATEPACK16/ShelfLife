@@ -23,4 +23,15 @@
   // breadth. §5.8's priceAggression is what will move priceIndex next phase.
   priceIndex: 0.82,
   assortmentBreadth: 0.45,
+  // Rival Dynamics (M2 2.0 sub-project A). A failing discounter that only knows how to
+  // cut price: priceAggression high, everything else low. signature 'oneRegister' is the
+  // self-limiting mechanic — the one open register congests as it captures share.
+  personality: {
+    priceAggression: 0.8,
+    qualityInvestment: 0.15,
+    marketingSpend: 0.1,
+    expansionRate: 0.05,
+    reactivity: 0.5,
+    signature: 'oneRegister',
+  },
 }

@@ -1,0 +1,65 @@
+// Display tuning for the gentle-surface tells (docs/design/gentle-surface.md §3).
+//
+// `content/design/gentle-surface.json5` is the *contract* — which term gets which bubble,
+// animation, particle, world mark, and threshold. That file says nothing about how long a
+// bubble lingers or how many may share a screen, because those are rendering decisions.
+// They live here, in Track B's own content directory (ADR 0007), so the tell table stays
+// the shared, sim-facing document it was written to be.
+//
+// Read by `src/view/gentle-surface-draw-plan.ts`. Nothing in `src/sim` may read this file —
+// a display constant that reached the simulation would move the world hash.
+{
+  // ~1.2 s at the sim's 10 Hz: long enough to notice while panning, short enough that a
+  // busy aisle does not accumulate a wall of bubbles.
+  bubbleDurationTicks: 12,
+
+  // How long a bubble takes to fade in/out, in ticks at the sim's 10 Hz. Short: a bubble
+  // should feel immediate, not draw out — the exit is allowed to be a touch slower than
+  // the entry.
+  fadeInTicks: 2,
+  fadeOutTicks: 3,
+
+  // docs/design/gentle-surface.md §3 rule 3, "roughly 8 at regular, 4 at compact". On a
+  // phone this cap is the difference between a legible store and a sticker sheet.
+  bubbleCapRegular: 8,
+  bubbleCapCompact: 4,
+
+  // How long a reaction pose overrides the walk/idle cycle. Half a bubble: the body
+  // beat is the punctuation, the bubble is the sentence.
+  animationPoseTicks: 6,
+
+  // The abandoned cart's tell says it "persists as a world object until staff clears it".
+  // There is no staff-clearing mechanic in the sim, and adding one would be a `src/sim`
+  // change (ADR 0007). The marker therefore fades on a fixed view-local lifetime — a
+  // documented simplification, recorded in the spec §4.3 and in CHANGELOG.md.
+  abandonedCartLifetimeTicks: 60,
+
+  // How long the world mark (a tint flash on the nearest fixture) and the fly particles
+  // stay up. Shorter than the bubble on purpose: the mark is a flash, not a state.
+  worldMarkTicks: 8,
+
+  // How long a world mark's tint takes to blend in/out toward its full colour. Short —
+  // the mark is already a flash, not a state; it shouldn't fade slower than it lives.
+  worldMarkFadeInTicks: 2,
+  worldMarkFadeOutTicks: 2,
+
+  particleTicks: 20,
+
+  // How far from a shopper a placed fixture may be and still be the one they reacted to,
+  // in tiles. Beyond this the shopper is nowhere near a shelf and no mark is drawn at all,
+  // which is better than tinting an unrelated fixture across the aisle.
+  worldMarkRadiusTiles: 2.5,
+
+  // Same-tick priority when one shopper trips two terms at once — rare, but a single
+  // `#stepShopping` call can carry both a priceSurprise and an impulse hit. Highest first;
+  // docs/design/gentle-surface.md §3 rule 2, "the highest-magnitude term wins".
+  priority: [
+    'spoiledEncounters',
+    'queuePenaltyBalk',
+    'priceSurpriseNegative',
+    'queuePenaltyRising',
+    'fillRateMiss',
+    'priceSurprisePositive',
+    'impulsePurchase',
+  ],
+}

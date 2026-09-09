@@ -2,7 +2,7 @@
 
 *Every empire starts with a mop.*
 
-An isometric supermarket management sim. You run one store against a ladder of ten parody grocery
+A 16-bit supermarket management sim. You run one store against a ladder of ten parody grocery
 chains. Difficulty isn't measured in store size — it's measured in **how much people love the
 competition.** The final boss is a tiny store with a bell and a cult.
 
@@ -47,7 +47,7 @@ docs/       plan, ADRs, design docs, art bible, legal/parody review
 landing/    the marketing site (separate Vite entry)
 src/sim/    the deterministic simulation — no platform imports, ever
 src/platform/  input intents, layout breakpoints, storage, entitlements
-src/view/   Phaser isometric renderer (reads snapshots, never writes)
+src/view/   Phaser pixel renderer, top-down 3/4 (reads snapshots, never writes)
 src/ui/     Preact overlay
 tools/      headless balance harness, asset pipeline
 ```

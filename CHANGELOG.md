@@ -327,3 +327,253 @@ assessment and what M2 inherits.
 - `shopper-trip` was re-baselined in its own commit: `position` is new hashed state in
   `ShoppersSystem#hash`. Unlike 2.0a, no neutral value could have avoided this. Tick count
   unchanged; the other nine scenarios were confirmed untouched before re-baselining.
+
+#### Phase 2.2 — Gentle surface · **gate PASS**
+- All 15 declared tells in `content/design/gentle-surface.json5` (10 satisfaction + 5 impulse terms)
+  now fire from a real sim signal and render as a placeholder-art marker in `BuildScene`, closing the
+  gap `docs/handoff.md` had flagged since phase 1.6. One new `SimEvent` variant, `tellFired`
+  (`shopperId`, `term`, `magnitude`, optional `worldRef`) rather than growing the union 15 cases —
+  producers gate on each term's threshold, loaded once from a new `src/sim/content/gentle-surface.ts`
+  loader (same `?raw` + JSON5 + Zod pattern every `content/balance/*` loader uses).
+- Seven terms had no live sim signal at all before this phase and needed real (minimal) mechanics,
+  reusing existing infrastructure rather than inventing new systems: `cleanlinessLow` and
+  `staffInteractionGood`/`Absent` finally implement §5.3's long-absent `w6`/`w5` satisfaction terms
+  (`CheckoutSystem.cleanliness()` and `StaffMember.morale` already existed, just unconsumed);
+  `visibility` is a world-mark-only shelf-fullness bar (`InventorySystem.capacityOf` × `stockOf`, no
+  event); `promoLift`/`adjacencyBonus`/`needState` are impulse-hit tags picked with precedence
+  `adjacencyBonus > promoLift > needState > impulsePurchase` (a new `category` field on
+  `content/goods/catalog.json` plus an authored combo table in `content/balance/market.json5`;
+  `needState` reuses the existing `family` segment as a documented proxy — no "kids in trip" schema
+  exists). `queuePenaltyRising`/`Balk` moved from a trip-end-only computation to a live per-tick check
+  while queued.
+- A pure `src/view/tell-draw-plan.ts` (same convention as `shopper-draw-plan.ts`) enforces
+  `docs/design/gentle-surface.md` §3's "silence is a feature": one bubble per shopper (highest
+  magnitude wins), then a hard cap on simultaneous markers. `BuildModeBridge` gained
+  `pendingTells()`/`shelfFullness()`, the first consumers of `world.events` for anything beyond
+  internal sim wiring.
+- **A real, previously-invisible bug**, found building the phase's own gate-proof test (an adverse
+  store exercising all 15 terms at once — `src/bridge/gentle-surface-gate.test.ts`): `ShoppersSystem`
+  computed queue-penalty magnitude against the hardcoded `DEFAULT_STAFFING_CONFIG.balkToleranceTicks`
+  instead of the actual `CheckoutSystem` instance's configured value. Invisible until now because
+  every prior test either used the default config or happened to pass the same value as the default.
+  Fixed with a new `CheckoutSystem#balkToleranceTicks()` accessor; no golden-hash impact beyond what
+  cleanliness/staffInteraction already caused, since default-config scenarios compute the identical
+  value before and after. Same "run it for real" pattern as every prior phase's gate-proof test.
+- Golden re-baseline, its own commit: `shopper-trip`, `catchment-week`, `rival-reaction`, and
+  `campaign-l1` moved (all exercise an active staffed checkout); the other nine scenarios were
+  confirmed byte-identical first via a before/after diff, not assumed.
+- An explicit, documented scope cut: richer per-term world marks (a spoiled-shelf tint, a persistent
+  abandoned-cart object, a spill decal, a promo sign) are deferred — every `tellFired` event already
+  carries `worldRef` when relevant, so a future pass can add them without touching the sim again. Not
+  blocking this phase's gate, which only needs every term to fire and be visible in some form.
+
+### Milestone 2 — Surface (Track B)
+
+*Runs in parallel with the depth track on `milestone/m2-depth` (ADR 0007). No change on this
+track may move a world hash; the view is downstream of the simulation, so a moved hash is a
+boundary violation to fix, never a re-baseline.*
+
+#### ADRs 0004–0007
+- **0004 — Orthogonal 3/4 projection.** Supersedes `PLAN.md` §9.1's 2:1 dimetric spec. Phaser 4's
+  `TilemapGPULayer` is orthographic-only, so dimetric meant hand-writing the floor renderer;
+  axis-aligned halves the sprite count per fixture, makes tap targets rectangles instead of
+  diamonds, and stops tall shelves occluding the shoppers that carry the game's telemetry. Free to
+  do now because zero art assets existed.
+- **0005 — Pixel renderer strategy.** Phaser on WebGL with `pixelArt`, keeping the dynamic-import
+  and `getContext` guard with a CANVAS fallback. A 32px logical tile with integer zoom, rather than
+  a fixed 256×224 framebuffer — 256×224 scales by 1.52× on a 390px phone, which destroys the pixel
+  grid on the primary target device.
+- **0006 — Art as source code.** 16-bit sprites are small enough to author as text: a 16×24 shopper
+  is 384 pixels, a character grid in a `.py` module, compiled to PNG by the build. Resolves the
+  never-edit-binaries rule against having no pixel artist. Four routes — procedural, text sprite,
+  Blender, generated image — feed one manifest through one quantize pass.
+- **0007 — Parallel-track protocol.** Ownership of every shared file, and the no-moved-hash
+  invariant.
+
+#### Phase S0 — Art pipeline · **gate PASS**
+- `npm run art:build` turns a manifest with zero real art into a complete, validated, packed atlas
+  set: 30 declared assets → 179 frames → 3 atlases, all placeholders, game builds and boots.
+- Placeholder-first (ADR 0006): a placeholder is the declared size, carries its layer's colour, is
+  hatched so nobody mistakes it for finished art, and is labelled by a 3×5 font when it fits. A
+  fully-placeholder store is still readable as a store, so renderer work never blocks on art work.
+- The palette (`tools/art/palette.py`) is **derived from `content/design/tokens.json`**, so that file
+  stays the single source of colour truth and `check-tokens.mjs` keeps working untouched.
+- Frame-key enumeration lives only in `tools/art/manifest.py`; everything downstream reads the index
+  it writes. `src/view/asset-manifest.ts` formats one key at a time rather than re-enumerating, and
+  a parity test compares its enumeration against the index the build actually produced — verified to
+  fail when the two drift.
+- Five validation checks, each verified to fire: wrong dimensions, orphan files, manifest/disk case
+  drift, a fixture anchored off its bottom edge, an unpacked frame. The case check cannot be tested
+  by copying a file on macOS — which is exactly the macOS→Linux 404 hazard it exists for.
+- Pipeline is idempotent: identical inputs produce byte-identical PNGs and atlases.
+- `assets/atlases/` is committed and `assets/src/` is not. Netlify runs `vite build` and nothing
+  else — no Python, no Blender — so the packed atlas is a build input. 16-bit art is small enough
+  that this needs no Git LFS.
+- The palette-swap multiplier in practice: one 16×24 text sprite × 2 states × 4 rotations × 2 frames
+  × 7 segment palettes = 112 frames, which `detectIdentical` then packs into an 820-byte texture.
+
+#### Phase S1 — Orthogonal renderer · **gate PASS**
+- 514 sprites (400 floor tiles, 25 fixtures, 89 shoppers) at **0.15 ms per redraw** and a locked
+  **60 fps at both 390×844 with touch and 1440×900**, no console errors at either. Golden hashes
+  byte-identical.
+- `src/view/iso.ts` retired for `projection.ts`. Depth is y-sort in fixed bands: floors always
+  beneath, overlays always above, fixtures and agents interleaved by row — which is what makes a
+  shopper walk behind one shelf and in front of the next.
+- The pure `*-draw-plan` modules survive nearly unchanged in shape, still free of any Phaser import
+  and still tested without a renderer. They now emit sprite plans instead of rect lists.
+  `BuildScene` pools sprites rather than recreating them per frame.
+- Camera pan rides the existing `dragMove` intent, so the platform boundary holds and no new pointer
+  listener exists. Zoom is integer-only: 1× on a phone, 2× on a desktop.
+- `shoppersSnapshot()` gains `segment` — the one append ADR 0007 permits — so shoppers can be
+  palette-swapped to their household segment.
+
+##### Fixed
+- **The WebGL probe was breaking the thing it probed.** Calling `getContext('webgl2')` on the real
+  canvas means Phaser's later `getContext('webgl')` on that same element returns `null` forever — a
+  canvas hands out exactly one kind of context. The store failed to start with "WebGL unsupported"
+  on a machine that supports it fine. Now probes a throwaway canvas. Caught only because the
+  screenshot pass drove a real browser.
+- **`src/main.ts` was still painting the old projection.** A phase-1.0 `paint()` drew a 128×64
+  dimetric grid underneath Phaser, fought it for canvas sizing via its own DPR scaling, attached a
+  second `PointerSource` to the same canvas, and covered the store with a panel reading *"the canvas
+  is empty on purpose."* The diagnostics panel now appears only when the renderer genuinely cannot
+  start — which is what the boot smoke test was actually asserting. This also retires the
+  untokenized `#2b3a33` that `check-tokens.mjs` could not see, `src/main.ts` being outside its scan
+  directories.
+- **Panning did not compensate the tap transform for camera scroll**, so every tap after a pan
+  landed in the wrong tile.
+- `README.md`, `landing/index.html`, `index.html`, and `package.json` no longer describe the game as
+  isometric (ADR 0004).
+
+#### Phase S2 — Real art: the store reads · **gate PASS**
+- **157 of 179 frames are real art.** The 22 that remain placeholder are the thought
+  bubbles and UI frames that phases S3 and S4 own — which is placeholder-first working as
+  designed, not an omission.
+- House style is **chunky outlined**, chosen from three candidates rendered through the real
+  pipeline rather than from a description. Every form carries a one-pixel ink outline: it is
+  what welds separately-authored sprites into one world, and what keeps a 16×24 shopper
+  readable at 1× on a 390 px screen.
+- Characters are authored as text (ADR 0006). Three facings drawn by hand, `right` mirrored
+  from `left`, three poses each for a two-frame walk. **One 16×24 grid becomes 112 frames**
+  across seven segment palettes, and `detectIdentical` packs the whole agent atlas into 33 KB.
+- Fixtures are generated, not drawn: shelves must exist in three stock states across two
+  rotations and several widths — twenty sprites that must stay consistent by hand, or one
+  function that cannot drift.
+- `self_checkout` gets its own art (a screen on a post, unmistakably not a staffed lane).
+  It had been falling through to the anonymous grey fallback since phase 1.4.
+
+##### Fixed
+- The first pass drew shelf carcasses in near-black, so an **empty shelf read as a hole in
+  the floor** rather than as shelving with nothing on it — fatal, since `gentle-surface.md`
+  calls the empty facing the single most important tell in the game. Lightened the carcass
+  and added a recessed back panel behind bright planks.
+- The register's lane light was a three-pixel dot floating in the corner of the frame,
+  reading as a rendering artefact. It now sits on the register where a real one does, and an
+  open lane is visible across a zoomed-out store.
+
+##### Known gap, deliberately not closed here
+- **The renderer accepts stock levels; the simulation cannot yet supply them.**
+  `InventorySystem` tracks stock per *good*, and the shelf → good assignment lives in
+  `ShoppersSystem`'s private `#stocking` map with no accessor. Exposing it is a `src/sim`
+  change, which ADR 0007 assigns to Track A. `buildDrawPlan` therefore takes
+  `stockLevels` as an argument and is ready the moment they exist; the gate screenshot
+  drives them directly, which is what proves all three states render. **Wiring this is a
+  one-line Track A task and is what makes the game's most important tell live.**
+
+#### Phase S3 — The gentle surface: shoppers react · **gate PASS**
+- **The tell table stops being a promise.** `content/design/gentle-surface.json5` has declared a
+  bubble, animation, particle, world mark and threshold for every §5.3/§5.4 term since phase 1.1,
+  CI-validated the whole time, and nothing in `src/view` had ever drawn one. Seven of the fifteen
+  terms now fire in the game, on the exact condition the design doc names.
+- **342 of 347 frames are real art**, up from 157 of 179. Twelve 12×12 thought-bubble icons authored
+  as text, each with a distinct outer silhouette so colour is confirmation rather than the only
+  difference — `exclamation`/`exclamationGold` is the one deliberate exception, and it is the same
+  event at two rarities, which is what the design doc asks for. `bubble_frame` and `particle_flies`
+  are generated instead of drawn, because they are shapes rather than pictures.
+- **Three shared reaction poses, not fifteen.** `pause`, `recoil` and `hop` cover all seven live
+  tells: the bubble is already unique per term and carries the primary signal (`gentle-surface.md`
+  §12.1), so the body only has to say what *kind* of reaction it is. One grid per pose per facing;
+  the second animation frame is derived — the head sinks a pixel for pause and recoil, the whole
+  body lifts for hop — the same economy that makes `right` the mirror of `left`. 168 new frames
+  took the agents atlas from 33 KB to 77 KB, against a budget the whole game uses 13% of.
+- `src/view/gentle-surface-draw-plan.ts` decides which tell fires. It is pure, like every other
+  `*-draw-plan`, and it computes nothing the simulation does not: every trigger is a delta over a
+  counter `ShoppersSystem` already keeps *and already hashes*, or an event it already emits. That is
+  what makes ADR 0007's no-moved-hash invariant true by construction rather than by care.
+- **Silence is a feature, structurally.** `gentle-surface.md` §3's three rules are data shapes, not
+  conventions somebody has to remember: thresholds come from the tell table, active bubbles are
+  keyed by shopper id so one-bubble-per-shopper cannot be violated, and overflow past the
+  per-breakpoint cap (8 at regular, 4 at compact) is dropped rather than queued.
+- The rising-queue tell is **edge-triggered**: it fires the tick the wait crosses the declared 0.3,
+  not every tick above it. Level-triggered, a long queue is a strobe.
+- Three read-only bridge appends, the only kind ADR 0007 permits this track: the shopper counters,
+  `drainEvents()`, and `currentTick()`. `drainEvents` had no consumer at all before this, which also
+  means the event bus had been growing without bound for the life of a session.
+- Verified in a real browser at **1440×900 and 390×844**, with an emergent scenario — shoppers
+  arrive with real lists, the shelves run dry, one self-checkout cannot keep up — rather than a
+  staged one. Golden hashes byte-identical.
+
+##### Fixed
+- **The fill-rate miss painted the shelf red.** The first pass flashed a tint for every tell
+  declaring `worldMark: true`, but §1 says the miss's world mark is the empty facing itself. A dry
+  shelf misses for every shopper who walks up to it, so the game's most common tell was also its
+  loudest — and the colour said "error" where the design says "gap". Caught by looking at the first
+  browser screenshot rather than by a test, which is the argument for taking the screenshot.
+- `playwright.config.ts` takes a `PLAYWRIGHT_PORT` override. `reuseExistingServer` adopts whatever
+  is already listening on 5173 — including an unrelated project's dev server, which then fails every
+  test with a missing selector instead of an obvious error.
+
+##### Known gaps, deliberately not closed here
+- **Eight of the fifteen terms are drawn but wired to nothing.** `staffInteractionGood`,
+  `staffInteractionAbsent` and `cleanlinessLow` have no sim mechanic (`ShoppersSystem`'s own comment:
+  "not consumed yet"); `adjacencyBonus`, `promoLift` and `needState` have no term in `#rollImpulse`;
+  `visibility` is already satisfied by S2's shelf states and needs nothing. `discovery` is the
+  interesting one: it and `impulsePurchase` both trace to the same `impulseHits` increment, and the
+  sim has no signal distinguishing an ordinary impulse buy from a delightful discovery. Firing both
+  bubbles for one event would break the one-bubble-per-shopper rule and overstate what the sim
+  knows, so the literal, unambiguous term fires and `discovery` waits for a real signal. All eight
+  have manifest-declared art and will light up the day a Track A change adds the mechanic — the same
+  placeholder-first pattern S2 used for stock levels.
+- **`queuePenaltyBalk` cannot be reached from the bridge**, so the browser check does not exercise
+  it. It fires off the `cartAbandoned` event, which needs a shopper to wait out
+  `abandonToleranceTicks` (400) in a queue; `CheckoutSystem` caps its queue well before that, and no
+  command assigns staff, so a staffed register never opens a lane at all. Crowding the store harder
+  plateaus the longest wait at ~290 ticks. The trigger is covered against hand-built snapshots in
+  the unit tests; making it reachable is a Track A concern.
+- **The queue-penalty exponent (1.6) is copied, not imported.** It is written inline in
+  `ShoppersSystem#stepLeaving` rather than exported. A test pins the view's copy to the sim's
+  formula; if Track A exports it, delete the copy.
+- **The abandoned cart fades on a timer.** Its tell says it "persists until staff clears it", and
+  there is no staff-clearing mechanic. The marker is view-local with a fixed lifetime — the same
+  category of documented simplification as 1.7's per-good inventory tracking.
+
+### Milestone 2 — Depth and Surface merged
+
+#### Track A/B reconciliation · **gate PASS**
+- Merged `milestone/m2-surface` (S0–S3, the 16-bit sprite renderer) into `milestone/m2-depth`
+  (Phase 2.3's UI build-out). The two tracks had each built a complete, independent
+  implementation of "which gentle-surface tell fires this tick" — Track A in the sim, emitting a
+  `tellFired` event; Track B re-deriving the same decision in the view layer by diffing shopper
+  counters. Resolved in the sim's favor, per this repo's sim-boundary rule and ADR 0007:
+  `gentle-surface-draw-plan.ts` now consumes `CampaignBridge.pendingTells()` instead of
+  re-computing firing decisions, keeping Track B's richer rendering (poses, particles, world
+  marks, segment palette-swaps) on top of Track A's single source of truth for *when* a tell
+  fires. As a side effect, all 15 declared terms are now live through the merged view — Track B's
+  own S3 notes had flagged 8 of them as "drawn but wired to nothing" from the view's perspective.
+- The shelf-fullness accessor both tracks had flagged as the single highest-value next step
+  (`CampaignBridge.shelfFullness()`/`stockedGoodAt()`) already existed on Track A independently of
+  what Track B expected; `BuildScene` now reads it directly every redraw, so a shelf visibly runs
+  from full to empty during real play.
+- `npm run verify` green (690 tests), `npm run test:e2e` green at both viewports.
+
+#### Goods catalog expansion · **gate PASS**
+- Grew `content/goods/catalog.json` from 4 to 36 SKUs (produce, meat, frozen, beverages, pantry,
+  household added; more dairy/bakery/snacks variety) with matching `SupplyPolicy` entries
+  (category-appropriate spoilage/lead-time tuning) and two new adjacency combos in
+  `market.json5` (`produce`+`dairy`, `snacks`+`beverages`). Generic product names, not invented
+  brands, consistent with the original 4-good bootstrap set. Not the full ~120-SKU Milestone 5
+  target (§5.6) — a mid-milestone bump so the store stops showing the same 4 items on every shelf.
+- All 13 golden scenarios re-baselined in a dedicated commit, expected: every scenario spawns
+  households whose shopping lists now draw from 36 goods instead of 4.
+- `npm run balance:gate` still fails at all 3 levels, unchanged from before this work —
+  pre-tuning, expected, not a new regression.

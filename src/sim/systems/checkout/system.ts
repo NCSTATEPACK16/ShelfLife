@@ -117,6 +117,10 @@ export class CheckoutSystem implements System {
     }
   }
 
+  staffIds(): readonly number[] {
+    return [...this.#staff.keys()].sort((a, b) => a - b);
+  }
+
   staff(id: number): StaffMember {
     const staff = this.#staff.get(id);
     if (!staff) throw new Error(`Unknown staff id: ${id}`);
@@ -202,6 +206,20 @@ export class CheckoutSystem implements System {
 
   cleanliness(): number {
     return this.#cleanliness;
+  }
+
+  /** The assigned staff member's morale for a staffed register lane; null otherwise (self-checkout
+   *  or unassigned). Feeds §5.3's staffInteraction tell. */
+  staffMoraleOnLane(laneId: number): number | null {
+    const lane = this.#lanes.get(laneId);
+    if (!lane || lane.isSelfCheckout || lane.staffId === null) return null;
+    return this.#staff.get(lane.staffId)?.morale ?? null;
+  }
+
+  /** This store's actual configured balk tolerance — ShoppersSystem needs it to scale
+   *  queuePenalty against the real threshold, not an assumed default. */
+  balkToleranceTicks(): number {
+    return this.#config.balkToleranceTicks;
   }
 
   /**

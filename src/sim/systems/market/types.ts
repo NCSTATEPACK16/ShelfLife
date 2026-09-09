@@ -10,6 +10,24 @@ export interface Position {
   readonly y: number;
 }
 
+export const RIVAL_SIGNATURES = ['oneRegister', 'neverCloses', 'membershipLockIn'] as const;
+export type RivalSignatureId = (typeof RIVAL_SIGNATURES)[number];
+
+/**
+ * A rival's personality vector (PLAN.md §5.8), authored per boss. Drives
+ * `deriveInitialTerms` and the weekly reactive tick in `src/sim/systems/rivals/`.
+ * `expansionRate` is schema-complete but has no consumer yet — see the rivals system's
+ * "explicitly deferred" note.
+ */
+export interface RivalPersonality {
+  readonly priceAggression: number;   // [0,1]
+  readonly qualityInvestment: number; // [0,1]
+  readonly marketingSpend: number;    // [0,1]
+  readonly expansionRate: number;     // [0,1] — authored now; consumer deferred
+  readonly reactivity: number;        // [0,1]
+  readonly signature: RivalSignatureId;
+}
+
 /**
  * A competing store in the catchment (PLAN.md §3, §5.1).
  *
@@ -46,6 +64,8 @@ export interface RivalStore {
    * Zod's `.optional()` output.
    */
   readonly loyaltyDecay?: number | undefined;
+  /** Personality vector driving rival dynamics — see `src/sim/systems/rivals/`. */
+  readonly personality?: RivalPersonality | undefined;
 }
 
 /**

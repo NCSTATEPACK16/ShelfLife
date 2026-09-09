@@ -11,7 +11,7 @@ import { DEFAULT_CATALOG } from '../grid/catalog.js';
 import { EconomySystem } from './system.js';
 
 const CATALOG: readonly GoodDef[] = [
-  { id: 'milk', name: 'Milk', unitPrice: 3, cost: 2, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05 },
+  { id: 'milk', name: 'Milk', unitPrice: 3, cost: 2, depletionPerDay: 0.15, reorderThreshold: 0.3, impulseBase: 0.05, category: 'dairy' },
 ];
 
 const FAST_SPOILING_POLICY: SupplyPolicy = {
@@ -82,6 +82,42 @@ describe('EconomySystem — pricing', () => {
   it('does not claim kernel command types', () => {
     const { economy, world } = worldWithEconomy();
     expect(economy.applyCommand(world, { type: 'noop' })).toBe(false);
+  });
+});
+
+describe('EconomySystem — isPromoted', () => {
+  it('is true while a startPromotion command is active', () => {
+    const { world, economy } = worldWithEconomy();
+    world.commands.push({ type: 'startPromotion', goodId: 'milk', discountFraction: 0.2, durationTicks: 100 });
+    world.step();
+    expect(economy.isPromoted('milk', world.tick)).toBe(true);
+  });
+
+  it('is false once the promotion has expired', () => {
+    const { world, economy } = worldWithEconomy();
+    world.commands.push({ type: 'startPromotion', goodId: 'milk', discountFraction: 0.2, durationTicks: 1 });
+    world.step();
+    world.step();
+    expect(economy.isPromoted('milk', world.tick)).toBe(false);
+  });
+
+  it('is false for a good with no promotion', () => {
+    const { world, economy } = worldWithEconomy();
+    expect(economy.isPromoted('milk', world.tick)).toBe(false);
+  });
+});
+
+describe('EconomySystem — priceLevel', () => {
+  it('returns 1 when every good is at reference price', () => {
+    const { world, economy } = worldWithEconomy();
+    expect(economy.priceLevel(world.tick)).toBeCloseTo(1);
+  });
+
+  it('is below 1 after a setPrice below reference', () => {
+    const { world, economy } = worldWithEconomy();
+    world.commands.push({ type: 'setPrice', goodId: 'milk', price: 1.5 });
+    world.step();
+    expect(economy.priceLevel(world.tick)).toBeLessThan(1);
   });
 });
 

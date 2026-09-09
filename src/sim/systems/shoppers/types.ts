@@ -30,4 +30,9 @@ export interface Shopper {
   readonly abandoned: boolean;
   /** Sum of §5.3's `priceSurprise` across every item in `cart` — averaged at trip end. */
   readonly priceSurpriseSum: number;
+  /** Set once, the moment this trip's checkout queue is joined — null until then. */
+  readonly staffInteractionGood: boolean | null;
+  /** Whether the live mid-trip queuePenaltyRising tell has already fired this trip, so it
+   *  fires once per trip, not once per tick above threshold. */
+  readonly queuePenaltyRisingFired: boolean;
 }

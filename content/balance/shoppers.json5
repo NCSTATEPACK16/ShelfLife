@@ -1,9 +1,7 @@
 {
   // Satisfaction formula weights (PLAN.md §5.3). fillRate, discovery, spoiledEncounters
-  // (1.7), and — as of phase 1.8's CheckoutSystem — queuePenalty are all live now.
-  // staffInteraction/cleanliness-as-a-satisfaction-term still aren't wired to a shopper
-  // outcome (cleanliness itself exists as a CheckoutSystem value, just not consumed here
-  // yet) and remain 0.
+  // (1.7), queuePenalty (1.8), and — as of phase 2.2 — cleanliness/staffInteraction are
+  // all live now.
   fillRateWeight: 0.6,
   discoveryWeight: 0.1,
   spoiledEncountersWeight: 0.2,
@@ -11,6 +9,12 @@
   // Extra flat penalty when a wait ends in cart abandonment rather than a balk — both
   // saturate queuePenalty to its max, so this is what keeps abandonment scoring worse.
   abandonExtraPenalty: 0.15,
+  // §5.3's w6 — CheckoutSystem.cleanliness() already decays/restores live; this is the
+  // first satisfaction term to actually read it.
+  cleanlinessWeight: 0.15,
+  // §5.3's w5 — a good staff interaction adds to satisfaction, an absent one is neutral
+  // (§12.1: "nobody helped me reads as confusion, not anger" — no penalty, just no bonus).
+  staffInteractionWeight: 0.1,
 
   // Radius (in grid cells) within which a shopper's walked path exposes a stocked good to
   // an impulse roll — PLAN.md §5.4's "path exposure," computed from actually-walked tiles.

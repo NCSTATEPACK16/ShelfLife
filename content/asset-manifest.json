@@ -1,0 +1,58 @@
+{
+  "$meta": {
+    "name": "Shelf Life asset manifest",
+    "version": "0.1.0",
+    "note": "Every visual is declared here BEFORE it exists (ADR 0006). Missing art renders as a labelled placeholder at the exact declared size, so the game is playable at every commit and renderer work never blocks on art work.",
+    "tileSize": 32,
+    "projection": "orthogonal-3/4 (ADR 0004)",
+    "frameKey": "<id> | <id>__<state> | <id>__r<rotation> | <id>__<state>__r<rotation> | ...__f<frame> | ...__p<palette>"
+  },
+
+  "palettes": {
+    "$comment": "Palette-swap variants (ADR 0006). Each maps sprite characters to palette names from tools/art/palette.py. One shopper base x seven segments = seven shoppers for the cost of one. Segment ids match content/balance/segments.json5.",
+    "priceHunter": { "h": "hair-sh", "H": "hair", "r": "amber-dark", "R": "amber-base" },
+    "convenience": { "h": "hair", "H": "hair-hi", "r": "blue-base", "R": "blue-light" },
+    "family":      { "h": "hair-sh", "H": "hair", "r": "green-base", "R": "green-light" },
+    "foodie":      { "h": "ink", "H": "hair-sh", "r": "violet-base", "R": "violet-light" },
+    "bulk":        { "h": "hair-hi", "H": "skin-hi", "r": "red-dark", "R": "red-base" },
+    "senior":      { "h": "grey-200", "H": "grey-50", "r": "grey-400", "R": "grey-300" },
+    "student":     { "h": "ink", "H": "hair", "r": "red-base", "R": "red-light" }
+  },
+
+  "assets": [
+    { "id": "floor_tile",      "route": "procedural", "atlas": "world", "size": [32, 32], "anchor": [0, 0], "layer": "floor", "variants": 3 },
+    { "id": "floor_entrance",  "route": "procedural", "atlas": "world", "size": [32, 32], "anchor": [0, 0], "layer": "floor" },
+    { "id": "wall_back",       "route": "procedural", "atlas": "world", "size": [32, 48], "anchor": [0.5, 1], "layer": "fixture" },
+    { "id": "wall_side",       "route": "procedural", "atlas": "world", "size": [32, 48], "anchor": [0.5, 1], "layer": "fixture" },
+
+    { "id": "shelf_basic",     "route": "procedural", "atlas": "world", "size": [32, 48], "anchor": [0.5, 1], "layer": "fixture", "footprint": [1, 2], "states": ["full", "half", "empty"], "rotations": 2 },
+    { "id": "shelf_endcap",    "route": "procedural", "atlas": "world", "size": [32, 40], "anchor": [0.5, 1], "layer": "fixture", "footprint": [1, 1], "states": ["full", "half", "empty"], "rotations": 2 },
+    { "id": "register",        "route": "procedural", "atlas": "world", "size": [64, 40], "anchor": [0.5, 1], "layer": "fixture", "footprint": [2, 1], "states": ["idle", "busy"], "rotations": 2 },
+    { "id": "self_checkout",   "route": "procedural", "atlas": "world", "size": [64, 40], "anchor": [0.5, 1], "layer": "fixture", "footprint": [2, 1], "states": ["idle", "busy"], "rotations": 2 },
+    { "id": "cart_corral",     "route": "procedural", "atlas": "world", "size": [32, 32], "anchor": [0.5, 1], "layer": "fixture", "footprint": [1, 1], "states": ["full", "empty"], "rotations": 1 },
+    { "id": "cart_abandoned",  "route": "text",       "atlas": "world", "size": [16, 16], "anchor": [0.5, 1], "layer": "fixture", "$why": "docs/design/gentle-surface.md §1 — the balk tell; persists as a world object until staff clears it" },
+    { "id": "spill_decal",     "route": "procedural", "atlas": "world", "size": [32, 16], "anchor": [0.5, 1], "layer": "floor", "$why": "cleanliness tell" },
+
+    { "id": "shopper",         "route": "text", "atlas": "agents", "size": [16, 24], "anchor": [0.5, 1], "layer": "agent", "states": ["idle", "walk", "pause", "recoil", "hop"], "rotations": 4, "frames": 2, "palettes": ["priceHunter", "convenience", "family", "foodie", "bulk", "senior", "student"], "$why": "pause/recoil/hop are the shared reaction poses docs/design/gentle-surface.md §1 asks for — three poses cover seven live tells rather than one bespoke pose each. `idle` stays first: it is the default state every frame key falls back to." },
+    { "id": "staff",           "route": "text", "atlas": "agents", "size": [16, 24], "anchor": [0.5, 1], "layer": "agent", "states": ["idle", "walk"], "rotations": 4, "frames": 2 },
+
+    { "id": "bubble_frame",              "route": "procedural", "atlas": "ui", "size": [20, 20], "anchor": [0.5, 1], "layer": "overlay", "$why": "the speech-bubble chrome every tell icon sits inside" },
+    { "id": "bubble_listStrike",         "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_clock",              "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_clockRedX",          "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_priceTagRaisedEyebrow", "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_priceTagStar",       "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_greenStinkCloud",    "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_frown",              "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_heart",              "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_questionMark",       "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_sparkle",            "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_exclamation",        "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "bubble_exclamationGold",    "route": "text", "atlas": "ui", "size": [12, 12], "anchor": [0.5, 0.5], "layer": "overlay" },
+    { "id": "particle_flies",            "route": "procedural", "atlas": "ui", "size": [8, 8], "anchor": [0.5, 0.5], "layer": "overlay", "frames": 3 },
+
+    { "id": "panel_9slice",    "route": "procedural", "atlas": "ui", "size": [24, 24], "anchor": [0, 0], "layer": "ui", "$why": "16-bit UI frame, sliced 8/8/8" },
+    { "id": "button_9slice",   "route": "procedural", "atlas": "ui", "size": [24, 24], "anchor": [0, 0], "layer": "ui", "states": ["rest", "pressed"] },
+    { "id": "cursor_tile",     "route": "procedural", "atlas": "ui", "size": [32, 32], "anchor": [0, 0], "layer": "overlay", "states": ["valid", "invalid"] }
+  ]
+}

@@ -6,8 +6,8 @@ import { GridSystem } from '../grid/system.js';
 import { InventorySystem } from '../inventory/system.js';
 import { LoyaltySystem } from '../loyalty/system.js';
 import { PathingSystem } from '../pathing/system.js';
+import { RivalsSystem } from '../rivals/system.js';
 import { ShoppersSystem } from '../shoppers/system.js';
-import { DEFAULT_RIVAL_STORES } from './config.js';
 import { MarketSystem } from './system.js';
 
 function worldWithMarket(): { world: World; market: MarketSystem } {
@@ -39,14 +39,19 @@ export function registerFullMarketStack(world: World): {
   const economy = new EconomySystem(checkout, inventory);
   world.register(economy);
   const marketBox: { current?: MarketSystem } = {};
+  const rivals = new RivalsSystem({
+    outcomes: () => marketBox.current!.pendingOutcomes(),
+    playerPriceLevel: () => economy.priceLevel(world.tick),
+  });
+  world.register(rivals);
   const loyalty = new LoyaltySystem(
     {
       householdIds: () => marketBox.current!.householdIds(),
       pendingOutcomes: () => marketBox.current!.pendingOutcomes(),
     },
-    DEFAULT_RIVAL_STORES,
+    rivals,
   );
-  const market = new MarketSystem({ inventory, checkout, economy, loyalty });
+  const market = new MarketSystem({ inventory, checkout, economy, loyalty }, undefined, undefined, rivals);
   marketBox.current = market;
   world.register(market);
   const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);

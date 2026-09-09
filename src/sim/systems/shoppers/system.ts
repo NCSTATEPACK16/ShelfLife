@@ -18,6 +18,9 @@ import type { PathingSystem } from '../pathing/system.js';
 import type { Vec2 } from '../pathing/types.js';
 import { DEFAULT_SHOPPERS_CONFIG } from './config.js';
 import type { Shopper, ShopperState } from './types.js';
+import { DEFAULT_GENTLE_SURFACE_CONTENT, thresholdFor } from '../../content/gentle-surface.js';
+import type { TellTerm } from '../../content/gentle-surface.js';
+import { DEFAULT_MARKET_CONFIG, isAdjacencyCombo } from '../market/config.js';
 
 const EXIT_DESTINATION_ID = 'exit';
 const ENTRANCE_POSITION: Vec2 = { x: 0.5, y: 0.5 };
@@ -116,7 +119,10 @@ export class ShoppersSystem implements System {
         .bool(shopper.usedSelfCheckout)
         .bool(shopper.balked)
         .bool(shopper.abandoned)
-        .f64(shopper.priceSurpriseSum);
+        .f64(shopper.priceSurpriseSum)
+        .bool(shopper.staffInteractionGood ?? false)
+        .bool(shopper.staffInteractionGood !== null) // distinguishes null from false
+        .bool(shopper.queuePenaltyRisingFired);
       hasher.u32(shopper.remainingList.length);
       for (const goodId of shopper.remainingList) hasher.str(goodId);
       hasher.u32(shopper.cart.length);
@@ -154,6 +160,8 @@ export class ShoppersSystem implements System {
           balked: false,
           abandoned: false,
           priceSurpriseSum: 0,
+          staffInteractionGood: null,
+          queuePenaltyRisingFired: false,
         });
         return true;
       }
@@ -175,6 +183,12 @@ export class ShoppersSystem implements System {
 
   activeShopperIds(): readonly number[] {
     return [...this.#shoppers.keys()].sort((a, b) => a - b);
+  }
+
+  /** The good stocked at a fixture instance, or null if unstocked. Render-only accessor —
+   *  feeds the visibility world-mark tell (shelf full/half/empty). */
+  stockedGoodAt(instanceId: number): string | null {
+    return this.#stocking.get(instanceId) ?? null;
   }
 
   #refreshGoodDestination(world: World, goodId: string): void {
@@ -220,15 +234,30 @@ export class ShoppersSystem implements System {
     const result = this.#inventory.consume(goodId, world.tick);
     const remainingList = moved.remainingList.slice(1);
     const state: ShopperState = remainingList.length === 0 ? 'checkingOut' : 'shopping';
+    const shelfInstanceId = [...this.#stocking.entries()].find(([, g]) => g === goodId)?.[0];
 
     if (result === 'spoiled') {
       // §5.3's spoiledEncounters: the shopper recoils and puts it back — no sale, no
       // impulse roll, and this list item stays unfulfilled (a fillRate miss too).
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'spoiledEncounters',
+        magnitude: 1,
+        ...(shelfInstanceId !== undefined ? { worldRef: { instanceId: shelfInstanceId } } : {}),
+      });
       return { ...moved, remainingList, spoiledEncounters: moved.spoiledEncounters + 1, state };
     }
     if (result === 'outOfStock') {
       // Nothing on the shelf — move on, unfulfilled. This is §5.3's single most
       // important tell (fillRateMiss), already carried by fillRate itself.
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'fillRateMiss',
+        magnitude: 1,
+        ...(shelfInstanceId !== undefined ? { worldRef: { instanceId: shelfInstanceId } } : {}),
+      });
       return { ...moved, remainingList, state };
     }
 
@@ -239,6 +268,21 @@ export class ShoppersSystem implements System {
     // phase plan's scope cuts), the sim just carries the number into satisfaction.
     const reference = this.#economy.referencePriceOf(goodId);
     const priceSurprise = reference > 0 ? (reference - paid) / reference : 0;
+    if (priceSurprise <= -thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'priceSurpriseNegative')) {
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'priceSurpriseNegative',
+        magnitude: Math.min(1, -priceSurprise),
+      });
+    } else if (priceSurprise >= thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'priceSurprisePositive')) {
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'priceSurprisePositive',
+        magnitude: Math.min(1, priceSurprise),
+      });
+    }
     const cart = [...moved.cart, goodId];
     const cartTotal = moved.cartTotal + paid;
     const priceSurpriseSum = moved.priceSurpriseSum + priceSurprise;
@@ -252,10 +296,21 @@ export class ShoppersSystem implements System {
       if (laneId === null) {
         // No open lane at all — the understaffing story: nothing to queue for, so the
         // trip ends here rather than waiting forever for a lane that will never open.
+        world.events.emit({ type: 'tellFired', shopperId: shopper.id, term: 'queuePenaltyBalk', magnitude: 1 });
         return { ...shopper, state: 'leaving', balked: true };
       }
       this.#checkout.reserveLane(laneId);
-      return { ...shopper, checkoutLaneId: laneId, usedSelfCheckout: this.#checkout.isSelfCheckout(laneId) };
+      const usedSelfCheckout = this.#checkout.isSelfCheckout(laneId);
+      const morale = this.#checkout.staffMoraleOnLane(laneId);
+      const staffInteractionGood = morale !== null && morale >= DEFAULT_STAFFING_CONFIG.staffInteractionMoraleThreshold;
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: staffInteractionGood ? 'staffInteractionGood' : 'staffInteractionAbsent',
+        magnitude: 1,
+        worldRef: { instanceId: laneId },
+      });
+      return { ...shopper, checkoutLaneId: laneId, usedSelfCheckout, staffInteractionGood };
     }
 
     const laneId = shopper.checkoutLaneId;
@@ -272,7 +327,25 @@ export class ShoppersSystem implements System {
     }
 
     const outcome = this.#checkout.statusOf(shopper.id);
-    if (outcome === 'waiting' || outcome === 'beingServed' || outcome === 'notInQueue') return shopper;
+
+    if (outcome === 'waiting' || outcome === 'beingServed') {
+      if (!shopper.queuePenaltyRisingFired && shopper.checkoutJoinedAtTick !== null) {
+        const liveWaitTicks = world.tick - shopper.checkoutJoinedAtTick;
+        const liveMagnitude = Math.min(1, (liveWaitTicks / this.#checkout.balkToleranceTicks()) ** 1.6);
+        if (liveMagnitude >= thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'queuePenaltyRising')) {
+          world.events.emit({
+            type: 'tellFired',
+            shopperId: shopper.id,
+            term: 'queuePenaltyRising',
+            magnitude: liveMagnitude,
+            worldRef: { instanceId: laneId },
+          });
+          return { ...shopper, queuePenaltyRisingFired: true };
+        }
+      }
+      return shopper;
+    }
+    if (outcome === 'notInQueue') return shopper;
 
     const waitTicks = shopper.checkoutJoinedAtTick !== null ? world.tick - shopper.checkoutJoinedAtTick : 0;
 
@@ -300,10 +373,24 @@ export class ShoppersSystem implements System {
         householdId: shopper.householdId,
         items: shopper.cart,
       });
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term: 'queuePenaltyBalk',
+        magnitude: 1,
+        worldRef: { instanceId: laneId },
+      });
       return { ...shopper, state: 'leaving', checkoutWaitTicks: waitTicks, abandoned: true };
     }
 
     // 'balked'
+    world.events.emit({
+      type: 'tellFired',
+      shopperId: shopper.id,
+      term: 'queuePenaltyBalk',
+      magnitude: 1,
+      worldRef: { instanceId: laneId },
+    });
     return { ...shopper, state: 'leaving', checkoutWaitTicks: waitTicks, balked: true };
   }
 
@@ -325,10 +412,21 @@ export class ShoppersSystem implements System {
     // more than proportionally. Saturates at 1 for both balked and abandoned (both waited
     // at least balkToleranceTicks); abandonExtraPenalty is what keeps abandonment scoring
     // strictly worse, matching §5.6's "large satisfaction hit" language for cart loss.
-    const queuePenalty = Math.min(1, (moved.checkoutWaitTicks / DEFAULT_STAFFING_CONFIG.balkToleranceTicks) ** 1.6);
+    const queuePenalty = Math.min(1, (moved.checkoutWaitTicks / this.#checkout.balkToleranceTicks()) ** 1.6);
     const abandonPenalty = moved.abandoned ? DEFAULT_SHOPPERS_CONFIG.abandonExtraPenalty : 0;
     const selfCheckoutPenalty = moved.usedSelfCheckout ? DEFAULT_STAFFING_CONFIG.selfCheckoutServiceScorePenalty : 0;
     const priceSurprise = moved.cart.length > 0 ? moved.priceSurpriseSum / moved.cart.length : 0;
+    const cleanlinessGap = 1 - this.#checkout.cleanliness();
+    if (cleanlinessGap >= thresholdFor(DEFAULT_GENTLE_SURFACE_CONTENT, 'cleanlinessLow')) {
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: moved.id,
+        term: 'cleanlinessLow',
+        magnitude: Math.min(1, cleanlinessGap),
+      });
+    }
+    const staffInteractionBonus =
+      moved.staffInteractionGood === true ? DEFAULT_SHOPPERS_CONFIG.staffInteractionWeight : 0;
     const satisfaction = Math.min(
       1,
       Math.max(
@@ -339,7 +437,9 @@ export class ShoppersSystem implements System {
           DEFAULT_SHOPPERS_CONFIG.queuePenaltyWeight * queuePenalty -
           abandonPenalty -
           selfCheckoutPenalty +
-          DEFAULT_ECONOMY_CONFIG.priceSurpriseWeight * priceSurprise,
+          DEFAULT_ECONOMY_CONFIG.priceSurpriseWeight * priceSurprise -
+          DEFAULT_SHOPPERS_CONFIG.cleanlinessWeight * cleanlinessGap +
+          staffInteractionBonus,
       ),
     );
     world.events.emit({
@@ -383,6 +483,18 @@ export class ShoppersSystem implements System {
   /** Path exposure (PLAN.md §5.4): roll impulse only for goods near where the shopper just walked. */
   #rollImpulse(world: World, shopper: Shopper, justPickedGoodId: string): number {
     let hits = 0;
+    const nearbyCategories: string[] = [];
+    for (const [instanceId, goodId] of this.#stocking) {
+      if (goodId === justPickedGoodId) continue;
+      const placement = this.#grid.placements().find((p) => p.instanceId === instanceId);
+      if (!placement) continue;
+      const dx = placement.x - shopper.position.x;
+      const dy = placement.y - shopper.position.y;
+      if (Math.hypot(dx, dy) > DEFAULT_SHOPPERS_CONFIG.exposureRadius) continue;
+      const category = this.#catalogById.get(goodId)?.category;
+      if (category) nearbyCategories.push(category);
+    }
+
     for (const [instanceId, goodId] of this.#stocking) {
       if (goodId === justPickedGoodId) continue;
       const placement = this.#grid.placements().find((p) => p.instanceId === instanceId);
@@ -401,7 +513,28 @@ export class ShoppersSystem implements System {
       const elasticityMultiplier =
         reference > 0 && current > 0 ? (reference / current) ** DEFAULT_ECONOMY_CONFIG.elasticityCoefficient : 1;
       const probability = Math.min(1, good.impulseBase * elasticityMultiplier);
-      if (world.rng.get('impulse').chance(probability)) hits++;
+      if (!world.rng.get('impulse').chance(probability)) continue;
+
+      hits++;
+      const isFirstHitThisTrip = shopper.impulseHits === 0 && hits === 1;
+      if (isFirstHitThisTrip) {
+        world.events.emit({ type: 'tellFired', shopperId: shopper.id, term: 'discovery', magnitude: 1 });
+      }
+
+      const hasNearbyCombo = nearbyCategories.some((c) => isAdjacencyCombo(DEFAULT_MARKET_CONFIG, good.category, c));
+      let term: TellTerm;
+      if (hasNearbyCombo) term = 'adjacencyBonus';
+      else if (this.#economy.isPromoted(goodId, world.tick)) term = 'promoLift';
+      else if (this.#market.household(shopper.householdId).segment === 'family') term = 'needState';
+      else term = 'impulsePurchase';
+
+      world.events.emit({
+        type: 'tellFired',
+        shopperId: shopper.id,
+        term,
+        magnitude: 1,
+        worldRef: { instanceId },
+      });
     }
     return hits;
   }

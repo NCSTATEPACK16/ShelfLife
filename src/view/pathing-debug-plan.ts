@@ -1,4 +1,4 @@
-import { worldToScreen } from './iso.js';
+import { worldToScreen } from './projection.js';
 
 export interface FlowArrow {
   readonly x1: number;

@@ -94,6 +94,11 @@ export class InventorySystem implements System {
     return stocked ? totalOf(stocked) : 0;
   }
 
+  /** The good's orderUpToLevel (S) — its shelf-fullness denominator. 0 if it has no policy. */
+  capacityOf(goodId: string): number {
+    return this.#policies.get(goodId)?.orderUpToLevel ?? 0;
+  }
+
   /** Freshness (0-1) of the oldest batch — what the next `consume()` call would draw from. */
   freshnessOf(goodId: string, tick: number): number {
     const stocked = this.#stocked.get(goodId);

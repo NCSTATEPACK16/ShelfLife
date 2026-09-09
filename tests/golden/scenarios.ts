@@ -1,6 +1,6 @@
 import {
+  buildCampaignWorld,
   CheckoutSystem,
-  DEFAULT_RIVAL_STORES,
   EconomySystem,
   GridSystem,
   InventorySystem,
@@ -8,6 +8,7 @@ import {
   MarketSystem,
   PathingSystem,
   ReputationSystem,
+  RivalsSystem,
   ShoppersSystem,
   World,
 } from '../../src/sim/index.js';
@@ -163,14 +164,19 @@ export const SCENARIOS: readonly Scenario[] = [
       const economy = new EconomySystem(checkout, inventory);
       world.register(economy);
       const marketBox: { current?: MarketSystem } = {};
+      const rivals = new RivalsSystem({
+        outcomes: () => marketBox.current!.pendingOutcomes(),
+        playerPriceLevel: () => economy.priceLevel(world.tick),
+      });
+      world.register(rivals);
       const loyalty = new LoyaltySystem(
         {
           householdIds: () => marketBox.current!.householdIds(),
           pendingOutcomes: () => marketBox.current!.pendingOutcomes(),
         },
-        DEFAULT_RIVAL_STORES,
+        rivals,
       );
-      const market = new MarketSystem({ inventory, checkout, economy, loyalty });
+      const market = new MarketSystem({ inventory, checkout, economy, loyalty }, undefined, undefined, rivals);
       marketBox.current = market;
       world.register(market);
       const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);
@@ -215,14 +221,19 @@ export const SCENARIOS: readonly Scenario[] = [
       const economy = new EconomySystem(checkout, inventory);
       world.register(economy);
       const marketBox: { current?: MarketSystem } = {};
+      const rivals = new RivalsSystem({
+        outcomes: () => marketBox.current!.pendingOutcomes(),
+        playerPriceLevel: () => economy.priceLevel(world.tick),
+      });
+      world.register(rivals);
       const loyalty = new LoyaltySystem(
         {
           householdIds: () => marketBox.current!.householdIds(),
           pendingOutcomes: () => marketBox.current!.pendingOutcomes(),
         },
-        DEFAULT_RIVAL_STORES,
+        rivals,
       );
-      const market = new MarketSystem({ inventory, checkout, economy, loyalty });
+      const market = new MarketSystem({ inventory, checkout, economy, loyalty }, undefined, undefined, rivals);
       marketBox.current = market;
       world.register(market);
       const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);
@@ -251,6 +262,70 @@ export const SCENARIOS: readonly Scenario[] = [
     },
   },
   {
+    name: 'rival-reaction',
+    seed: 20260804,
+    ticks: 21 * 1440,
+    sampleEvery: 400,
+    build() {
+      const world = new World({ seed: this.seed });
+      const grid = new GridSystem({ width: 24, height: 24 });
+      world.register(grid);
+      const pathing = new PathingSystem(grid.grid);
+      world.register(pathing);
+      const inventory = new InventorySystem();
+      world.register(inventory);
+      const checkout = new CheckoutSystem(grid.grid, pathing);
+      world.register(checkout);
+      const economy = new EconomySystem(checkout, inventory);
+      world.register(economy);
+      const marketBox: { current?: MarketSystem } = {};
+      const rivals = new RivalsSystem({
+        outcomes: () => marketBox.current!.pendingOutcomes(),
+        playerPriceLevel: () => economy.priceLevel(world.tick),
+      });
+      world.register(rivals);
+      const loyalty = new LoyaltySystem(
+        {
+          householdIds: () => marketBox.current!.householdIds(),
+          pendingOutcomes: () => marketBox.current!.pendingOutcomes(),
+        },
+        rivals,
+      );
+      const market = new MarketSystem({ inventory, checkout, economy, loyalty }, undefined, undefined, rivals);
+      marketBox.current = market;
+      world.register(market);
+      const shoppers = new ShoppersSystem(market, grid.grid, pathing, inventory, checkout, economy);
+      world.register(shoppers);
+      world.register(loyalty);
+      world.register(new ReputationSystem(market, loyalty));
+
+      world.commands.push({ type: 'placeFixture', fixtureId: 'shelf_basic', x: 10, y: 10, rotation: 0 });
+      world.commands.push({ type: 'placeFixture', fixtureId: 'self_checkout', x: 20, y: 20, rotation: 0 });
+      world.commands.push({ type: 'stockFixture', instanceId: 1, goodId: 'milk' });
+      // Nine households spread near the player's store and all three rivals (Sav-A-Lott
+      // at (4,-3), Grocerteria 24 at (-2,5), BulkHaus Club at (6,6)) across every segment
+      // a signature reads: convenience/student for neverCloses, bulk/family for
+      // membershipLockIn. Three weeks is long enough for the weekly reactive tick to fire
+      // more than once, exercising all three signatures together (PLAN.md §5.8;
+      // docs/superpowers/specs/2026-08-04-rival-dynamics-design.md).
+      const households: readonly [number, Segment, Position][] = [
+        [1, 'family', { x: 0, y: 1 }],
+        [2, 'priceHunter', { x: 4, y: -2 }],
+        [3, 'foodie', { x: 1, y: 0 }],
+        [4, 'senior', { x: 3, y: -3 }],
+        [5, 'student', { x: 2, y: -1 }],
+        [6, 'convenience', { x: -1, y: 4 }],
+        [7, 'student', { x: -2, y: 4 }],
+        [8, 'bulk', { x: 5, y: 5 }],
+        [9, 'family', { x: 6, y: 5 }],
+      ];
+      for (const [householdId, segment, position] of households) {
+        world.commands.push({ type: 'addHousehold', householdId, segment, position });
+      }
+      return world;
+    },
+  },
+  {
     name: 'pricing-and-promotions',
     seed: 20260807,
     ticks: 2000,
@@ -271,6 +346,17 @@ export const SCENARIOS: readonly Scenario[] = [
       world.commands.push({ type: 'setPrice', goodId: 'milk', price: 2.99 });
       world.commands.push({ type: 'startPromotion', goodId: 'bread', discountFraction: 0.25, durationTicks: 500 });
       world.commands.push({ type: 'setMarketingSpend', dailyAmount: 15 });
+      return world;
+    },
+  },
+  {
+    name: 'campaign-l1',
+    seed: 20260902,
+    ticks: 1440 * 8, // enough sim-days for chapterStatus to potentially flip, so the hash
+                      // sequence actually exercises CampaignSystem's state transitions.
+    sampleEvery: 200,
+    build() {
+      const { world } = buildCampaignWorld('l1', this.seed);
       return world;
     },
   },

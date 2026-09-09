@@ -2,5 +2,46 @@
   { "goodId": "milk", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 1440, "supplierReliability": 0.9, "spoilageTauDays": 7 },
   { "goodId": "bread", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 720, "supplierReliability": 0.95, "spoilageTauDays": 4 },
   { "goodId": "eggs", "reorderPoint": 12, "orderUpToLevel": 36, "leadTimeTicks": 2880, "supplierReliability": 0.85, "spoilageTauDays": 21 },
-  { "goodId": "snacks", "reorderPoint": 15, "orderUpToLevel": 40, "leadTimeTicks": 4320, "supplierReliability": 0.98, "spoilageTauDays": 90 }
+  { "goodId": "snacks", "reorderPoint": 15, "orderUpToLevel": 40, "leadTimeTicks": 4320, "supplierReliability": 0.98, "spoilageTauDays": 90 },
+
+  { "goodId": "banana", "reorderPoint": 20, "orderUpToLevel": 60, "leadTimeTicks": 480, "supplierReliability": 0.9, "spoilageTauDays": 5 },
+  { "goodId": "apple", "reorderPoint": 15, "orderUpToLevel": 45, "leadTimeTicks": 480, "supplierReliability": 0.9, "spoilageTauDays": 10 },
+  { "goodId": "bagged_salad", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 480, "supplierReliability": 0.88, "spoilageTauDays": 4 },
+  { "goodId": "tomato", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 480, "supplierReliability": 0.88, "spoilageTauDays": 6 },
+
+  { "goodId": "butter", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 1440, "supplierReliability": 0.92, "spoilageTauDays": 45 },
+  { "goodId": "yogurt", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 1440, "supplierReliability": 0.9, "spoilageTauDays": 14 },
+  { "goodId": "cheese_block", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 1440, "supplierReliability": 0.9, "spoilageTauDays": 30 },
+
+  { "goodId": "bagel", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 720, "supplierReliability": 0.93, "spoilageTauDays": 6 },
+  { "goodId": "muffin", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 720, "supplierReliability": 0.9, "spoilageTauDays": 5 },
+  { "goodId": "tortilla", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 720, "supplierReliability": 0.93, "spoilageTauDays": 10 },
+
+  { "goodId": "ground_beef", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 1440, "supplierReliability": 0.88, "spoilageTauDays": 5 },
+  { "goodId": "chicken_breast", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 1440, "supplierReliability": 0.88, "spoilageTauDays": 5 },
+  { "goodId": "deli_ham", "reorderPoint": 6, "orderUpToLevel": 18, "leadTimeTicks": 1440, "supplierReliability": 0.9, "spoilageTauDays": 8 },
+
+  { "goodId": "frozen_pizza", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 2880, "supplierReliability": 0.95, "spoilageTauDays": 150 },
+  { "goodId": "frozen_peas", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 2880, "supplierReliability": 0.95, "spoilageTauDays": 180 },
+  { "goodId": "ice_cream", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 2880, "supplierReliability": 0.93, "spoilageTauDays": 120 },
+  { "goodId": "frozen_waffles", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 2880, "supplierReliability": 0.95, "spoilageTauDays": 150 },
+
+  { "goodId": "soda_12pack", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 2880, "supplierReliability": 0.96, "spoilageTauDays": 180 },
+  { "goodId": "bottled_water_case", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 2880, "supplierReliability": 0.97, "spoilageTauDays": 365 },
+  { "goodId": "coffee", "reorderPoint": 6, "orderUpToLevel": 18, "leadTimeTicks": 2880, "supplierReliability": 0.95, "spoilageTauDays": 270 },
+  { "goodId": "orange_juice", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 1440, "supplierReliability": 0.9, "spoilageTauDays": 12 },
+
+  { "goodId": "pasta", "reorderPoint": 12, "orderUpToLevel": 36, "leadTimeTicks": 4320, "supplierReliability": 0.97, "spoilageTauDays": 365 },
+  { "goodId": "rice", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 4320, "supplierReliability": 0.97, "spoilageTauDays": 365 },
+  { "goodId": "canned_beans", "reorderPoint": 15, "orderUpToLevel": 45, "leadTimeTicks": 4320, "supplierReliability": 0.98, "spoilageTauDays": 540 },
+  { "goodId": "peanut_butter", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 4320, "supplierReliability": 0.96, "spoilageTauDays": 270 },
+  { "goodId": "cereal", "reorderPoint": 10, "orderUpToLevel": 30, "leadTimeTicks": 2880, "supplierReliability": 0.96, "spoilageTauDays": 180 },
+
+  { "goodId": "paper_towels", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 4320, "supplierReliability": 0.97, "spoilageTauDays": 1000 },
+  { "goodId": "dish_soap", "reorderPoint": 8, "orderUpToLevel": 24, "leadTimeTicks": 4320, "supplierReliability": 0.97, "spoilageTauDays": 1000 },
+  { "goodId": "laundry_detergent", "reorderPoint": 6, "orderUpToLevel": 18, "leadTimeTicks": 4320, "supplierReliability": 0.97, "spoilageTauDays": 1000 },
+  { "goodId": "trash_bags", "reorderPoint": 6, "orderUpToLevel": 18, "leadTimeTicks": 4320, "supplierReliability": 0.97, "spoilageTauDays": 1000 },
+
+  { "goodId": "chips", "reorderPoint": 12, "orderUpToLevel": 36, "leadTimeTicks": 4320, "supplierReliability": 0.97, "spoilageTauDays": 90 },
+  { "goodId": "cookies", "reorderPoint": 12, "orderUpToLevel": 36, "leadTimeTicks": 4320, "supplierReliability": 0.97, "spoilageTauDays": 90 }
 ]

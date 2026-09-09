@@ -53,6 +53,14 @@ describe('CheckoutSystem — lanes', () => {
     expect(checkout.staff(1).skill).toBeCloseTo(1);
   });
 
+  it('staffIds lists every hired staff member, ascending', () => {
+    const { world, checkout } = worldWithCheckout();
+    world.commands.push({ type: 'hireStaff', staffId: 5, skill: 0.8, morale: 0.9 });
+    world.commands.push({ type: 'hireStaff', staffId: 2, skill: 0.6, morale: 0.7 });
+    world.step();
+    expect(checkout.staffIds()).toEqual([2, 5]);
+  });
+
   it('does not claim kernel or grid command types', () => {
     const { checkout, world } = worldWithCheckout();
     expect(checkout.applyCommand(world, { type: 'noop' })).toBe(false);
@@ -172,6 +180,34 @@ describe('CheckoutSystem — queueing', () => {
     for (const entry of world.commands.log) replayed.commands.push(entry.command);
     replayed.run(50);
     expect(replayed.hash).toBe(finalHash);
+  });
+});
+
+describe('staffMoraleOnLane', () => {
+  it("returns the assigned staff member's morale", () => {
+    const { world, grid, checkout } = worldWithCheckout();
+    grid.place('register', 3, 3, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    world.commands.push({ type: 'hireStaff', staffId: 1, skill: 0.8, morale: 0.7 });
+    world.commands.push({ type: 'assignStaffToRegister', staffId: 1, instanceId });
+    world.step();
+    expect(checkout.staffMoraleOnLane(instanceId)).toBeCloseTo(0.7);
+  });
+
+  it('returns null for a self-checkout lane', () => {
+    const { world, grid, checkout } = worldWithCheckout();
+    grid.place('self_checkout', 5, 5, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    world.step();
+    expect(checkout.staffMoraleOnLane(instanceId)).toBeNull();
+  });
+
+  it('returns null for an unassigned register lane', () => {
+    const { world, grid, checkout } = worldWithCheckout();
+    grid.place('register', 3, 3, 0);
+    const instanceId = grid.placements()[0]!.instanceId;
+    world.step();
+    expect(checkout.staffMoraleOnLane(instanceId)).toBeNull();
   });
 });
 

@@ -1,0 +1,35 @@
+// Rival 2 — Grocerteria 24 (PLAN.md §3, L2 boss). Logged in docs/legal/parody-review.md row
+// 2; the four-part name test passed there before this file was written.
+//
+// A satire of a *category* (the 24-hour convenience grocer), never of any specific chain.
+// No real name, logo, slogan, or trade-dress colour pairing appears here or anywhere else.
+//
+// quality/service/ambiance are authored mid-range — a competent, unremarkable convenience
+// store. The signature mechanic ("never closes; owns 10pm-6am") is expressed through the
+// 'neverCloses' signature's per-segment shapeTerms bump for convenience/student households,
+// not through these baseline terms.
+{
+  id: 'grocerteria-24',
+  name: 'Grocerteria 24',
+  archetype: '24-hour convenience grocer',
+  communityLove: 35,
+  position: { x: -2, y: 5 },
+  identity: 'convenience-24h',
+  quality: 0.45,
+  service: 0.5,
+  ambiance: 0.35,
+  // Mid-range pricing — convenience stores don't compete on price, they compete on access.
+  priceIndex: 1.05,
+  // Narrow assortment — a convenience footprint, not a full grocery run.
+  assortmentBreadth: 0.3,
+  // Rival Dynamics (M2 2.0 sub-project A). Moderate everything — a steady operator, not an
+  // aggressive one. signature 'neverCloses' does the mechanical work.
+  personality: {
+    priceAggression: 0.3,
+    qualityInvestment: 0.3,
+    marketingSpend: 0.3,
+    expansionRate: 0.1,
+    reactivity: 0.4,
+    signature: 'neverCloses',
+  },
+}

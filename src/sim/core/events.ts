@@ -16,6 +16,8 @@
  * nature structural rather than a convention.
  */
 
+import type { TellTerm } from '../content/gentle-surface.js';
+
 export type SimEvent =
   | { readonly type: 'tick'; readonly tick: number }
   | { readonly type: 'dayStarted'; readonly day: number }
@@ -61,6 +63,25 @@ export type SimEvent =
       /** 1..n — rivals in roster order; never 0, that is `shopperTripCompleted`'s job. */
       readonly storeIndex: number;
       readonly satisfaction: number;
+    }
+  | {
+      readonly type: 'chapterStarted';
+      readonly levelId: string;
+      readonly chapterIndex: number;
+    }
+  | {
+      readonly type: 'chapterComplete';
+      readonly levelId: string;
+      readonly chapterIndex: number;
+    }
+  | { readonly type: 'levelWon'; readonly levelId: string }
+  | { readonly type: 'levelLost'; readonly levelId: string }
+  | {
+      readonly type: 'tellFired';
+      readonly shopperId: number;
+      readonly term: TellTerm;
+      readonly magnitude: number;
+      readonly worldRef?: { readonly instanceId: number };
     };
 
 export type SimEventType = SimEvent['type'];

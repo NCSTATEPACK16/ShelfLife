@@ -10,6 +10,7 @@ const GoodDefSchema = z.object({
   depletionPerDay: z.number().min(0).max(1),
   reorderThreshold: z.number().min(0).max(1),
   impulseBase: z.number().min(0).max(1),
+  category: z.string().min(1),
 });
 
 const CatalogSchema = z.array(GoodDefSchema).min(1);

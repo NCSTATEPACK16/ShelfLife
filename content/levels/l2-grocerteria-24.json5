@@ -1,0 +1,44 @@
+// Level 2 — Grocerteria 24 (PLAN.md §3). See l1-sav-a-lott.json5's header note — same
+// first-pass caveat applies.
+{
+  id: 'l2',
+  rivalId: 'grocerteria-24',
+  name: 'Level 2: Grocerteria 24',
+  chapters: [
+    {
+      id: 'ch1',
+      title: 'Open Your Doors',
+      mechanicUnlock: 'scheduling',
+      introCopy: { advisor: 'marcus', line: "Grocerteria never closes. We can't compete on hours — we compete on daytime basket size." },
+      outroCopy: { advisor: 'marcus', line: 'Good start. Keep the daytime crowd coming back.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 7, threshold: 0.15 },
+    },
+    {
+      id: 'ch2',
+      title: 'Hold The Daytime',
+      introCopy: { advisor: 'marcus', line: 'Own the hours that matter. Let them keep the graveyard shift.' },
+      outroCopy: { advisor: 'marcus', line: "You're the daytime store now." },
+      objective: { type: 'shareThreshold', trailingWindowDays: 7, threshold: 0.25 },
+    },
+    {
+      id: 'ch3',
+      title: 'Chip Away',
+      introCopy: { advisor: 'marcus', line: 'Their basket size is small. Ours doesn’t have to be.' },
+      outroCopy: { advisor: 'marcus', line: "They're feeling it now." },
+      objective: { type: 'shareThreshold', trailingWindowDays: 7, threshold: 0.35 },
+    },
+    {
+      id: 'ch4',
+      title: 'Own The Block',
+      introCopy: { advisor: 'marcus', line: 'Finish it. Grocerteria has nowhere left to hide.' },
+      outroCopy: { advisor: 'marcus', line: 'Grocerteria is done. On to the next one.' },
+      objective: { type: 'shareThreshold', trailingWindowDays: 7, threshold: 0.45 },
+    },
+  ],
+  loseCondition: { type: 'ebitdaStreak', maxNegativeDays: 14 },
+  households: {
+    householdCount: 24,
+    segmentMix: { priceHunter: 1, convenience: 1, family: 1, foodie: 1, bulk: 1, senior: 1, student: 1 },
+    catchmentMarginCells: 4,
+  },
+}

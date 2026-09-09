@@ -12,4 +12,6 @@ export interface GoodDef {
   readonly reorderThreshold: number;
   /** Base probability (0-1) of an impulse purchase when a shopper passes this good's shelf. */
   readonly impulseBase: number;
+  /** Category tag for §5.4's adjacencyBonus combo check (e.g. 'dairy', 'bakery'). */
+  readonly category: string;
 }
